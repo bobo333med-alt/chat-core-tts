@@ -47,11 +47,11 @@
     font-size: 11px;
     font-family: Tahoma;
     outline: none;
-    width: 75px; /* 🎯 قوائم نحيفة وصغيرة */
+    width: 75px;
   }
   .lang-select option { background-color: #0f172a; color: #ffffff; }
 
-  /* 🎯 المايكات الصغار */
+  /* 🎯 المايكات */
   .mic-btn {
     width: 35px;
     height: 35px;
@@ -67,40 +67,42 @@
   }
   .mic-btn.blue { background: #6366f1; box-shadow: 0 0 10px rgba(99,102,241,0.5); }
   .mic-btn.green { background: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); }
-  
-  .mic-btn.recording {
-    background: #ef4444 !important;
-    animation: pulse 0.8s infinite;
-    box-shadow: 0 0 15px rgba(239,68,68,0.8);
-  }
-  
-  .mic-btn:disabled {
-    background: #475569 !important;
-    box-shadow: none;
-    cursor: not-allowed;
-    opacity: 0.5;
-    animation: none;
-  }
-
+  .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 15px rgba(239,68,68,0.8); }
+  .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
 
-  /* 🎯 الأفاتار (وسط الشاشة فوق الدردشة) */
-  #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; }
+  /* 🎯 الأفاتار */
+  #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
+  #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
+
+  /* 🎯 الشاشة الكاملة وإرجاع اللوغو */
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; margin: 0; }
+  #avatar-wrap.fullscreen #avatar-container { width: 95vmin; height: 95vmin; }
+  #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
+  #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
+
+  #closeFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+
+  #removeAvatarBtn {
+    display: none; position: absolute; top: 5px; right: 5px;
+    width: 12px; height: 12px; border-radius: 50%; background: #000000;
+    border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8;
+  }
+  #removeAvatarBtn:hover { opacity: 1; }
 
   /* 🎯 الدردشة */
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; min-height: 100px; position: relative; }
   .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
-  .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } /* رسائلك إنت */
-  .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} /* رسائل صاحبك */
+  .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } 
+  .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
 
   /* 🎯 القوائم المنبثقة */
   #actionMenu { display: none; position: fixed; bottom: 70px; left: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
-  .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; font-family: Arial, sans-serif; }
+  .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
   .action-btn:hover { background: #334155; }
 
   #musicMenu { display: none; position: fixed; bottom: 70px; left: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
@@ -111,20 +113,21 @@
   .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
   .music-item.add-more { background: #22c55e; } 
   .music-item.stop-btn { background: #991b1b; } 
-  .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
   .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 
-  /* 🎯 شريط الكتابة السفلي */
+  /* 🎯 شريط الكتابة السفلي مع الأزرار الجديدة */
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-  input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 2; }
+  input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
   button.btn { padding: 0; border: none; border-radius: 50%; color: #fff; font-size: 16px; font-weight: bold; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   
-  #imageBtn { background: #10b981; order: 1; font-size: 12px; font-family: Arial, sans-serif; }
-  #sendBtn { background: #1d4ed8; order: 3; }
+  /* 🎯 الأزرار في الأسفل */
+  #musicBtn { background: #6366f1; order: 1; }
+  #mediaBtn { background: #10b981; order: 2; font-size: 12px; font-family: Arial, sans-serif; }
+  #sendBtn { background: #1d4ed8; order: 4; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
 
-  /* 🎯 زر السلة (برتقالي غامق، مرفوع لملمتر) */
+  /* 🎯 زر السلة */
   #clearBtn { 
     position: fixed; bottom: 65px; right: 15px; 
     width: 35px; height: 35px; border-radius: 50%; 
@@ -136,7 +139,6 @@
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
 
-  /* أزرار إضافية فوق بعضها */
   .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; }
   .extra-controls button { padding: 5px 15px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; }
   .extra-controls button.active { background: #eab308; color: #000; }
@@ -144,9 +146,8 @@
 </head>
 <body>
 
-<!-- 🎯 الشريط العلوي: إنت على اليمين، صاحبك على اليسار -->
+<!-- 🎯 الشريط العلوي -->
 <div class="top-bar">
-  <!-- قسمك إنت (اليمين) -->
   <div class="user-section">
     <span style="font-size:10px; color:#94a3b8;">You</span>
     <select id="langA" class="lang-select">
@@ -161,7 +162,6 @@
     <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
   </div>
 
-  <!-- قسم صاحبك (اليسار) -->
   <div class="user-section">
     <button id="micB" class="mic-btn green" title="Talk">🎤</button>
     <select id="langB" class="lang-select">
@@ -177,20 +177,19 @@
   </div>
 </div>
 
-<!-- أزرار إضافية (ترجمة، أفاتار، موسيقى) -->
 <div class="extra-controls">
-    <button id="translateModeBtn">Translator Mode ON</button>
+    <button id="translateModeBtn" class="active">Translator Mode ON</button>
     <button id="uploadBtn">📁 Avatar</button>
-    <button id="mediaBtn">📷 Media</button>
-    <button id="musicBtn">🎵 Music</button>
 </div>
 
-<!-- الأفاتار -->
+<!-- 🎯 الأفاتار -->
 <div id="avatar-wrap">
   <div id="avatar-container">
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg" alt="vibe-core logo">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
+  <button id="removeAvatarBtn" title="Reset Avatar"></button>
+  <button id="closeFullscreen" title="Close">✕</button>
   <input type="file" id="videoUpload" accept="video/*" style="display: none;">
 </div>
 
@@ -200,14 +199,16 @@
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
 </button>
 
-<!-- شريط الكتابة السفلي -->
+<!-- 🎯 شريط الكتابة السفلي (مع الموسيقى والميديا) -->
 <div class="row">
+  <button class="btn" id="musicBtn" title="Music">🎵</button>
+  <button class="btn" id="mediaBtn" title="Media">media</button>
   <input type="text" id="textInput" placeholder="Type..." />
   <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
 </div>
 <div id="status">Ready</div>
 
-<!-- القوائم المنبثقة المخفية -->
+<!-- القوائم المخفية -->
 <div id="imagePreviewContainer" style="display:none;"></div>
 <div id="actionMenu">
   <button class="action-btn" id="menuCamera">📸 Camera</button>
@@ -226,7 +227,6 @@
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const REQUEST_TIMEOUT_MS = 90000;
-const MAX_TEXT_FILE_SIZE = 500 * 1024;
 const HISTORY_LIMIT = 6; 
 
 const $ = id => document.getElementById(id);
@@ -234,18 +234,17 @@ const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn');
 const micA = $('micA'), micB = $('micB');
 const langA = $('langA'), langB = $('langB');
 const clearBtn = $('clearBtn'), statusEl = $('status');
-const avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
+const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video'), closeFullscreen = $('closeFullscreen'), removeAvatarBtn = $('removeAvatarBtn');
 const translateModeBtn = $('translateModeBtn');
 const uploadBtn = $('uploadBtn'), videoUpload = $('videoUpload');
 const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery');
 const cameraUpload = $('cameraUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
-const imagePreviewContainer = $('imagePreviewContainer');
 
 let attachedImageBase64 = null;
 let chatHistory = [];
-let isTranslatorMode = true; // الوضع الافتراضي هو الترجمة
-let activeSpeaker = null; // 'A' أو 'B' أو null
+let isTranslatorMode = true; 
+let activeSpeaker = null; 
 let isRecording = false;
 let isSending = false;
 let currentAudio = null;
@@ -267,8 +266,8 @@ function addMsg(text, className, lang) {
     div.appendChild(tag);
   }
   let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-  div.appendChild(document.createTextNode(formattedText)); // للحفاظ على الأمان
-  div.innerHTML = div.innerHTML.replace(/&lt;br&gt;/g, '<br>'); // نسمح بالـ br فقط
+  div.appendChild(document.createTextNode(formattedText));
+  div.innerHTML = div.innerHTML.replace(/&lt;br&gt;/g, '<br>');
   chatEl.appendChild(div); 
   chatEl.scrollTop = chatEl.scrollHeight;
 }
@@ -288,7 +287,21 @@ function fetchWithTimeout(url, options, timeoutMs) {
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German' }[code] || 'English'; }
 function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-FR', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 
-// الأفاتار
+// 🎯 الأفاتار: الشاشة الكاملة والإرجاع
+avatarWrap.addEventListener('click', (e) => {
+  if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
+  if (avatarWrap.classList.contains('fullscreen')) {
+    avatarWrap.classList.remove('fullscreen');
+  } else {
+    avatarWrap.classList.add('fullscreen');
+  }
+});
+
+closeFullscreen.addEventListener('click', (e) => { 
+  e.stopPropagation(); 
+  avatarWrap.classList.remove('fullscreen'); 
+});
+
 uploadBtn.addEventListener('click', () => { videoUpload.value = ''; videoUpload.click(); });
 videoUpload.addEventListener('change', function (e) {
   const file = e.target.files[0]; if (!file) return;
@@ -296,7 +309,17 @@ videoUpload.addEventListener('change', function (e) {
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
   avatarVideo.src = currentAvatarObjectUrl; avatarVideo.play().catch(() => {});
+  removeAvatarBtn.style.display = 'block'; // نطلعو زر الإرجاع
   setStatus('Avatar updated!');
+});
+
+removeAvatarBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
+  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block';
+  removeAvatarBtn.style.display = 'none'; // نخبوه
+  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
+  setStatus('Avatar reset to logo.');
 });
 
 translateModeBtn.addEventListener('click', () => {
@@ -310,8 +333,8 @@ clearBtn.addEventListener('click', () => {
   chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot');
 });
 
-// الميديا والموسيقى (نفس الأكواد القديمة)
-mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); actionMenu.style.display = actionMenu.style.display === 'flex' ? 'none' : 'flex'; });
+// 🎯 الميديا
+mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); actionMenu.style.display = actionMenu.style.display === 'flex' ? 'none' : 'flex'; musicMenu.style.display = 'none'; });
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; /* Gallery logic */ });
 cameraUpload.addEventListener('change', (e) => {
@@ -319,11 +342,13 @@ cameraUpload.addEventListener('change', (e) => {
   const reader = new FileReader(); reader.onload = ev => { attachedImageBase64 = ev.target.result; setStatus('Image attached.'); }; reader.readAsDataURL(file);
 });
 
-musicBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = 'block'; });
+// 🎯 الموسيقى (ولات في الأسفل)
+musicBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = musicMenu.style.display === 'block' ? 'none' : 'block'; actionMenu.style.display = 'none'; });
 audioUpload.addEventListener('change', (e) => {
   const files = e.target.files; for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
   renderPlaylist(); e.target.value = '';
 });
+
 function renderPlaylist() {
   musicList.innerHTML = '';
   const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
@@ -339,15 +364,19 @@ function renderPlaylist() {
     musicList.appendChild(div);
   });
 }
+
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
 function playSong(index) { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; } currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); }
 bgAudio.addEventListener('ended', () => playSong((currentSongIndex + 1) % playlist.length));
 renderPlaylist();
 
-document.addEventListener('click', (e) => { if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; });
+document.addEventListener('click', (e) => { 
+  if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; 
+  if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
+});
 
 
-// 🎯 منطق الترجمة
+// 🎯 الترجمة
 function buildSystemPrompt(targetLang) {
   if (isTranslatorMode) {
     const langName = langNameFor(targetLang);
@@ -380,18 +409,17 @@ async function ask(text, sourceLang, targetLang, speaker) {
     isSending = false;
     
     if (reply) {
-      // نطبعو الترجمة في الجهة المقابلة
       const replyClass = (speaker === 'A') ? 'user-b' : 'user-a';
       addMsg(reply, replyClass, targetLang);
       resetStatus();
       speak(reply, targetLang);
     } else {
-      unlockMics(); // إذا فشل، نحلو المايكات
+      unlockMics();
     }
   }
 }
 
-// 🎯 المايكات والاستماع
+// 🎯 المايكات
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 
@@ -400,9 +428,7 @@ if (SR) {
   recognition.continuous = false; 
   recognition.interimResults = false;
 
-  recognition.onstart = () => {
-    isRecording = true;
-  };
+  recognition.onstart = () => { isRecording = true; };
 
   recognition.onresult = e => {
     const text = e.results[0][0].transcript;
@@ -424,7 +450,6 @@ if (SR) {
 
   recognition.onend = () => {
     isRecording = false;
-    // إذا ما كانش الروبوت يحكي، نحلو المايكات
     if (!isBotTalking && !isSending) unlockMics();
   };
 
@@ -432,7 +457,7 @@ if (SR) {
     unlockAudio();
     if (isRecording) { recognition.stop(); return; }
     
-    stopAudio(); // نوقفو أي صوت للروبوت
+    stopAudio(); 
     activeSpeaker = speaker;
     
     if (speaker === 'A') {
@@ -460,21 +485,19 @@ if (SR) {
 // إرسال رسالة مكتوبة
 sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim(); if (!t) return;
-  addMsg(t, 'user-a', langA.value); // نفترضو إنت اللي كتبت
+  addMsg(t, 'user-a', langA.value); 
   ask(t, langA.value, langB.value, 'A');
   inputEl.value = '';
 });
 
 
-// 🎯 محرك الصوت (TTS)
+// 🎯 الصوت (TTS)
 let isBotTalking = false;
 
 function unlockMics() {
   activeSpeaker = null;
-  micA.disabled = false;
-  micB.disabled = false;
-  micA.classList.remove('recording');
-  micB.classList.remove('recording');
+  micA.disabled = false; micB.disabled = false;
+  micA.classList.remove('recording'); micB.classList.remove('recording');
   if (!isBotTalking) resetStatus();
 }
 
@@ -486,8 +509,7 @@ function stopAudio() {
 }
 
 function speak(text, lang) {
-  stopAudio(); 
-  isBotTalking = true; 
+  stopAudio(); isBotTalking = true; 
   const mySpeechId = currentSpeechId;
   setStatus('Speaking...');
 
@@ -518,8 +540,7 @@ function speak(text, lang) {
     if (bestVoice) u.voice = bestVoice;
     u.lang = bestVoice ? bestVoice.lang : langCode;
     
-    // إعدادات الصوت
-    u.pitch = 1.0; u.rate = 0.95; // افتراضي
+    u.pitch = 1.0; u.rate = 0.95; 
 
     u.onend = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
     u.onerror = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
