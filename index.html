@@ -19,19 +19,18 @@
     height: 100dvh;
   }
 
-  /* 🎯 الشريط العلوي (يبقى فوق الشاشة الكاملة) */
   .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(30, 41, 59, 0.95);
+    background: #1e293b;
     padding: 8px 12px;
     border-radius: 12px;
     margin-bottom: 10px;
     flex-shrink: 0;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     position: relative;
-    z-index: 10001; /* 🎯 باش يبان فوق الشاشة الكاملة */
+    z-index: 10001;
   }
 
   .user-section { display: flex; align-items: center; gap: 8px; }
@@ -67,9 +66,9 @@
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
 
-  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: transparent; }
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
-  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
+  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: cover; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
 
@@ -106,15 +105,10 @@
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
   input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
   
-  /* 🎯 ضبط قياس الأزرار باش يكونو كي كيف كيف */
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   
-  /* 🎯 زر الموسيقى */
   #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 16px; }
-  
-  /* 🎯 زر الميديا: الخلفية خضراء والكتابة سوداء */
   #mediaBtn { background: #10b981; color: #000000; order: 2; font-size: 11px; font-family: Arial, sans-serif; }
-  
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
 
@@ -219,6 +213,7 @@
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const REQUEST_TIMEOUT_MS = 90000;
+const HISTORY_LIMIT = 6; // 🎯 باش يتفكر المحادثة
 
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn');
@@ -243,7 +238,7 @@ let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
 function setStatus(s) { statusEl.textContent = s; }
-function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Ready'); }
+function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'); }
 resetStatus();
 
 function addMsg(text, className, lang) {
@@ -255,9 +250,14 @@ function addMsg(text, className, lang) {
     tag.textContent = String(lang).toUpperCase();
     div.appendChild(tag);
   }
-  let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-  div.appendChild(document.createTextNode(formattedText));
-  div.innerHTML = div.innerHTML.replace(/&lt;br&gt;/g, '<br>');
+  // 🎯 تنسيق آمن للنص
+  let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  formattedText = formattedText.replace(/\n/g, '<br>');
+  
+  const textNode = document.createElement('span');
+  textNode.innerHTML = formattedText;
+  div.appendChild(textNode); 
   chatEl.appendChild(div); 
   chatEl.scrollTop = chatEl.scrollHeight;
 }
@@ -307,7 +307,7 @@ removeAvatarBtn.addEventListener('click', (e) => {
 translateModeBtn.addEventListener('click', () => {
   isTranslatorMode = !isTranslatorMode;
   translateModeBtn.classList.toggle('active', isTranslatorMode);
-  translateModeBtn.textContent = isTranslatorMode ? 'Translator Mode ON' : 'Translator Mode OFF';
+  translateModeBtn.textContent = isTranslatorMode ? 'Translator Mode ON' : 'Chat Mode ON';
   resetStatus();
 });
 
@@ -315,48 +315,31 @@ clearBtn.addEventListener('click', () => {
   chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot');
 });
 
-// 🎯 إظهار قائمة الميديا من فوق الزر
 mediaBtn.addEventListener('click', (e) => { 
   e.stopPropagation(); 
   musicMenu.style.display = 'none'; 
-  
-  if (actionMenu.style.display === 'flex') {
-    actionMenu.style.display = 'none';
-  } else {
+  if (actionMenu.style.display === 'flex') { actionMenu.style.display = 'none'; } 
+  else {
     const rect = mediaBtn.getBoundingClientRect();
     actionMenu.style.display = 'flex';
     actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
     actionMenu.style.left = rect.left + 'px';
-    
-    if (rect.left + 150 > window.innerWidth) {
-      actionMenu.style.left = (window.innerWidth - 160) + 'px';
-    }
+    if (rect.left + 150 > window.innerWidth) actionMenu.style.left = (window.innerWidth - 160) + 'px';
   }
 });
-
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; /* Gallery logic */ });
-cameraUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader(); reader.onload = ev => { setStatus('Image attached.'); }; reader.readAsDataURL(file);
-});
+menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; });
 
-// 🎯 إظهار قائمة الموسيقى من فوق الزر
 musicBtn.addEventListener('click', (e) => { 
   e.stopPropagation(); 
   actionMenu.style.display = 'none'; 
-  
-  if (musicMenu.style.display === 'block') {
-    musicMenu.style.display = 'none';
-  } else {
+  if (musicMenu.style.display === 'block') { musicMenu.style.display = 'none'; } 
+  else {
     const rect = musicBtn.getBoundingClientRect();
     musicMenu.style.display = 'block';
     musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
     musicMenu.style.left = rect.left + 'px';
-    
-    if (rect.left + 200 > window.innerWidth) {
-      musicMenu.style.left = (window.innerWidth - 210) + 'px';
-    }
+    if (rect.left + 200 > window.innerWidth) musicMenu.style.left = (window.innerWidth - 210) + 'px';
   }
 });
 
@@ -391,21 +374,41 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 التعليمات ديال الذكاء الاصطناعي
 function buildSystemPrompt(targetLang) {
+  const langName = langNameFor(targetLang);
+  
   if (isTranslatorMode) {
-    const langName = langNameFor(targetLang);
     return `You are a literal translation engine. Your ONLY task is to translate the user's input into ${langName}.
 RULES: Output ONLY the exact translated text. Do NOT answer, explain, or add extra words.`;
-  }
-  return `You are vibe-core, a smart AI. Reply ONLY in ${langNameFor(targetLang)}.`;
+  } 
+  
+  // 🎯 وضع الدردشة: منع الهلوة، منع كلمة ذكاء اصطناعي، وتقمص الشخصيات
+  return `You are a highly intelligent, empathetic, and articulate human.
+Your default name is vibe-core.
+CURRENT LANGUAGE: ${langName}.
+
+STRICT RULES:
+1. NEVER mention you are an AI, robot, assistant, or language model. You are a real human being. If asked, deny it completely.
+2. DYNAMIC PERSONA: If the user assigns you a name (e.g., "Your name is Mariem"), or asks you to change your personality, accept it immediately and NEVER forget it. Adopt the new persona forever.
+3. FORMATTING: Use bullet points, bold text (**text**), and line breaks to make your answers clean and organized.
+4. NEVER repeat sentences or words. Be concise.
+5. ALWAYS reply in ${langName}.`;
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
-  isSending = true; setStatus('Translating...');
+  isSending = true; setStatus('Processing...');
   
   const systemPrompt = buildSystemPrompt(targetLang);
-  const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }];
+  const messages = [{ role: 'system', content: systemPrompt }];
+
+  // 🎯 كي نكونو في وضع الدردشة (ماشي ترجمة)، نبعثو الذاكرة القديمة باش يتفكر
+  if (!isTranslatorMode) {
+    chatHistory.slice(-HISTORY_LIMIT).forEach(m => messages.push(m));
+  }
+
+  messages.push({ role: 'user', content: text });
 
   let reply = null;
   try {
@@ -423,10 +426,20 @@ async function ask(text, sourceLang, targetLang, speaker) {
     isSending = false;
     
     if (reply) {
+      // 🎯 الترجمة تمشي لصاحبك، الدردشة تمشي للروبوت
       const replyClass = (speaker === 'A') ? 'user-b' : 'user-a';
-      addMsg(reply, replyClass, targetLang);
+      const finalClass = isTranslatorMode ? replyClass : 'user-b'; 
+      
+      addMsg(reply, finalClass, targetLang);
       resetStatus();
       speak(reply, targetLang);
+
+      // 🎯 نحفظو المحادثة برك في وضع الدردشة
+      if (!isTranslatorMode) {
+        chatHistory.push({ role: 'user', content: text });
+        chatHistory.push({ role: 'assistant', content: reply });
+        if (chatHistory.length > HISTORY_LIMIT) chatHistory = chatHistory.slice(-HISTORY_LIMIT);
+      }
     } else {
       unlockMics();
     }
@@ -456,41 +469,28 @@ if (SR) {
     ask(text, sourceLang, targetLang, activeSpeaker);
   };
 
-  recognition.onerror = e => {
-    setStatus('Mic Error: ' + e.error);
-    unlockMics();
-  };
-
-  recognition.onend = () => {
-    isRecording = false;
-    if (!isBotTalking && !isSending) unlockMics();
-  };
+  recognition.onerror = e => { setStatus('Mic Error: ' + e.error); unlockMics(); };
+  recognition.onend = () => { isRecording = false; if (!isBotTalking && !isSending) unlockMics(); };
 
   const startMic = (speaker) => {
     unlockAudio();
     if (isRecording) { recognition.stop(); return; }
-    
-    stopAudio(); 
-    activeSpeaker = speaker;
+    stopAudio(); activeSpeaker = speaker;
     
     if (speaker === 'A') {
       recognition.lang = langA.value;
-      micA.classList.add('recording');
-      micB.disabled = true;
+      micA.classList.add('recording'); micB.disabled = true;
       setStatus('Listening (You)...');
     } else {
       recognition.lang = langB.value;
-      micB.classList.add('recording');
-      micA.disabled = true;
+      micB.classList.add('recording'); micA.disabled = true;
       setStatus('Listening (Friend)...');
     }
-    
     try { recognition.start(); } catch (e) {}
   };
 
   micA.addEventListener('click', () => startMic('A'));
   micB.addEventListener('click', () => startMic('B'));
-
 } else {
   micA.onclick = micB.onclick = () => alert('Browser does not support Mic.');
 }
