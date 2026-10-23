@@ -14,6 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 🎯 إعدادات مفاتيح API (يقراها من Render Environment Variables)
 keys_env = os.environ.get("GROQ_API_KEYS", "")
 GROQ_API_KEYS = [k.strip() for k in keys_env.split(",") if k.strip()]
 if not GROQ_API_KEYS:
@@ -21,8 +22,8 @@ if not GROQ_API_KEYS:
 
 current_key_index = 0
 
-# 🎯 موديلات قوية للترجمة والدردشة (بدلنا qwen خاطر يهلوس)
-MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]
+# 🎯 الموديلات الرسمية والسريعة في Groq (بدلنا الموديل اللي تسكّر)
+MODELS = ["llama3-70b-8192", "llama3-8b-8192"]
 VISION_MODEL = "llama-3.2-11b-vision-preview"
 
 class ChatRequest(BaseModel):
@@ -39,11 +40,15 @@ async def chat_endpoint(request: ChatRequest):
         try:
             client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
             response = await client.chat.completions.create(
-                model=model_to_use, messages=request.messages, temperature=0.3, max_tokens=1000
+                model=model_to_use, 
+                messages=request.messages, 
+                temperature=0.3, 
+                max_tokens=1500
             )
             return {"reply": response.choices[0].message.content}
         except Exception as e:
             error_msg = str(e)
+            # إذا المفتاح خلص ولا طلع Rate Limit، يبدل للمفتاح اللي بعدو
             if "429" in error_msg or "Rate limit" in error_msg:
                 current_key_index = (current_key_index + 1) % len(GROQ_API_KEYS)
                 await asyncio.sleep(1)
@@ -52,7 +57,7 @@ async def chat_endpoint(request: ChatRequest):
                 raise HTTPException(status_code=500, detail=error_msg)
     raise HTTPException(status_code=429, detail="All API keys reached their limit.")
 
-# 🎯 Endpoint جديد: ياخذ الصوت، يسمعو بـ Whisper، ويكشف اللغة
+# 🎯 Endpoint تاع الصوت (Whisper)
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     global current_key_index
@@ -63,14 +68,12 @@ async def transcribe_audio(file: UploadFile = File(...)):
         try:
             client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
             
-            # نبعثو الصوت لـ Whisper في Groq
             transcription = await client.audio.transcriptions.create(
                 file=(file.filename, content, file.content_type),
-                model="whisper-large-v3-turbo",  # موديل سريع ودقيق
+                model="whisper-large-v3-turbo", 
                 response_format="verbose_json"
             )
             
-            # نرجعو النص واللغة المكتشفة (مثلا 'ar' ولا 'fr')
             return {
                 "text": transcription.text,
                 "language": transcription.language
