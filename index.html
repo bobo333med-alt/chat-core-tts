@@ -19,7 +19,6 @@
     height: 100dvh;
   }
 
-  /* 🎯 الشريط العلوي (اللغات والمايكات) */
   .top-bar {
     display: flex;
     justify-content: space-between;
@@ -32,11 +31,7 @@
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
 
-  .user-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .user-section { display: flex; align-items: center; gap: 8px; }
 
   .lang-select {
     padding: 6px 4px;
@@ -51,18 +46,10 @@
   }
   .lang-select option { background-color: #0f172a; color: #ffffff; }
 
-  /* 🎯 المايكات */
   .mic-btn {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    border: none;
-    color: #fff;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 35px; height: 35px; border-radius: 50%; border: none;
+    color: #fff; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     transition: all 0.3s;
   }
   .mic-btn.blue { background: #6366f1; box-shadow: 0 0 10px rgba(99,102,241,0.5); }
@@ -71,19 +58,20 @@
   .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
 
-  /* 🎯 الأفاتار */
+  /* 🎯 الأفاتار (الشاشة الكاملة بدون دائرة وبدون خلفية سوداء) */
   #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
   #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
 
-  /* 🎯 الشاشة الكاملة وإرجاع اللوغو */
-  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; margin: 0; }
-  #avatar-wrap.fullscreen #avatar-container { width: 95vmin; height: 95vmin; }
+  /* 🎯 الشاشة الكاملة: تاخذ كبر الشاشة، بدون حواف، وبدون خلفية سوداء */
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: transparent; }
+  #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
+  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: cover; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
 
-  #closeFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+  #closeFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
 
   #removeAvatarBtn {
     display: none; position: absolute; top: 5px; right: 5px;
@@ -92,61 +80,61 @@
   }
   #removeAvatarBtn:hover { opacity: 1; }
 
-  /* 🎯 الدردشة */
-  #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; min-height: 100px; position: relative; }
+  /* 🎯 حاوية الدردشة */
+  .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
+  #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
+  
   .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
   .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } 
   .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
 
-  /* 🎯 القوائم المنبثقة */
-  #actionMenu { display: none; position: fixed; bottom: 70px; left: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
-  .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
-  .action-btn:hover { background: #334155; }
+  /* 🎯 سلة المهملات (في الدردشة من تحت على اليسار) */
+  #clearBtn { 
+    position: absolute; bottom: 2px; left: 10px; 
+    width: 30px; height: 30px; border-radius: 50%; 
+    background: #f6ad55; border: 2px solid #dd6b20; 
+    cursor: pointer; display: flex; align-items: center; justify-content: center; 
+    z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
+  }
+  #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
 
-  #musicMenu { display: none; position: fixed; bottom: 70px; left: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
-  #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
-  .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
-  .music-item:hover { background: #334155; } 
-  .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
-  .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
-  .music-item.add-more { background: #22c55e; } 
-  .music-item.stop-btn { background: #991b1b; } 
-  .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
-  .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
-
-  /* 🎯 شريط الكتابة السفلي مع الأزرار الجديدة */
+  /* 🎯 شريط الكتابة السفلي */
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
   input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
   button.btn { padding: 0; border: none; border-radius: 50%; color: #fff; font-size: 16px; font-weight: bold; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   
-  /* 🎯 الأزرار في الأسفل */
-  #musicBtn { background: #6366f1; order: 1; }
+  /* 🎯 زر الموسيقى: أبيض مع أيقونة سوداء */
+  #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
   #mediaBtn { background: #10b981; order: 2; font-size: 12px; font-family: Arial, sans-serif; }
   #sendBtn { background: #1d4ed8; order: 4; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
-
-  /* 🎯 زر السلة */
-  #clearBtn { 
-    position: fixed; bottom: 65px; right: 15px; 
-    width: 35px; height: 35px; border-radius: 50%; 
-    background: #f6ad55; border: 2px solid #dd6b20; 
-    cursor: pointer; display: flex; align-items: center; justify-content: center; 
-    z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
-  }
-  #clearBtn svg { fill: #2d3748; width: 18px; height: 18px; }
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
 
   .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; }
   .extra-controls button { padding: 5px 15px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; }
   .extra-controls button.active { background: #eab308; color: #000; }
+
+  /* 🎯 قوائم منبثقة */
+  #actionMenu { display: none; position: fixed; bottom: 70px; left: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
+  .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
+  
+  #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
+  #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
+  .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+  .music-item:hover { background: #334155; } 
+  .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
+  .music-item.add-more, .music-item.stop-btn { text-align: center; font-weight: bold; justify-content: center; }
+  .music-item.add-more { background: #22c55e; } 
+  .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; }
+  .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
+  .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 </style>
 </head>
 <body>
 
-<!-- 🎯 الشريط العلوي -->
 <div class="top-bar">
   <div class="user-section">
     <span style="font-size:10px; color:#94a3b8;">You</span>
@@ -161,7 +149,6 @@
     </select>
     <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
   </div>
-
   <div class="user-section">
     <button id="micB" class="mic-btn green" title="Talk">🎤</button>
     <select id="langB" class="lang-select">
@@ -182,7 +169,6 @@
     <button id="uploadBtn">📁 Avatar</button>
 </div>
 
-<!-- 🎯 الأفاتار -->
 <div id="avatar-wrap">
   <div id="avatar-container">
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg" alt="vibe-core logo">
@@ -193,13 +179,13 @@
   <input type="file" id="videoUpload" accept="video/*" style="display: none;">
 </div>
 
-<!-- الدرشة -->
-<div id="chat"></div>
-<button id="clearBtn" title="Clear Chat">
-  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-</button>
+<div class="chat-container">
+  <div id="chat"></div>
+  <button id="clearBtn" title="Clear Chat">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+  </button>
+</div>
 
-<!-- 🎯 شريط الكتابة السفلي (مع الموسيقى والميديا) -->
 <div class="row">
   <button class="btn" id="musicBtn" title="Music">🎵</button>
   <button class="btn" id="mediaBtn" title="Media">media</button>
@@ -208,8 +194,6 @@
 </div>
 <div id="status">Ready</div>
 
-<!-- القوائم المخفية -->
-<div id="imagePreviewContainer" style="display:none;"></div>
 <div id="actionMenu">
   <button class="action-btn" id="menuCamera">📸 Camera</button>
   <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
@@ -217,6 +201,7 @@
 <input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
 <input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
 <audio id="bgAudio"></audio>
+
 <div id="musicMenu">
   <h4>🎵 Playlist</h4>
   <div id="musicList"></div>
@@ -227,7 +212,6 @@
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const REQUEST_TIMEOUT_MS = 90000;
-const HISTORY_LIMIT = 6; 
 
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn');
@@ -241,7 +225,6 @@ const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('me
 const cameraUpload = $('cameraUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 
-let attachedImageBase64 = null;
 let chatHistory = [];
 let isTranslatorMode = true; 
 let activeSpeaker = null; 
@@ -287,20 +270,12 @@ function fetchWithTimeout(url, options, timeoutMs) {
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German' }[code] || 'English'; }
 function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-FR', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 
-// 🎯 الأفاتار: الشاشة الكاملة والإرجاع
 avatarWrap.addEventListener('click', (e) => {
   if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
-  if (avatarWrap.classList.contains('fullscreen')) {
-    avatarWrap.classList.remove('fullscreen');
-  } else {
-    avatarWrap.classList.add('fullscreen');
-  }
+  avatarWrap.classList.toggle('fullscreen');
 });
 
-closeFullscreen.addEventListener('click', (e) => { 
-  e.stopPropagation(); 
-  avatarWrap.classList.remove('fullscreen'); 
-});
+closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
 
 uploadBtn.addEventListener('click', () => { videoUpload.value = ''; videoUpload.click(); });
 videoUpload.addEventListener('change', function (e) {
@@ -309,7 +284,7 @@ videoUpload.addEventListener('change', function (e) {
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
   avatarVideo.src = currentAvatarObjectUrl; avatarVideo.play().catch(() => {});
-  removeAvatarBtn.style.display = 'block'; // نطلعو زر الإرجاع
+  removeAvatarBtn.style.display = 'block';
   setStatus('Avatar updated!');
 });
 
@@ -317,7 +292,7 @@ removeAvatarBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
   avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block';
-  removeAvatarBtn.style.display = 'none'; // نخبوه
+  removeAvatarBtn.style.display = 'none';
   if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
   setStatus('Avatar reset to logo.');
 });
@@ -333,17 +308,39 @@ clearBtn.addEventListener('click', () => {
   chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot');
 });
 
-// 🎯 الميديا
-mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); actionMenu.style.display = actionMenu.style.display === 'flex' ? 'none' : 'flex'; musicMenu.style.display = 'none'; });
+mediaBtn.addEventListener('click', (e) => { 
+  e.stopPropagation(); 
+  actionMenu.style.display = actionMenu.style.display === 'flex' ? 'none' : 'flex'; 
+  musicMenu.style.display = 'none'; 
+});
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; /* Gallery logic */ });
+menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; });
 cameraUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader(); reader.onload = ev => { attachedImageBase64 = ev.target.result; setStatus('Image attached.'); }; reader.readAsDataURL(file);
+  const reader = new FileReader(); reader.onload = ev => { setStatus('Image attached.'); }; reader.readAsDataURL(file);
 });
 
-// 🎯 الموسيقى (ولات في الأسفل)
-musicBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = musicMenu.style.display === 'block' ? 'none' : 'block'; actionMenu.style.display = 'none'; });
+// 🎯 إظهار قائمة الموسيقى ديراكت من فوق الزر
+musicBtn.addEventListener('click', (e) => { 
+  e.stopPropagation(); 
+  actionMenu.style.display = 'none'; 
+  
+  if (musicMenu.style.display === 'block') {
+    musicMenu.style.display = 'none';
+  } else {
+    const rect = musicBtn.getBoundingClientRect();
+    musicMenu.style.display = 'block';
+    // نحطو القائمة فوق الزر مباشرة
+    musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    musicMenu.style.left = rect.left + 'px';
+    
+    // إلا كانت القائمة راح تخرج على اليمين، نرجعوها
+    if (rect.left + 200 > window.innerWidth) {
+      musicMenu.style.left = (window.innerWidth - 210) + 'px';
+    }
+  }
+});
+
 audioUpload.addEventListener('change', (e) => {
   const files = e.target.files; for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
   renderPlaylist(); e.target.value = '';
@@ -375,8 +372,6 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-
-// 🎯 الترجمة
 function buildSystemPrompt(targetLang) {
   if (isTranslatorMode) {
     const langName = langNameFor(targetLang);
@@ -419,7 +414,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
   }
 }
 
-// 🎯 المايكات
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 
@@ -482,7 +476,6 @@ if (SR) {
   micA.onclick = micB.onclick = () => alert('Browser does not support Mic.');
 }
 
-// إرسال رسالة مكتوبة
 sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim(); if (!t) return;
   addMsg(t, 'user-a', langA.value); 
@@ -490,8 +483,6 @@ sendBtn.addEventListener('click', () => {
   inputEl.value = '';
 });
 
-
-// 🎯 الصوت (TTS)
 let isBotTalking = false;
 
 function unlockMics() {
