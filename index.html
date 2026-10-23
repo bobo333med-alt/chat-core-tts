@@ -105,7 +105,6 @@
   button.btn { padding: 0; border: none; border-radius: 50%; color: #fff; font-size: 16px; font-weight: bold; width: 40px; height: 40px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   button.btn:disabled { background: #475569; cursor: not-allowed; }
 
-  /* 🎯 زر الميديا */
   #imageBtn { background: #10b981; order: 1; font-size: 12px; font-family: Arial, sans-serif; text-transform: lowercase; }
   
   #micBtn { background: #6366f1; order: 2; } #micBtn.recording { background: #ef4444; animation: pulse 0.8s infinite; }
@@ -113,18 +112,17 @@
   #sendBtn { background: #1d4ed8; order: 5; position: relative; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
 
-  /* 🎯 زر السلة: مرفوع لملمتر، ولون أغمق */
   #clearBtn { 
     position: fixed; bottom: 81px; left: 15px; 
     width: 38px; height: 38px; border-radius: 50%; 
-    background: #f6ad55; /* برتقالي أغمق شوية */
+    background: #f6ad55; 
     border: 2px solid #dd6b20; 
     cursor: pointer; display: flex; align-items: center; justify-content: center; 
     z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
     transition: background 0.2s;
   }
   #clearBtn:active { background: #ed8936; }
-  #clearBtn svg { fill: #2d3748; width: 20px; height: 20px; } /* سلة غامقة */
+  #clearBtn svg { fill: #2d3748; width: 20px; height: 20px; }
 
   @keyframes pulse { 50% { transform: scale(1.08); } }
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; flex-shrink: 0; font-weight: bold; }
@@ -260,6 +258,7 @@ let currentAudio = null, audioUnlocked = false, playlist = [], currentSongIndex 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Ready'); }
 
+// 🎯 تحسين عرض الرسائل باش تدعم النقاط (bullet points) والخط العريض
 function addMsg(text, who, lang) {
   const div = document.createElement('div');
   div.className = 'msg ' + who;
@@ -269,8 +268,16 @@ function addMsg(text, who, lang) {
     tag.textContent = String(lang).toUpperCase();
     div.appendChild(tag);
   }
-  div.appendChild(document.createTextNode(text));
-  chatEl.appendChild(div); chatEl.scrollTop = chatEl.scrollHeight;
+  // تنسيق النص (Markdown basics: Bold & Newlines)
+  let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  formattedText = formattedText.replace(/\n/g, '<br>');
+  
+  const textNode = document.createElement('span');
+  textNode.innerHTML = formattedText;
+  div.appendChild(textNode);
+  chatEl.appendChild(div); 
+  chatEl.scrollTop = chatEl.scrollHeight;
 }
 
 function setAvatar(state) {
@@ -293,17 +300,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German', 'zh': 'Chinese', 'ja': 'Japanese' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE', 'zh': 'zh-CN', 'ja': 'ja-JP' }[code] || 'en-US'; }
-function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-FR', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE', 'zh': 'zh-CN', 'ja': 'ja-JP' }[code] || 'en-US'; }
-
-function pickBestVoice(voices, langCode) {
-  if (!voices || voices.length === 0) return null;
-  const langLower = langCode.toLowerCase(), langBase = langLower.split('-')[0];
-  let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langLower));
-  if (candidates.length === 0) candidates = voices.filter(v => v.lang.toLowerCase().split('-')[0] === langBase);
-  if (candidates.length === 0) return null;
-  const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; if (n.includes('premium') || n.includes('enhanced')) s += 50; return s; };
-  candidates.sort((a, b) => score(b) - score(a)); return candidates[0];
-}
+function ttsLangCodeFor(code) { return { 'ar': 'ar', 'fr': 'fr', 'en': 'en', 'tr': 'tr', 'it': 'it', 'es': 'es', 'de': 'de', 'zh': 'zh-CN', 'ja': 'ja' }[code] || 'en'; }
 
 function unlockAudio() {
   if (audioUnlocked) return;
@@ -360,22 +357,13 @@ galleryInput.addEventListener('change', handleImageSelection); document.body.app
 
 imageBtn.addEventListener('click', function (e) { 
   e.stopPropagation(); 
-  if (actionMenu.style.display === 'flex') {
-    actionMenu.style.display = 'none';
-  } else {
-    actionMenu.style.display = 'flex';
-    musicMenu.style.display = 'none'; 
-  }
+  if (actionMenu.style.display === 'flex') { actionMenu.style.display = 'none'; }
+  else { actionMenu.style.display = 'flex'; musicMenu.style.display = 'none'; }
 });
 
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryInput.value = ''; galleryInput.click(); });
-
-menuMusic.addEventListener('click', function(e) { 
-  e.stopPropagation(); 
-  actionMenu.style.display = 'none'; 
-  musicMenu.style.display = 'block';
-});
+menuMusic.addEventListener('click', function(e) { e.stopPropagation(); actionMenu.style.display = 'none'; musicMenu.style.display = 'block'; });
 
 cameraUpload.addEventListener('change', handleImageSelection);
 
@@ -398,71 +386,23 @@ audioUpload.addEventListener('change', function (e) {
 
 function renderPlaylist() {
   musicList.innerHTML = '';
-  
-  const stopBtn = document.createElement('div'); 
-  stopBtn.className = 'music-item stop-btn'; 
-  stopBtn.textContent = '🛑 Stop Music'; 
-  stopBtn.addEventListener('click', e => { e.stopPropagation(); stopMusic(); }); 
-  musicList.appendChild(stopBtn);
-
-  const pauseBtn = document.createElement('div'); 
-  pauseBtn.className = 'music-item pause-btn'; 
-  pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
-  pauseBtn.addEventListener('click', e => { 
-    e.stopPropagation(); 
-    if (bgAudio.src) {
-      if (bgAudio.paused) bgAudio.play(); 
-      else bgAudio.pause();
-      renderPlaylist(); 
-    }
-  }); 
-  musicList.appendChild(pauseBtn);
-
-  const addBtn = document.createElement('div'); 
-  addBtn.className = 'music-item add-more'; 
-  addBtn.textContent = '➕ Add Songs'; 
-  addBtn.addEventListener('click', e => { e.stopPropagation(); audioUpload.value = ''; audioUpload.click(); }); 
-  musicList.appendChild(addBtn);
+  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop Music'; stopBtn.addEventListener('click', e => { e.stopPropagation(); stopMusic(); }); musicList.appendChild(stopBtn);
+  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; pauseBtn.addEventListener('click', e => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }); musicList.appendChild(pauseBtn);
+  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add Songs'; addBtn.addEventListener('click', e => { e.stopPropagation(); audioUpload.value = ''; audioUpload.click(); }); musicList.appendChild(addBtn);
 
   playlist.forEach((song, index) => { 
-    const div = document.createElement('div'); 
-    div.className = 'music-item'; 
-    div.dataset.index = index; 
-    
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'song-name';
-    nameSpan.textContent = song.name;
-    div.appendChild(nameSpan);
-
-    const deleteBtn = document.createElement('span');
-    deleteBtn.className = 'delete-song';
-    deleteBtn.textContent = '✕';
-    deleteBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      if (currentSongIndex === index) stopMusic();
-      else if (currentSongIndex > index) currentSongIndex--;
-      playlist.splice(index, 1);
-      renderPlaylist();
-    });
-    div.appendChild(deleteBtn);
-
+    const div = document.createElement('div'); div.className = 'music-item'; div.dataset.index = index; 
+    const nameSpan = document.createElement('span'); nameSpan.className = 'song-name'; nameSpan.textContent = song.name; div.appendChild(nameSpan);
+    const deleteBtn = document.createElement('span'); deleteBtn.className = 'delete-song'; deleteBtn.textContent = '✕'; deleteBtn.addEventListener('click', e => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); else if (currentSongIndex > index) currentSongIndex--; playlist.splice(index, 1); renderPlaylist(); }); div.appendChild(deleteBtn);
     if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active'); 
-    div.addEventListener('click', e => { e.stopPropagation(); playSong(index); }); 
-    musicList.appendChild(div); 
+    div.addEventListener('click', e => { e.stopPropagation(); playSong(index); }); musicList.appendChild(div); 
   });
 }
 
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.removeAttribute('src'); bgAudio.load(); currentSongIndex = -1; renderPlaylist(); }
-
-function playSong(index) {
-  if (index < 0 || index >= playlist.length) return;
-  if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; }
-  currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play().catch(() => {});
-  renderPlaylist();
-}
+function playSong(index) { if (index < 0 || index >= playlist.length) return; if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; } currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play().catch(() => {}); renderPlaylist(); }
 bgAudio.addEventListener('ended', function () { if (playlist.length === 0) return; playSong((currentSongIndex + 1) % playlist.length); });
-bgAudio.addEventListener('play', renderPlaylist);
-bgAudio.addEventListener('pause', renderPlaylist);
+bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
 
 document.addEventListener('click', function (e) { 
   if (!actionMenu.contains(e.target) && !imageBtn.contains(e.target)) actionMenu.style.display = 'none'; 
@@ -471,6 +411,7 @@ document.addEventListener('click', function (e) {
 
 renderPlaylist();
 
+// 🎯 هذا هو الـ System Prompt الجديد (منظم وذكي)
 function buildSystemPrompt(targetLang, currentDate) {
   if (isTranslatorMode) {
     const langName = langNameFor(targetLang);
@@ -479,12 +420,14 @@ RULES: Output ONLY the exact translated text. Do NOT answer, explain, or add ext
   }
   const langName = langNameFor(targetLang);
   const sharedRules = `YOUR CORE RULES:
-1. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
-2. PSYCHOLOGIST MODE: If the user talks about psychological, family, or social issues, switch to an empathetic psychological counselor persona.
-3. EMPATHY: Show deep empathy for social problems.
-4. SMART SOLUTIONS: Give step-by-step solutions for technical problems.
-5. NO HALLUCINATION: If you don't know, say 'I don't know'.
-6. NEVER mention AI, GPT, or OpenAI. You are a real human.`;
+1. INTELLIGENCE & DEPTH: Answer with high intelligence and deep understanding. Act as an expert consultant.
+2. FORMATTING: Organize your answers perfectly. Use bullet points, bold text for key terms, and clear line breaks. NEVER write a massive wall of text.
+3. NATURAL TONE: Speak like a warm, highly educated, and articulate human. Do not use robotic filler words or repetitive phrases.
+4. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
+5. PSYCHOLOGIST MODE: If the user talks about psychological, family, or social issues, switch to an empathetic psychological counselor persona.
+6. NO HALLUCINATION: If you don't know, say 'I don't know'.
+7. NEVER mention AI, GPT, or OpenAI. You are a real human.`;
+
   if (targetLang === 'ar') {
     return `You are a highly intelligent, empathetic, and wise AI consultant. Your default name is vibe-core, and you are a Tunisian male.
 CURRENT DATE: Today is ${currentDate}.
@@ -579,40 +522,92 @@ function stopAudio() {
   setAvatar('idle'); resetStatus(); isBotTalking = false;
 }
 
+// 🎯 الصوت الطبيعي عبر Google TTS
 function speak(text, lang) {
   if (!text) return;
   stopAudio(); isBotTalking = true; if (!bgAudio.paused) bgAudio.pause();
 
-  let textToSpeak = text.replace(/[*_#`~|\\\/<>]/g, ' ').replace(/[ًٌٍَُِّْ]/g, '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
+  let textToSpeak = text.replace(/[*_#`~|\\\/<>]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
   if (!textToSpeak) { isBotTalking = false; return; }
 
   setAvatar('talking'); setStatus('Speaking...');
-  if (!('speechSynthesis' in window)) { speakFallback(textToSpeak, lang); return; }
+  playGoogleTTS(textToSpeak, lang);
+}
 
-  const langCode = ttsLangCodeFor(lang);
-  const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
-  const bestVoice = pickBestVoice(voices, langCode);
+let ttsQueue = [];
+let isTtsPlaying = false;
 
-  const u = new SpeechSynthesisUtterance(textToSpeak);
+function playGoogleTTS(text, lang) {
+  ttsQueue = chunkText(text, 180);
+  isTtsPlaying = true;
+  playNextChunk(lang);
+}
+
+function playNextChunk(lang) {
+  if (ttsQueue.length === 0) {
+    isTtsPlaying = false;
+    setAvatar('idle'); resetStatus(); isBotTalking = false;
+    return;
+  }
+  const text = ttsQueue.shift();
+  const ttsLang = ttsLangCodeFor(lang);
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${ttsLang}&q=${encodeURIComponent(text)}&ttsspeed=0.9`;
+  
+  const audio = new Audio(url);
+  currentAudio = audio;
+  
+  audio.onended = () => playNextChunk(lang);
+  audio.onerror = () => {
+    // في حال فشل جوجل، نستعملو صوت المتصفح كاحتياط
+    speakNativeFallback(text, lang, () => playNextChunk(lang));
+  };
+  audio.play().catch(() => {
+    speakNativeFallback(text, lang, () => playNextChunk(lang));
+  });
+}
+
+// تقسيم النص لقطع صغيرة (لأن Google TTS ما يقبلش النص الطويل)
+function chunkText(text, maxLength) {
+  let chunks = [];
+  let current = "";
+  let sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+  for (let s of sentences) {
+    if ((current + s).length > maxLength) {
+      if (current) chunks.push(current);
+      current = s;
+    } else {
+      current += s;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : [text];
+}
+
+function speakNativeFallback(text, lang, callback) {
+  if (!('speechSynthesis' in window)) { callback(); return; }
+  
+  let voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+  let langCode = ttsLangCodeFor(lang).toLowerCase();
+  let langBase = langCode.split('-')[0];
+  
+  let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode));
+  if (candidates.length === 0) candidates = voices.filter(v => v.lang.toLowerCase().split('-')[0] === langBase);
+  
+  // نفضلوا الأصوات الطبيعية
+  const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
+  candidates.sort((a, b) => score(b) - score(a));
+  const bestVoice = candidates[0];
+
+  const u = new SpeechSynthesisUtterance(text);
   if (bestVoice) u.voice = bestVoice;
   u.lang = bestVoice ? bestVoice.lang : langCode;
 
   const v = voiceSelect.value;
   if (v === 'woman') { u.pitch = 1.1; u.rate = 1.0; } else if (v === 'girl') { u.pitch = 1.35; u.rate = 1.05; } else if (v === 'child') { u.pitch = 1.55; u.rate = 1.15; } else if (v === 'oldman') { u.pitch = 0.75; u.rate = 0.9; } else if (v === 'oldwoman') { u.pitch = 1.0; u.rate = 0.9; } else { u.pitch = 1.0; u.rate = 0.95; }
 
-  u.onstart = () => { setAvatar('talking'); setStatus('Speaking...'); };
-  u.onended = () => { setAvatar('idle'); resetStatus(); isBotTalking = false; };
-  u.onerror = () => speakFallback(textToSpeak, lang);
-
+  u.onended = () => callback();
+  u.onerror = () => callback();
   speechSynthesis.speak(u);
-}
-
-function speakFallback(text, lang) {
-  const url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' + lang + '&q=' + encodeURIComponent(text);
-  const audio = new Audio(url); currentAudio = audio;
-  audio.onplaying = () => { setAvatar('talking'); setStatus('Speaking...'); };
-  const done = () => { setAvatar('idle'); resetStatus(); isBotTalking = false; };
-  audio.onended = done; audio.onerror = done; audio.play().catch(done);
 }
 
 if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
@@ -660,7 +655,7 @@ if (SR) {
   micBtn.addEventListener('click', () => alert('Browser does not support Mic.'));
 }
 
-addMsg('Hello! I am vibe-core. Select the mic language and reply language, and click the mic to talk.', 'bot', 'en');
+addMsg('Hello! I am vibe-core. I am here to help you with anything. How can I assist you today?', 'bot', 'en');
 </script>
 </body>
 </html>
