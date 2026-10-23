@@ -85,39 +85,46 @@
   #cancelImageBtn { background: #dc2626; border: none; color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
   #actionMenu { display: none; position: fixed; bottom: 70px; right: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
-  .action-btn { padding: 10px 15px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 14px; cursor: pointer; text-align: right; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
+  .action-btn { padding: 10px 15px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 14px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; transition: background 0.2s; font-family: Arial, sans-serif; }
   .action-btn:hover { background: #334155; }
 
   #musicMenu { display: none; position: fixed; bottom: 70px; right: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 220px; max-height: 280px; overflow-y: auto; }
-  #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
-  .music-item { padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 4px; background: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; font-family: Arial, sans-serif; }
+  .music-item { padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 4px; background: #0f172a; white-space: nowrap; overflow: hidden; display: flex; justify-content: space-between; align-items: center; font-family: Arial, sans-serif; }
   .music-item:hover { background: #334155; } 
   .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
-  .music-item.add-more { background: #22c55e; text-align: center; font-weight: bold; } 
-  .music-item.stop-btn { background: #991b1b; text-align: center; font-weight: bold; margin-bottom: 8px; }
+  .music-item.add-more { background: #22c55e; text-align: center; font-weight: bold; justify-content: center; } 
+  .music-item.stop-btn { background: #991b1b; text-align: center; font-weight: bold; margin-bottom: 8px; justify-content: center; }
+  .music-item.pause-btn { background: #475569; text-align: center; font-weight: bold; margin-bottom: 4px; justify-content: center; }
+  
+  .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
+  .delete-song { color: #ef4444; font-weight: bold; padding: 0 8px; font-size: 16px; }
 
   .row { display: flex; gap: 4px; align-items: center; flex-shrink: 0; position: relative; }
   input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; min-width: 40px; order: 3; }
   button.btn { padding: 0; border: none; border-radius: 50%; color: #fff; font-size: 16px; font-weight: bold; width: 40px; height: 40px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   button.btn:disabled { background: #475569; cursor: not-allowed; }
 
-  #imageBtn { background: #10b981; order: 1; } #micBtn { background: #6366f1; order: 2; } #micBtn.recording { background: #ef4444; animation: pulse 0.8s infinite; }
+  /* 🎯 زر الميديا */
+  #imageBtn { background: #10b981; order: 1; font-size: 12px; font-family: Arial, sans-serif; text-transform: lowercase; }
+  
+  #micBtn { background: #6366f1; order: 2; } #micBtn.recording { background: #ef4444; animation: pulse 0.8s infinite; }
   #translateModeBtn { background: #475569; order: 4; } #translateModeBtn.active { background: #eab308; color: #000; box-shadow: 0 0 10px #eab308; }
   #sendBtn { background: #1d4ed8; order: 5; position: relative; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
 
-  /* 🎯 زر سلة المهملات: خلفية برتقالية هادئة وسلة رمادية */
+  /* 🎯 زر السلة: مرفوع لملمتر، ولون أغمق */
   #clearBtn { 
-    position: fixed; bottom: 80px; left: 15px; 
+    position: fixed; bottom: 81px; left: 15px; 
     width: 38px; height: 38px; border-radius: 50%; 
-    background: #fed7aa;
-    border: 2px solid #fdba74; 
+    background: #f6ad55; /* برتقالي أغمق شوية */
+    border: 2px solid #dd6b20; 
     cursor: pointer; display: flex; align-items: center; justify-content: center; 
     z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
     transition: background 0.2s;
   }
-  #clearBtn:active { background: #fdba74; }
-  #clearBtn svg { fill: #6b7280; width: 20px; height: 20px; }
+  #clearBtn:active { background: #ed8936; }
+  #clearBtn svg { fill: #2d3748; width: 20px; height: 20px; } /* سلة غامقة */
 
   @keyframes pulse { 50% { transform: scale(1.08); } }
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; flex-shrink: 0; font-weight: bold; }
@@ -128,7 +135,7 @@
 </head>
 <body>
 
-<button id="uploadBtn" title="تحميل فيديو للأفاتار">📁</button>
+<button id="uploadBtn" title="Upload Avatar">📁</button>
 
 <div class="top-bar">
   <div class="lang-controls">
@@ -180,7 +187,7 @@
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg" alt="vibe-core logo">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
-  <button id="removeAvatarBtn" title="إزالة الفيديو"></button>
+  <button id="removeAvatarBtn" title="Reset Avatar"></button>
   <button id="closeFullscreen" title="Close">✕</button>
   <button id="fsMicBtn" title="Talk">🎤</button>
   <input type="file" id="videoUpload" accept="video/*" style="display: none;">
@@ -201,21 +208,21 @@
 </div>
 
 <div id="actionMenu">
-  <button class="action-btn" id="menuCamera">📸 كاميرا</button>
-  <button class="action-btn" id="menuGallery">🖼️ صور</button>
-  <button class="action-btn" id="menuMusic">🎵 موسيقى</button>
+  <button class="action-btn" id="menuCamera">📸 Camera</button>
+  <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
+  <button class="action-btn" id="menuMusic">🎵 Music</button>
 </div>
 
 <audio id="bgAudio"></audio>
 <input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
 <input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
 <div id="musicMenu">
-  <h4>🎵 قائمة الأغاني</h4>
+  <h4>🎵 Playlist</h4>
   <div id="musicList"></div>
 </div>
 
 <div class="row">
-  <button class="btn" id="imageBtn" title="Options">📷</button>
+  <button class="btn" id="imageBtn" title="Media">media</button>
   <button class="btn" id="micBtn" title="Talk">🎤</button>
   <input type="text" id="textInput" placeholder="Type..." />
   <button class="btn" id="translateModeBtn" title="Translator Mode">🌐</button>
@@ -332,7 +339,7 @@ function enterFullscreen() { avatarWrap.classList.add('fullscreen'); document.bo
 function exitFullscreen() { avatarWrap.classList.remove('fullscreen'); document.body.classList.remove('fs-active'); }
 
 clearBtn.addEventListener('click', function (e) {
-  e.stopPropagation(); chatEl.querySelectorAll('.msg').forEach(m => m.remove()); chatHistory = []; stopAudio(); addMsg('تم مسح المحادثة. كيفاش نجم نعاونك توة؟', 'bot', 'ar');
+  e.stopPropagation(); chatEl.querySelectorAll('.msg').forEach(m => m.remove()); chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot', 'en');
 });
 
 translateModeBtn.addEventListener('click', function () { isTranslatorMode = !isTranslatorMode; translateModeBtn.classList.toggle('active', isTranslatorMode); resetStatus(); });
@@ -364,7 +371,6 @@ imageBtn.addEventListener('click', function (e) {
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryInput.value = ''; galleryInput.click(); });
 
-// 🎯 تصليح فتح قائمة الموسيقى (باش تتحل وتبان الأزرار ديما)
 menuMusic.addEventListener('click', function(e) { 
   e.stopPropagation(); 
   actionMenu.style.display = 'none'; 
@@ -392,27 +398,77 @@ audioUpload.addEventListener('change', function (e) {
 
 function renderPlaylist() {
   musicList.innerHTML = '';
-  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 إيقاف الموسيقى'; stopBtn.addEventListener('click', e => { e.stopPropagation(); stopMusic(); }); musicList.appendChild(stopBtn);
-  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ إضافة أغاني'; addBtn.addEventListener('click', e => { e.stopPropagation(); audioUpload.value = ''; audioUpload.click(); }); musicList.appendChild(addBtn);
-  playlist.forEach((song, index) => { const div = document.createElement('div'); div.className = 'music-item'; div.dataset.index = index; div.textContent = song.name; if (index === currentSongIndex) div.classList.add('active'); div.addEventListener('click', e => { e.stopPropagation(); playSong(index); }); musicList.appendChild(div); });
+  
+  const stopBtn = document.createElement('div'); 
+  stopBtn.className = 'music-item stop-btn'; 
+  stopBtn.textContent = '🛑 Stop Music'; 
+  stopBtn.addEventListener('click', e => { e.stopPropagation(); stopMusic(); }); 
+  musicList.appendChild(stopBtn);
+
+  const pauseBtn = document.createElement('div'); 
+  pauseBtn.className = 'music-item pause-btn'; 
+  pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
+  pauseBtn.addEventListener('click', e => { 
+    e.stopPropagation(); 
+    if (bgAudio.src) {
+      if (bgAudio.paused) bgAudio.play(); 
+      else bgAudio.pause();
+      renderPlaylist(); 
+    }
+  }); 
+  musicList.appendChild(pauseBtn);
+
+  const addBtn = document.createElement('div'); 
+  addBtn.className = 'music-item add-more'; 
+  addBtn.textContent = '➕ Add Songs'; 
+  addBtn.addEventListener('click', e => { e.stopPropagation(); audioUpload.value = ''; audioUpload.click(); }); 
+  musicList.appendChild(addBtn);
+
+  playlist.forEach((song, index) => { 
+    const div = document.createElement('div'); 
+    div.className = 'music-item'; 
+    div.dataset.index = index; 
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'song-name';
+    nameSpan.textContent = song.name;
+    div.appendChild(nameSpan);
+
+    const deleteBtn = document.createElement('span');
+    deleteBtn.className = 'delete-song';
+    deleteBtn.textContent = '✕';
+    deleteBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (currentSongIndex === index) stopMusic();
+      else if (currentSongIndex > index) currentSongIndex--;
+      playlist.splice(index, 1);
+      renderPlaylist();
+    });
+    div.appendChild(deleteBtn);
+
+    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active'); 
+    div.addEventListener('click', e => { e.stopPropagation(); playSong(index); }); 
+    musicList.appendChild(div); 
+  });
 }
 
-function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.removeAttribute('src'); bgAudio.load(); currentSongIndex = -1; musicList.querySelectorAll('.music-item[data-index]').forEach(el => el.classList.remove('active')); }
+function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.removeAttribute('src'); bgAudio.load(); currentSongIndex = -1; renderPlaylist(); }
+
 function playSong(index) {
   if (index < 0 || index >= playlist.length) return;
-  if (currentSongIndex === index && !bgAudio.paused) { stopMusic(); return; }
+  if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; }
   currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play().catch(() => {});
-  musicList.querySelectorAll('.music-item[data-index]').forEach(el => el.classList.remove('active'));
-  const el = musicList.querySelector(`.music-item[data-index="${index}"]`); if (el) el.classList.add('active');
+  renderPlaylist();
 }
 bgAudio.addEventListener('ended', function () { if (playlist.length === 0) return; playSong((currentSongIndex + 1) % playlist.length); });
+bgAudio.addEventListener('play', renderPlaylist);
+bgAudio.addEventListener('pause', renderPlaylist);
 
 document.addEventListener('click', function (e) { 
   if (!actionMenu.contains(e.target) && !imageBtn.contains(e.target)) actionMenu.style.display = 'none'; 
   if (!musicMenu.contains(e.target) && !menuMusic.contains(e.target)) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 نعرضو القائمة (بأزرارها) كي يتفتح التطبيق أول مرة
 renderPlaylist();
 
 function buildSystemPrompt(targetLang, currentDate) {
@@ -480,7 +536,7 @@ async function ask(text) {
     if (!res.ok) throw new Error(data.detail || `Server error (${res.status})`);
     reply = data.reply;
   } catch (e) {
-    if (e.name === 'AbortError') { addMsg('⏱️ الخادم بطيء. عاود جرب بعد شوية.', 'bot', 'ar'); setStatus('Timeout'); }
+    if (e.name === 'AbortError') { addMsg('⏱️ Server is slow. Try again.', 'bot', 'en'); setStatus('Timeout'); }
     else { addMsg('Error: ' + e.message, 'bot', 'en'); setStatus('Error'); }
     setAvatar('idle');
   } finally {
@@ -604,7 +660,7 @@ if (SR) {
   micBtn.addEventListener('click', () => alert('Browser does not support Mic.'));
 }
 
-addMsg('عسلامة! أنا vibe-core. إختار لغة المايك ولغة الرد، واضغط على المايك باش نحكيو.', 'bot', 'ar');
+addMsg('Hello! I am vibe-core. Select the mic language and reply language, and click the mic to talk.', 'bot', 'en');
 </script>
 </body>
 </html>
