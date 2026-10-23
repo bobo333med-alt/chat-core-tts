@@ -19,16 +19,19 @@
     height: 100dvh;
   }
 
+  /* 🎯 الشريط العلوي (يبقى فوق الشاشة الكاملة) */
   .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #1e293b;
+    background: rgba(30, 41, 59, 0.95);
     padding: 8px 12px;
     border-radius: 12px;
     margin-bottom: 10px;
     flex-shrink: 0;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 10001; /* 🎯 باش يبان فوق الشاشة الكاملة */
   }
 
   .user-section { display: flex; align-items: center; gap: 8px; }
@@ -58,20 +61,19 @@
   .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
 
-  /* 🎯 الأفاتار (الشاشة الكاملة بدون دائرة وبدون خلفية سوداء) */
+  /* 🎯 الأفاتار (الشاشة الكاملة) */
   #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
   #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
 
-  /* 🎯 الشاشة الكاملة: تاخذ كبر الشاشة، بدون حواف، وبدون خلفية سوداء */
-  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: transparent; }
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
-  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: cover; width: 100vw; height: 100vh; }
+  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
 
-  #closeFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+  #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
 
   #removeAvatarBtn {
     display: none; position: absolute; top: 5px; right: 5px;
@@ -90,7 +92,7 @@
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
 
-  /* 🎯 سلة المهملات (في الدردشة من تحت على اليسار) */
+  /* 🎯 سلة المهملات */
   #clearBtn { 
     position: absolute; bottom: 2px; left: 10px; 
     width: 30px; height: 30px; border-radius: 50%; 
@@ -103,12 +105,17 @@
   /* 🎯 شريط الكتابة السفلي */
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
   input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
-  button.btn { padding: 0; border: none; border-radius: 50%; color: #fff; font-size: 16px; font-weight: bold; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   
-  /* 🎯 زر الموسيقى: أبيض مع أيقونة سوداء */
-  #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-  #mediaBtn { background: #10b981; order: 2; font-size: 12px; font-family: Arial, sans-serif; }
-  #sendBtn { background: #1d4ed8; order: 4; }
+  /* 🎯 ضبط قياس الأزرار باش يكونو كي كيف كيف */
+  button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+  
+  /* 🎯 زر الموسيقى */
+  #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 16px; }
+  
+  /* 🎯 زر الميديا: الخلفية خضراء والكتابة سوداء */
+  #mediaBtn { background: #10b981; color: #000000; order: 2; font-size: 11px; font-family: Arial, sans-serif; }
+  
+  #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
@@ -118,7 +125,7 @@
   .extra-controls button.active { background: #eab308; color: #000; }
 
   /* 🎯 قوائم منبثقة */
-  #actionMenu { display: none; position: fixed; bottom: 70px; left: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
+  #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
   
   #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
@@ -308,19 +315,33 @@ clearBtn.addEventListener('click', () => {
   chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot');
 });
 
+// 🎯 إظهار قائمة الميديا من فوق الزر
 mediaBtn.addEventListener('click', (e) => { 
   e.stopPropagation(); 
-  actionMenu.style.display = actionMenu.style.display === 'flex' ? 'none' : 'flex'; 
   musicMenu.style.display = 'none'; 
+  
+  if (actionMenu.style.display === 'flex') {
+    actionMenu.style.display = 'none';
+  } else {
+    const rect = mediaBtn.getBoundingClientRect();
+    actionMenu.style.display = 'flex';
+    actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    actionMenu.style.left = rect.left + 'px';
+    
+    if (rect.left + 150 > window.innerWidth) {
+      actionMenu.style.left = (window.innerWidth - 160) + 'px';
+    }
+  }
 });
+
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; });
+menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; /* Gallery logic */ });
 cameraUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader(); reader.onload = ev => { setStatus('Image attached.'); }; reader.readAsDataURL(file);
 });
 
-// 🎯 إظهار قائمة الموسيقى ديراكت من فوق الزر
+// 🎯 إظهار قائمة الموسيقى من فوق الزر
 musicBtn.addEventListener('click', (e) => { 
   e.stopPropagation(); 
   actionMenu.style.display = 'none'; 
@@ -330,11 +351,9 @@ musicBtn.addEventListener('click', (e) => {
   } else {
     const rect = musicBtn.getBoundingClientRect();
     musicMenu.style.display = 'block';
-    // نحطو القائمة فوق الزر مباشرة
     musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
     musicMenu.style.left = rect.left + 'px';
     
-    // إلا كانت القائمة راح تخرج على اليمين، نرجعوها
     if (rect.left + 200 > window.innerWidth) {
       musicMenu.style.left = (window.innerWidth - 210) + 'px';
     }
