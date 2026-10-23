@@ -254,7 +254,7 @@ const removeAvatarBtn = $('removeAvatarBtn');
 let attachedImageBase64 = null, attachedTextContent = null, chatHistory = [];
 let isTranslatorMode = false, isRecording = false, isBotTalking = false, isSending = false;
 let currentAudio = null, audioUnlocked = false, playlist = [], currentSongIndex = -1, cachedVoices = [], currentAvatarObjectUrl = null;
-let nativeQueue = []; // طابور النطق للصوت الطبيعي
+let currentSpeechId = 0; // 🎯 باش نمنعو الصوت القديم يشتغل
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Ready'); }
@@ -410,7 +410,6 @@ document.addEventListener('click', function (e) {
 
 renderPlaylist();
 
-// 🎯 تحسين الـ Prompt باش الذكاء الاصطناعي ما يعاودش الكلام
 function buildSystemPrompt(targetLang, currentDate) {
   if (isTranslatorMode) {
     const langName = langNameFor(targetLang);
@@ -517,63 +516,88 @@ sendBtn.addEventListener('click', send);
 inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); send(); } });
 
 function stopAudio() {
+  currentSpeechId++; // 🎯 إلغاء أي طابور صوتي قديم
   if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
-  nativeQueue = [];
   setAvatar('idle'); resetStatus(); isBotTalking = false;
 }
 
-// 🎯 محرك الصوت الطبيعي (جملة بجملة)
+// 🎯 محرك الصوت الطبيعي (جملة بجملة مع حماية من التوقف)
 function speak(text, lang) {
   if (!text) return;
-  stopAudio(); isBotTalking = true; if (!bgAudio.paused) bgAudio.pause();
+  stopAudio(); 
+  isBotTalking = true; 
+  if (!bgAudio.paused) bgAudio.pause();
+  
+  const mySpeechId = currentSpeechId; // نحفظو رقم هذي الجلسة
 
-  let textToSpeak = text.replace(/[*_#`~|\\\/<>]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
+  let textToSpeak = text
+    .replace(/[*_#`~|\\\/<>-]/g, ' ')
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
   if (!textToSpeak) { isBotTalking = false; return; }
 
   setAvatar('talking'); setStatus('Speaking...');
-  
-  // نقسمو النص لجمل باش يقراهم واحد ورا واحد
-  nativeQueue = textToSpeak.match(/[^.!?؟،؛\n]+[.!?؟،؛\n]*/g) || [textToSpeak];
-  nativeQueue = nativeQueue.map(s => s.trim()).filter(s => s.length > 0);
+  if (!('speechSynthesis' in window)) return;
 
-  playNextNativeSentence(lang);
-}
-
-function playNextNativeSentence(lang) {
-  if (nativeQueue.length === 0 || !isBotTalking) {
-    setAvatar('idle'); resetStatus(); isBotTalking = false;
-    return;
-  }
-
-  const sentence = nativeQueue.shift();
-  const u = new SpeechSynthesisUtterance(sentence);
-  
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
   
-  // نختارو أحسن صوت (Google ولا Natural)
   let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
   const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
   candidates.sort((a, b) => score(b) - score(a));
   const bestVoice = candidates[0];
 
-  if (bestVoice) u.voice = bestVoice;
-  u.lang = bestVoice ? bestVoice.lang : langCode;
+  // نقسمو النص لجمل قصيرة (أقل من 150 حرف) باش ما يتقطعش في التليفون
+  const sentences = textToSpeak.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [textToSpeak];
+  let chunks = [];
+  let current = "";
+  sentences.forEach(s => {
+    s = s.trim();
+    if (!s) return;
+    if ((current + " " + s).length > 150) {
+      if (current) chunks.push(current);
+      current = s;
+    } else {
+      current += " " + s;
+    }
+  });
+  if (current) chunks.push(current.trim());
 
-  const v = voiceSelect.value;
-  if (v === 'woman') { u.pitch = 1.1; u.rate = 1.0; } else if (v === 'girl') { u.pitch = 1.35; u.rate = 1.05; } else if (v === 'child') { u.pitch = 1.55; u.rate = 1.15; } else if (v === 'oldman') { u.pitch = 0.75; u.rate = 0.9; } else if (v === 'oldwoman') { u.pitch = 1.0; u.rate = 0.9; } else { u.pitch = 1.0; u.rate = 0.95; }
+  let index = 0;
+  
+  function playChunk() {
+    // 🎯 نتأكدو بلي الجلسة مازالت هي نفسها (المستخدم ما بعثش رسالة جديدة)
+    if (index >= chunks.length || !isBotTalking || mySpeechId !== currentSpeechId) {
+       if (mySpeechId === currentSpeechId) {
+           setAvatar('idle'); resetStatus(); isBotTalking = false;
+       }
+       return;
+    }
+    
+    const u = new SpeechSynthesisUtterance(chunks[index]);
+    index++;
+    
+    if (bestVoice) u.voice = bestVoice;
+    u.lang = bestVoice ? bestVoice.lang : langCode;
 
-  u.onended = () => {
-    // تأخير نص ثانية بين الجمل باش يبان طبيعي
-    setTimeout(() => playNextNativeSentence(lang), 150);
-  };
-  u.onerror = (e) => {
-    console.error("TTS Error", e);
-    playNextNativeSentence(lang); // إذا طاحت جملة، يقفز للي بعدها
-  };
+    const v = voiceSelect.value;
+    if (v === 'woman') { u.pitch = 1.1; u.rate = 1.0; } else if (v === 'girl') { u.pitch = 1.35; u.rate = 1.05; } else if (v === 'child') { u.pitch = 1.55; u.rate = 1.15; } else if (v === 'oldman') { u.pitch = 0.75; u.rate = 0.9; } else if (v === 'oldwoman') { u.pitch = 1.0; u.rate = 0.9; } else { u.pitch = 1.0; u.rate = 0.95; }
 
-  speechSynthesis.speak(u);
+    u.onend = () => { 
+      if (mySpeechId === currentSpeechId) setTimeout(playChunk, 100); 
+    };
+    u.onerror = () => { 
+      if (mySpeechId === currentSpeechId) setTimeout(playChunk, 100); 
+    };
+    
+    speechSynthesis.speak(u);
+  }
+  
+  // تأخير بسيط قبل ما نبداو باش نتفاداو مشاكل المتصفح
+  setTimeout(playChunk, 100);
 }
 
 if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
