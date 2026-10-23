@@ -51,11 +51,10 @@
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
 
-  /* 🎯 زر إرجاع اللوغو (نقطة سوداء صغيرة) */
   #removeAvatarBtn {
     display: none; position: absolute; top: 12px; right: 12px;
-    width: 12px; height: 12px; border-radius: 50%; background: #000000;
-    border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.7;
+    width: 14px; height: 14px; border-radius: 50%; background: #000000;
+    border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8;
   }
   #removeAvatarBtn:hover { opacity: 1; }
 
@@ -64,7 +63,7 @@
   #avatar-wrap.fullscreen #avatar-ring { width: 98vmin; height: 98vmin; top: 50%; left: 50%; transform: translate(-50%, -50%); inset: auto; border-width: 5px; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #fsMicBtn { display: flex; }
-  #avatar-wrap.fullscreen #removeAvatarBtn { top: 30px; right: 30px; width: 15px; height: 15px; }
+  #avatar-wrap.fullscreen #removeAvatarBtn { top: 30px; right: 30px; width: 18px; height: 18px; }
 
   #closeFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4); color: #fff; font-size: 26px; width: 55px; height: 55px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #fsMicBtn { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80px; height: 80px; border-radius: 50%; background: #6366f1; border: 4px solid rgba(255,255,255,0.2); color: #fff; font-size: 36px; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(99,102,241,0.8); }
@@ -111,14 +110,14 @@
   #clearBtn { 
     position: fixed; bottom: 80px; left: 15px; 
     width: 38px; height: 38px; border-radius: 50%; 
-    background: #fed7aa; /* برتقالي هادئ جدا */
+    background: #fed7aa;
     border: 2px solid #fdba74; 
     cursor: pointer; display: flex; align-items: center; justify-content: center; 
     z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
     transition: background 0.2s;
   }
   #clearBtn:active { background: #fdba74; }
-  #clearBtn svg { fill: #6b7280; width: 20px; height: 20px; } /* سلة رمادية */
+  #clearBtn svg { fill: #6b7280; width: 20px; height: 20px; }
 
   @keyframes pulse { 50% { transform: scale(1.08); } }
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; flex-shrink: 0; font-weight: bold; }
@@ -190,7 +189,6 @@
 <div id="wave"></div>
 <div id="chat"></div>
 
-<!-- 🎯 زر سلة المهملات الجديد (برتقالي وسلة رمادية) -->
 <button id="clearBtn" title="Clear Chat">
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -353,28 +351,24 @@ removeAvatarBtn.addEventListener('click', function (e) { e.stopPropagation(); re
 const galleryInput = document.createElement('input'); galleryInput.type = 'file'; galleryInput.accept = 'image/*,text/plain,.txt'; galleryInput.style.display = 'none';
 galleryInput.addEventListener('change', handleImageSelection); document.body.appendChild(galleryInput);
 
-// 🎯 تصليح فتح وغلق القوائم
 imageBtn.addEventListener('click', function (e) { 
   e.stopPropagation(); 
   if (actionMenu.style.display === 'flex') {
     actionMenu.style.display = 'none';
   } else {
     actionMenu.style.display = 'flex';
-    musicMenu.style.display = 'none'; // نسكرو ميوزيك كي نحلو أكشن
+    musicMenu.style.display = 'none'; 
   }
 });
 
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryInput.value = ''; galleryInput.click(); });
 
+// 🎯 تصليح فتح قائمة الموسيقى (باش تتحل وتبان الأزرار ديما)
 menuMusic.addEventListener('click', function(e) { 
   e.stopPropagation(); 
   actionMenu.style.display = 'none'; 
-  if (musicMenu.style.display === 'block') {
-    musicMenu.style.display = 'none';
-  } else {
-    musicMenu.style.display = 'block';
-  }
+  musicMenu.style.display = 'block';
 });
 
 cameraUpload.addEventListener('change', handleImageSelection);
@@ -413,11 +407,13 @@ function playSong(index) {
 }
 bgAudio.addEventListener('ended', function () { if (playlist.length === 0) return; playSong((currentSongIndex + 1) % playlist.length); });
 
-// 🎯 غلق القوائم كي نكبسو في أي بلاصة أخرى
 document.addEventListener('click', function (e) { 
   if (!actionMenu.contains(e.target) && !imageBtn.contains(e.target)) actionMenu.style.display = 'none'; 
   if (!musicMenu.contains(e.target) && !menuMusic.contains(e.target)) musicMenu.style.display = 'none'; 
 });
+
+// 🎯 نعرضو القائمة (بأزرارها) كي يتفتح التطبيق أول مرة
+renderPlaylist();
 
 function buildSystemPrompt(targetLang, currentDate) {
   if (isTranslatorMode) {
