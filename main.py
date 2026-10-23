@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🎯 إعدادات مفاتيح API (يقراها من Render Environment Variables)
+# 🎯 إعدادات مفاتيح API من Render
 keys_env = os.environ.get("GROQ_API_KEYS", "")
 GROQ_API_KEYS = [k.strip() for k in keys_env.split(",") if k.strip()]
 if not GROQ_API_KEYS:
@@ -22,9 +22,9 @@ if not GROQ_API_KEYS:
 
 current_key_index = 0
 
-# 🎯 الموديلات الرسمية والسريعة في Groq (بدلنا الموديل اللي تسكّر)
-MODELS = ["llama3-70b-8192", "llama3-8b-8192"]
-VISION_MODEL = "llama-3.2-11b-vision-preview"
+# 🎯 الموديلات الجديدة والمدعومة رسمياً (بدل القديمة اللي تسكرت)
+MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]
+VISION_MODEL = "openai/gpt-oss-120b"
 
 class ChatRequest(BaseModel):
     messages: list
@@ -48,7 +48,6 @@ async def chat_endpoint(request: ChatRequest):
             return {"reply": response.choices[0].message.content}
         except Exception as e:
             error_msg = str(e)
-            # إذا المفتاح خلص ولا طلع Rate Limit، يبدل للمفتاح اللي بعدو
             if "429" in error_msg or "Rate limit" in error_msg:
                 current_key_index = (current_key_index + 1) % len(GROQ_API_KEYS)
                 await asyncio.sleep(1)
