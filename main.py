@@ -22,7 +22,7 @@ if not GROQ_API_KEYS:
 current_key_index = 0
 
 # 🎯 موديلات قوية للترجمة والدردشة (بدلنا qwen خاطر يهلوس)
-MODELS = ["llama-3.3-70b-versatile", "llama3-8b-8192"]
+MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]
 VISION_MODEL = "llama-3.2-11b-vision-preview"
 
 class ChatRequest(BaseModel):
