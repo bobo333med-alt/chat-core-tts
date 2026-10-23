@@ -238,7 +238,7 @@
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const REQUEST_TIMEOUT_MS = 90000;
 const MAX_TEXT_FILE_SIZE = 500 * 1024;
-const HISTORY_LIMIT = 6;
+const HISTORY_LIMIT = 4; // 🎯 قللنا التاريخ باش ما يتلخبطش ويكررش
 
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn'), micBtn = $('micBtn'), fsMicBtn = $('fsMicBtn');
@@ -258,7 +258,6 @@ let currentAudio = null, audioUnlocked = false, playlist = [], currentSongIndex 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Ready'); }
 
-// 🎯 تحسين عرض الرسائل باش تدعم النقاط (bullet points) والخط العريض
 function addMsg(text, who, lang) {
   const div = document.createElement('div');
   div.className = 'msg ' + who;
@@ -268,7 +267,6 @@ function addMsg(text, who, lang) {
     tag.textContent = String(lang).toUpperCase();
     div.appendChild(tag);
   }
-  // تنسيق النص (Markdown basics: Bold & Newlines)
   let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   formattedText = formattedText.replace(/\n/g, '<br>');
@@ -411,7 +409,6 @@ document.addEventListener('click', function (e) {
 
 renderPlaylist();
 
-// 🎯 هذا هو الـ System Prompt الجديد (منظم وذكي)
 function buildSystemPrompt(targetLang, currentDate) {
   if (isTranslatorMode) {
     const langName = langNameFor(targetLang);
@@ -423,10 +420,11 @@ RULES: Output ONLY the exact translated text. Do NOT answer, explain, or add ext
 1. INTELLIGENCE & DEPTH: Answer with high intelligence and deep understanding. Act as an expert consultant.
 2. FORMATTING: Organize your answers perfectly. Use bullet points, bold text for key terms, and clear line breaks. NEVER write a massive wall of text.
 3. NATURAL TONE: Speak like a warm, highly educated, and articulate human. Do not use robotic filler words or repetitive phrases.
-4. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
-5. PSYCHOLOGIST MODE: If the user talks about psychological, family, or social issues, switch to an empathetic psychological counselor persona.
-6. NO HALLUCINATION: If you don't know, say 'I don't know'.
-7. NEVER mention AI, GPT, or OpenAI. You are a real human.`;
+4. **NO REPETITION**: NEVER repeat sentences or phrases. Finish your sentences completely.
+5. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
+6. PSYCHOLOGIST MODE: If the user talks about psychological, family, or social issues, switch to an empathetic psychological counselor persona.
+7. NO HALLUCINATION: If you don't know, say 'I don't know'.
+8. NEVER mention AI, GPT, or OpenAI. You are a real human.`;
 
   if (targetLang === 'ar') {
     return `You are a highly intelligent, empathetic, and wise AI consultant. Your default name is vibe-core, and you are a Tunisian male.
@@ -522,7 +520,6 @@ function stopAudio() {
   setAvatar('idle'); resetStatus(); isBotTalking = false;
 }
 
-// 🎯 الصوت الطبيعي عبر Google TTS
 function speak(text, lang) {
   if (!text) return;
   stopAudio(); isBotTalking = true; if (!bgAudio.paused) bgAudio.pause();
@@ -538,7 +535,7 @@ let ttsQueue = [];
 let isTtsPlaying = false;
 
 function playGoogleTTS(text, lang) {
-  ttsQueue = chunkText(text, 180);
+  ttsQueue = chunkText(text, 150);
   isTtsPlaying = true;
   playNextChunk(lang);
 }
@@ -556,9 +553,11 @@ function playNextChunk(lang) {
   const audio = new Audio(url);
   currentAudio = audio;
   
-  audio.onended = () => playNextChunk(lang);
+  audio.onended = () => {
+    // 🎯 تأخير نص ثانية بين الجمل باش جوجل ما تبلوكيناش
+    setTimeout(() => playNextChunk(lang), 500);
+  };
   audio.onerror = () => {
-    // في حال فشل جوجل، نستعملو صوت المتصفح كاحتياط
     speakNativeFallback(text, lang, () => playNextChunk(lang));
   };
   audio.play().catch(() => {
@@ -566,20 +565,22 @@ function playNextChunk(lang) {
   });
 }
 
-// تقسيم النص لقطع صغيرة (لأن Google TTS ما يقبلش النص الطويل)
 function chunkText(text, maxLength) {
   let chunks = [];
   let current = "";
-  let sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+  // 🎯 التقطيع الذكي: نكسر في النقطة، الفاصلة، السطر الجديد
+  let sentences = text.match(/[^.!?؟،؛\n]+[.!?؟،؛\n]*/g) || [text];
   for (let s of sentences) {
-    if ((current + s).length > maxLength) {
-      if (current) chunks.push(current);
+    s = s.trim();
+    if (!s) continue;
+    if ((current + " " + s).length > maxLength) {
+      if (current) chunks.push(current.trim());
       current = s;
     } else {
-      current += s;
+      current += (current ? " " : "") + s;
     }
   }
-  if (current) chunks.push(current);
+  if (current) chunks.push(current.trim());
   return chunks.length ? chunks : [text];
 }
 
@@ -593,7 +594,6 @@ function speakNativeFallback(text, lang, callback) {
   let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode));
   if (candidates.length === 0) candidates = voices.filter(v => v.lang.toLowerCase().split('-')[0] === langBase);
   
-  // نفضلوا الأصوات الطبيعية
   const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
   candidates.sort((a, b) => score(b) - score(a));
   const bestVoice = candidates[0];
