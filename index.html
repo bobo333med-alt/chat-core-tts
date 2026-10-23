@@ -51,21 +51,20 @@
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
 
-  /* 🎯 زر إزالة الفيديو */
+  /* 🎯 زر إرجاع اللوغو (نقطة سوداء صغيرة) */
   #removeAvatarBtn {
-    display: none; position: absolute; top: 10px; right: 10px;
-    width: 30px; height: 30px; border-radius: 50%; background: #dc2626;
-    color: #fff; border: 2px solid #fff; font-size: 16px; cursor: pointer;
-    z-index: 10; align-items: center; justify-content: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    display: none; position: absolute; top: 12px; right: 12px;
+    width: 12px; height: 12px; border-radius: 50%; background: #000000;
+    border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.7;
   }
+  #removeAvatarBtn:hover { opacity: 1; }
 
   #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; margin: 0; }
   #avatar-wrap.fullscreen #avatar-container { width: 95vmin; height: 95vmin; }
   #avatar-wrap.fullscreen #avatar-ring { width: 98vmin; height: 98vmin; top: 50%; left: 50%; transform: translate(-50%, -50%); inset: auto; border-width: 5px; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #fsMicBtn { display: flex; }
-  #avatar-wrap.fullscreen #removeAvatarBtn { top: 30px; right: 30px; width: 50px; height: 50px; font-size: 24px; }
+  #avatar-wrap.fullscreen #removeAvatarBtn { top: 30px; right: 30px; width: 15px; height: 15px; }
 
   #closeFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4); color: #fff; font-size: 26px; width: 55px; height: 55px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #fsMicBtn { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80px; height: 80px; border-radius: 50%; background: #6366f1; border: 4px solid rgba(255,255,255,0.2); color: #fff; font-size: 36px; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(99,102,241,0.8); }
@@ -170,12 +169,11 @@
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg" alt="vibe-core logo">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
-  <!-- 🎯 زر إزالة الفيديو وإرجاع اللوغو -->
-  <button id="removeAvatarBtn" title="إزالة الفيديو">✕</button>
+  <!-- 🎯 زر إزالة الفيديو (نقطة صغيرة) -->
+  <button id="removeAvatarBtn" title="إزالة الفيديو"></button>
   
   <button id="closeFullscreen" title="Close">✕</button>
   <button id="fsMicBtn" title="Talk">🎤</button>
-  <!-- 🎯 الفيديوهات فقط -->
   <input type="file" id="videoUpload" accept="video/*" style="display: none;">
 </div>
 
@@ -300,7 +298,7 @@ for (let i = 0; i < 5; i++) waveEl.appendChild(document.createElement('span'));
 function showAvatarVideo(src) {
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
   avatarVideo.src = src; avatarVideo.play().catch(() => {});
-  removeAvatarBtn.style.display = 'flex';
+  removeAvatarBtn.style.display = 'block'; // نستعملو block باش النقطة تبان
 }
 
 function resetAvatar() {
@@ -343,7 +341,14 @@ galleryInput.addEventListener('change', handleImageSelection); document.body.app
 imageBtn.addEventListener('click', function (e) { e.stopPropagation(); actionMenu.style.display = (actionMenu.style.display === 'flex') ? 'none' : 'flex'; });
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryInput.value = ''; galleryInput.click(); });
-menuMusic.addEventListener('click', () => { actionMenu.style.display = 'none'; musicMenu.style.display = 'block'; });
+
+// 🎯 تصليح زر الموسيقى باش ما يتسكرش ديراكت
+menuMusic.addEventListener('click', (e) => {
+  e.stopPropagation(); // هذا السطر يمنع الكبسة توصل للكود اللي يسكر القائمة
+  actionMenu.style.display = 'none';
+  musicMenu.style.display = 'block';
+});
+
 cameraUpload.addEventListener('change', handleImageSelection);
 
 function handleImageSelection(e) {
@@ -380,7 +385,11 @@ function playSong(index) {
 }
 bgAudio.addEventListener('ended', function () { if (playlist.length === 0) return; playSong((currentSongIndex + 1) % playlist.length); });
 
-document.addEventListener('click', function (e) { if (!actionMenu.contains(e.target) && !imageBtn.contains(e.target)) actionMenu.style.display = 'none'; if (!musicMenu.contains(e.target)) musicMenu.style.display = 'none'; });
+// 🎯 نضيفو menuMusic هنا باش الكبسة عليه ما تسكرش الـ musicMenu
+document.addEventListener('click', function (e) { 
+  if (!actionMenu.contains(e.target) && !imageBtn.contains(e.target)) actionMenu.style.display = 'none'; 
+  if (!musicMenu.contains(e.target) && !menuMusic.contains(e.target)) musicMenu.style.display = 'none'; 
+});
 
 function buildSystemPrompt(targetLang, currentDate) {
   if (isTranslatorMode) {
