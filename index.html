@@ -20,7 +20,7 @@
     transition: opacity 0.3s;
   }
 
-  /* 🎯 الشريط العلوي بعد التصغير */
+  /* 🎯 الشريط العلوي */
   .top-bar {
     display: flex;
     justify-content: space-between;
@@ -44,7 +44,6 @@
   }
   .lang-select option { background-color: #0f172a; color: #ffffff; }
 
-  /* 🎯 تصغير المايكات */
   .mic-btn {
     width: 30px; height: 30px; border-radius: 50%; border: none;
     color: #fff; font-size: 14px; cursor: pointer;
@@ -56,15 +55,23 @@
   .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
 
-  /* 🎯 زر القفل/الفتح */
+  /* 🎯 زر القفل (حطيتو في الشريط ولكن معزول باش ما يتقفلش) */
   #lockBtn {
-    width: 32px; height: 32px; border-radius: 50%; border: none;
-    color: #fff; font-size: 14px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.3s; background: #10b981; /* يبدا أخضر (مفتوح) */
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important; margin-right: 5px;
   }
-  #lockBtn.locked { background: #ef4444; } /* يولي أحمر (مقفول) */
   
+  #lockBtn.unlocked {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.8);
+  }
+  
+  #lockBtn.locked {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #ef4444; color: white; font-size: 16px;
+    box-shadow: 0 0 10px rgba(239,68,68,0.5); margin-right: 0;
+  }
+
   /* 🎯 التأثير كي يتقفل التطبيق */
   .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
 
@@ -126,7 +133,6 @@
 </head>
 <body>
 
-<!-- 🎯 الشريط العلوي (اليسار: صاحبك + المايك + القفل | اليمين: إنت) -->
 <div class="top-bar" id="topBar">
   <div class="user-section">
     <span style="font-size:9px; color:#94a3b8;">Friend</span>
@@ -140,8 +146,6 @@
       <option value="de">German</option>
     </select>
     <button id="micB" class="mic-btn green" title="Talk">🎤</button>
-    <!-- 🎯 زر القفل -->
-    <button id="lockBtn" title="Lock/Unlock">🔓</button>
   </div>
   
   <div class="user-section">
@@ -156,6 +160,8 @@
       <option value="de">German</option>
     </select>
     <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
+    <!-- 🎯 زر القفل -->
+    <button id="lockBtn" class="unlocked" title="Lock/Unlock"></button>
   </div>
 </div>
 
@@ -231,8 +237,9 @@ const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), audi
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 const lockBtn = $('lockBtn');
 
-// عناصر الواجهة اللي راح تتقفل
-const uiElements = [$('topBar'), $('extraControls'), $('avatar-wrap'), $('chatContainer'), $('inputRow'), $('status')];
+// 🎯 نمسكو كان الأجزاء اللي راح تتقفل، ونخلو زر القفل برا الحسبة
+const uiElements = [$('extraControls'), $('avatar-wrap'), $('chatContainer'), $('inputRow'), $('status')];
+const topBarChildren = document.querySelectorAll('.top-bar > .user-section > span, .top-bar > .user-section > select, .top-bar > .user-section > button:not(#lockBtn)');
 
 let chatHistory = [];
 let isTranslatorMode = true; 
@@ -249,19 +256,25 @@ function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'); }
 resetStatus();
 
-// 🎯 منطق زر القفل
+// 🎯 منطق زر القفل (الفتح والغلق)
 lockBtn.addEventListener('click', () => {
   isLocked = !isLocked;
   if (isLocked) {
-    lockBtn.textContent = '🔒';
+    lockBtn.classList.remove('unlocked');
     lockBtn.classList.add('locked');
+    lockBtn.textContent = '🔒';
     uiElements.forEach(el => el.classList.add('locked-ui'));
-    stopAudio(); // نوقف أي صوت
-    if (isRecording) recognition.stop(); // نوقف المايك
+    topBarChildren.forEach(el => el.classList.add('locked-ui'));
+    stopAudio(); 
+    if (isRecording) recognition.stop(); 
+    setStatus('App is locked 🔒');
   } else {
-    lockBtn.textContent = '🔓';
     lockBtn.classList.remove('locked');
+    lockBtn.classList.add('unlocked');
+    lockBtn.textContent = '';
     uiElements.forEach(el => el.classList.remove('locked-ui'));
+    topBarChildren.forEach(el => el.classList.remove('locked-ui'));
+    resetStatus();
   }
 });
 
@@ -567,7 +580,7 @@ function stopAudio() {
 }
 
 function speak(text, lang) {
-  if (isLocked) return; // ممنوع يحكي كي التطبيق مقفول
+  if (isLocked) return; 
   stopAudio(); isBotTalking = true; 
   const mySpeechId = currentSpeechId;
   setStatus('Speaking...');
