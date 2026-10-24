@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>vibe-core - Translator</title>
+<title>Chat-Core - Translator</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
@@ -194,7 +194,7 @@
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const REQUEST_TIMEOUT_MS = 90000;
-const HISTORY_LIMIT = 6;
+const HISTORY_LIMIT = 12; // 🎯 رفعنا الذاكرة باش يتفكر الأسماء
 
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn');
@@ -374,7 +374,6 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 التعليمات الذكية والقديمة اللي ما تهلوسش
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -385,15 +384,15 @@ function buildSystemPrompt(targetLang) {
 RULES: Output ONLY the exact translated text. Do NOT answer, explain, or add extra words.`;
   } 
   
+  // 🎯 تعليمات صارمة بزاف للذاكرة ومنع الهلوة
   const sharedRules = `YOUR CORE RULES:
-1. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
-2. PSYCHOLOGIST MODE: If the user talks about psychological, family, or social issues, switch to an empathetic psychological counselor persona.
-3. EMPATHY: Show deep empathy for social problems.
+1. MEMORY & CONTEXT: Remember the user's name and context. If the user gives you a name, NEVER forget it.
+2. NO HALLUCINATION: If you don't know a fact or a name, say 'I don't know'. DO NOT invent names, facts, or stories.
+3. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
 4. SMART SOLUTIONS: Give step-by-step solutions for technical problems.
-5. NO HALLUCINATION: If you don't know, say 'I don't know'.
-6. NEVER mention AI, GPT, or OpenAI. You are a real human.`;
+5. NEVER mention AI, GPT, or OpenAI. You are a real human named Chat-Core.`;
 
-  return `You are a highly intelligent, empathetic, and wise AI consultant. Your default name is vibe-core.
+  return `You are a highly intelligent, empathetic, and wise human named Chat-Core.
 
 CURRENT DATE: Today is ${currentDate}.
 
@@ -409,6 +408,7 @@ async function ask(text, sourceLang, targetLang, speaker) {
   const systemPrompt = buildSystemPrompt(targetLang);
   const messages = [{ role: 'system', content: systemPrompt }];
 
+  // 🎯 نبعثو الذاكرة (12 رسالة) باش يتفكر الأسماء
   if (!isTranslatorMode) {
     chatHistory.slice(-HISTORY_LIMIT).forEach(m => messages.push(m));
   }
@@ -556,11 +556,24 @@ function speak(text, lang) {
     if (bestVoice) u.voice = bestVoice;
     u.lang = bestVoice ? bestVoice.lang : langCode;
     
+    // 🎯 التحكم القوي في نبرة وسرعة الصوت (باش نفرقو بيناتهم)
     const v = voiceSelect.value;
-    if (v === 'man') { u.pitch = 0.7; u.rate = 0.9; } 
-    else if (v === 'woman') { u.pitch = 1.1; u.rate = 1.0; } 
-    else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.05; } 
-    else if (v === 'child') { u.pitch = 1.6; u.rate = 1.15; } 
+    if (v === 'man') { 
+      u.pitch = 0.4; // عميق بزاف
+      u.rate = 1.05; // سرعة طبيعية
+    } 
+    else if (v === 'woman') { 
+      u.pitch = 1.0; // متوسط
+      u.rate = 1.05; 
+    } 
+    else if (v === 'girl') { 
+      u.pitch = 1.4; // رفيع
+      u.rate = 1.1; // سريع شوية
+    } 
+    else if (v === 'child') { 
+      u.pitch = 1.8; // حاد بزاف
+      u.rate = 1.15; // سريع
+    } 
 
     u.onend = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
     u.onerror = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
@@ -571,7 +584,7 @@ function speak(text, lang) {
 
 if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
 
-addMsg('Hello! Tap your Mic (Blue) to talk, and your friend taps the Green Mic. I will translate for you.', 'bot');
+addMsg('Hello! Tap your Mic (Blue) to talk, and your friend taps the Green Mic. I am Chat-Core.', 'bot');
 </script>
 </body>
 </html>
