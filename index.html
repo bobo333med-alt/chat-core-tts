@@ -7,64 +7,126 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
-  body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; }
 
-  .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 12px; margin-bottom: 10px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; z-index: 10001; }
+  body {
+    font-family: Tahoma, sans-serif;
+    background: #0ea5e9;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    height: 100dvh;
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e293b;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 10001;
+  }
+
   .user-section { display: flex; align-items: center; gap: 8px; }
-  .lang-select { padding: 6px 4px; border-radius: 6px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 11px; font-family: Tahoma; outline: none; width: 75px; }
+
+  .lang-select {
+    padding: 6px 4px;
+    border-radius: 6px;
+    background: #0f172a;
+    color: #ffffff;
+    border: 1px solid #334155;
+    font-size: 11px;
+    font-family: Tahoma;
+    outline: none;
+    width: 75px;
+  }
   .lang-select option { background-color: #0f172a; color: #ffffff; }
 
-  .mic-btn { width: 35px; height: 35px; border-radius: 50%; border: none; color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+  .mic-btn {
+    width: 35px; height: 35px; border-radius: 50%; border: none;
+    color: #fff; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+  }
   .mic-btn.blue { background: #6366f1; box-shadow: 0 0 10px rgba(99,102,241,0.5); }
   .mic-btn.green { background: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); }
   .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 15px rgba(239,68,68,0.8); }
   .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
 
+  /* 🎯 الأفاتار */
   #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
   #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
+
   #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
   #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
+
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
-  #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
+
+  #removeAvatarBtn {
+    display: none; position: absolute; top: 5px; right: 5px;
+    width: 12px; height: 12px; border-radius: 50%; background: #000000;
+    border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8;
+  }
+  #removeAvatarBtn:hover { opacity: 1; }
 
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
+  
   .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
   .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } 
   .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
 
-  #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+  #clearBtn { 
+    position: absolute; bottom: 2px; left: 10px; 
+    width: 30px; height: 30px; border-radius: 50%; 
+    background: #f6ad55; border: 2px solid #dd6b20; 
+    cursor: pointer; display: flex; align-items: center; justify-content: center; 
+    z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
+  }
   #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
 
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
   input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
+  
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+  
+  /* 🎯 ستايلات الأزرار */
   #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 16px; }
-  #mediaBtn { background: #10b981; color: #000000; order: 2; font-size: 11px; font-family: Arial, sans-serif; }
+  #mediaBtn { background: #ffffff; color: #f97316; order: 2; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
-  .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; }
-  .extra-controls button { padding: 5px 15px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; }
+
+  .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; flex-wrap: wrap; }
+  .extra-controls button, .extra-controls select { padding: 5px 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; outline: none; }
   .extra-controls button.active { background: #eab308; color: #000; }
 
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
+  
   #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
   #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
   .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+  .music-item:hover { background: #334155; } 
   .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
   .music-item.add-more, .music-item.stop-btn { text-align: center; font-weight: bold; justify-content: center; }
-  .music-item.add-more { background: #22c55e; } .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; }
+  .music-item.add-more { background: #22c55e; } 
+  .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; }
   .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 </style>
@@ -102,6 +164,12 @@
 
 <div class="extra-controls">
     <button id="translateModeBtn" class="active">Translator Mode ON</button>
+    <select id="voiceSelect">
+      <option value="man">👨 Man</option>
+      <option value="woman">👩 Woman</option>
+      <option value="girl">👧 Girl</option>
+      <option value="child">🧒 Child</option>
+    </select>
     <button id="uploadBtn">📁 Avatar</button>
 </div>
 
@@ -135,6 +203,7 @@
   <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
 </div>
 <input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
+<input type="file" id="galleryUpload" accept="image/*" style="display: none;">
 <input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
 <audio id="bgAudio"></audio>
 
@@ -157,9 +226,10 @@ const langA = $('langA'), langB = $('langB');
 const clearBtn = $('clearBtn'), statusEl = $('status');
 const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video'), closeFullscreen = $('closeFullscreen'), removeAvatarBtn = $('removeAvatarBtn');
 const translateModeBtn = $('translateModeBtn');
+const voiceSelect = $('voiceSelect');
 const uploadBtn = $('uploadBtn'), videoUpload = $('videoUpload');
 const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery');
-const cameraUpload = $('cameraUpload'), audioUpload = $('audioUpload');
+const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 
 let chatHistory = [];
@@ -220,7 +290,8 @@ videoUpload.addEventListener('change', function (e) {
   if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
-  avatarVideo.src = currentAvatarObjectUrl; avatarVideo.play().catch(() => {});
+  avatarVideo.src = currentAvatarObjectUrl; 
+  avatarVideo.pause(); // 🎯 يبقى واقف حتى يبدا يتكلم
   removeAvatarBtn.style.display = 'block';
   setStatus('Avatar updated!');
 });
@@ -257,11 +328,15 @@ mediaBtn.addEventListener('click', (e) => {
   }
 });
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; });
-cameraUpload.addEventListener('change', (e) => {
+menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
+
+// 🎯 إضافة تحميل الصور من المعرض
+function handleGallery(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader(); reader.onload = ev => { setStatus('Image attached.'); }; reader.readAsDataURL(file);
-});
+}
+galleryUpload.addEventListener('change', handleGallery);
+cameraUpload.addEventListener('change', handleGallery);
 
 musicBtn.addEventListener('click', (e) => { 
   e.stopPropagation(); actionMenu.style.display = 'none'; 
@@ -310,24 +385,8 @@ function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   
   if (isTranslatorMode) {
-    // 🎯 Prompt صارم بزاف ومحمي من الهلوة (مع أمثلة)
     return `You are a literal translation engine. Your ONLY task is to translate the user's input into ${langName}.
-    
-RULES:
-1. Output ONLY the exact translated text.
-2. DO NOT answer the user, explain, or add any extra words.
-3. DO NOT hallucinate or invent words if you don't understand.
-4. If the user uses Tunisian dialect, translate the meaning accurately into ${langName}.
-
-Examples:
-User: صباح الخير
-Assistant: Bonjour
-
-User: Comment ça va?
-Assistant: كيف حالك؟
-
-User: شنية الأخبار؟
-Assistant: Quelles sont les nouvelles?`;
+RULES: Output ONLY the exact translated text. Do NOT answer, explain, or add extra words.`;
   } 
   
   return `You are a highly intelligent, empathetic, and articulate human.
@@ -449,6 +508,11 @@ function unlockMics() {
   micA.disabled = false; micB.disabled = false;
   micA.classList.remove('recording'); micB.classList.remove('recording');
   if (!isBotTalking) resetStatus();
+  
+  // 🎯 نوقف الفيديو كي يسكت الروبوت
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') {
+    avatarVideo.pause();
+  }
 }
 
 function stopAudio() {
@@ -456,12 +520,22 @@ function stopAudio() {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   isBotTalking = false;
+  
+  // 🎯 نوقف الفيديو
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') {
+    avatarVideo.pause();
+  }
 }
 
 function speak(text, lang) {
   stopAudio(); isBotTalking = true; 
   const mySpeechId = currentSpeechId;
   setStatus('Speaking...');
+
+  // 🎯 نشغلو الفيديو كي يبدا يحكي
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') {
+    avatarVideo.play().catch(()=>{});
+  }
 
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
@@ -490,7 +564,12 @@ function speak(text, lang) {
     if (bestVoice) u.voice = bestVoice;
     u.lang = bestVoice ? bestVoice.lang : langCode;
     
-    u.pitch = 1.0; u.rate = 0.95; 
+    // 🎯 التحكم في نبرة الصوت
+    const v = voiceSelect.value;
+    if (v === 'man') { u.pitch = 0.7; u.rate = 0.9; } // قوي وعميق
+    else if (v === 'woman') { u.pitch = 1.1; u.rate = 1.0; } 
+    else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.05; } 
+    else if (v === 'child') { u.pitch = 1.6; u.rate = 1.15; } 
 
     u.onend = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
     u.onerror = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
