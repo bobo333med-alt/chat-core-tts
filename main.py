@@ -1,85 +1,703 @@
-import os
-import asyncio
-from fastapi import FastAPI, HTTPException, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from openai import AsyncOpenAI
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Chat-Core - Translator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
 
-app = FastAPI()
+  body {
+    font-family: Tahoma, sans-serif;
+    background: #0ea5e9;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    height: 100dvh;
+    transition: opacity 0.3s;
+  }
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+  .top-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10001;
+  }
 
-keys_env = os.environ.get("GROQ_API_KEYS", "")
-GROQ_API_KEYS = [k.strip() for k in keys_env.split(",") if k.strip()]
-if not GROQ_API_KEYS:
-    GROQ_API_KEYS = ["gsk_dummy_key_please_set_env_var"]
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e293b;
+    padding: 6px 12px;
+    border-radius: 10px;
+    width: 92%;
+    max-width: 380px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: opacity 0.3s;
+  }
 
-current_key_index = 0
+  .user-section { display: flex; align-items: center; gap: 6px; }
 
-# 🎯 الموديلات النصية
-MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
+  .lang-select {
+    padding: 4px 2px; border-radius: 6px; background: #0f172a; color: #ffffff;
+    border: 1px solid #334155; font-size: 10px; font-family: Tahoma; outline: none; width: 70px;
+  }
+  .lang-select option { background-color: #0f172a; color: #ffffff; }
 
-# 🎯 موديل الرؤية الجديد والمدعوم
-VISION_MODEL = "qwen/qwen3.8-27b"
+  .mic-btn {
+    width: 32px; height: 32px; border-radius: 50%; border: none;
+    color: #fff; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.3s;
+  }
+  .mic-btn.blue { background: #6366f1; box-shadow: 0 0 8px rgba(99,102,241,0.5); }
+  .mic-btn.green { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+  .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 12px rgba(239,68,68,0.8); }
+  .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
+  @keyframes pulse { 50% { transform: scale(1.1); } }
 
-class ChatRequest(BaseModel):
-    messages: list
-    is_vision: bool = False
-    is_translation: bool = False 
+  #lockBtn {
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important;
+  }
+  #lockBtn.unlocked {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #ef4444; border: 1px solid #dc2626;
+  }
+  #lockBtn.locked {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #ef4444; color: white; font-size: 16px;
+    box-shadow: 0 0 10px rgba(239,68,68,0.5);
+  }
 
-@app.post("/chat")
-async def chat_endpoint(request: ChatRequest):
-    global current_key_index
-    model_to_use = VISION_MODEL if request.is_vision else MODELS[0]
+  .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
+
+  #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
+  #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
+  #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #avatar-video { display: none; }
+
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
+  #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
+  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
+  #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
+  #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
+
+  #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+  #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
+
+  .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; transition: opacity 0.3s; }
+  #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
+  .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
+  .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } 
+  .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
+  .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
+  .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
+
+  #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+  #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
+
+  #imagePreviewContainer { 
+    display: none; position: absolute; bottom: 50px; right: 10px; 
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px; 
+    padding: 5px; align-items: center; gap: 8px; z-index: 1000; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+  }
+  #imagePreview { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; }
+  #cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+
+  .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; transition: opacity 0.3s; position: relative; }
+  input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
+  button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+  
+  #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 16px; }
+  #mediaBtn { background: #ffffff; color: #f97316; order: 2; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+  #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
+  #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
+
+  #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; transition: opacity 0.3s; }
+
+  .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; flex-wrap: wrap; transition: opacity 0.3s; }
+  .extra-controls button, .extra-controls select { padding: 5px 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; outline: none; }
+  .extra-controls button.active { background: #eab308; color: #000; }
+
+  #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
+  .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
+  
+  #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
+  #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
+  .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+  .music-item:hover { background: #334155; } 
+  .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
+  .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
+  .music-item.add-more { background: #22c55e; } 
+  .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; }
+  .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
+  .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
+  .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="top-header">
+  <button id="lockBtn" class="unlocked" title="Lock/Unlock"></button>
+  
+  <div class="top-bar" id="topBar">
+    <div class="user-section">
+      <span style="font-size:9px; color:#94a3b8;">Friend</span>
+      <select id="langB" class="lang-select">
+        <option value="fr">French</option>
+        <option value="ar">Arabic</option>
+        <option value="en">English</option>
+        <option value="tr">Turkish</option>
+        <option value="it">Italian</option>
+        <option value="es">Spanish</option>
+        <option value="de">German</option>
+      </select>
+      <button id="micB" class="mic-btn green" title="Talk">🎤</button>
+    </div>
     
-    temp = 0.0 if request.is_translation else 0.7
+    <div class="user-section">
+      <span style="font-size:9px; color:#94a3b8;">You</span>
+      <select id="langA" class="lang-select">
+        <option value="ar">Arabic</option>
+        <option value="fr">French</option>
+        <option value="en">English</option>
+        <option value="tr">Turkish</option>
+        <option value="it">Italian</option>
+        <option value="es">Spanish</option>
+        <option value="de">German</option>
+      </select>
+      <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
+    </div>
+  </div>
+</div>
 
-    for attempt in range(len(GROQ_API_KEYS)):
-        api_key = GROQ_API_KEYS[current_key_index]
-        try:
-            client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
-            response = await client.chat.completions.create(
-                model=model_to_use, 
-                messages=request.messages, 
-                temperature=temp, 
-                max_tokens=1500
-            )
-            return {"reply": response.choices[0].message.content}
-        except Exception as e:
-            error_msg = str(e)
-            if "429" in error_msg or "Rate limit" in error_msg:
-                current_key_index = (current_key_index + 1) % len(GROQ_API_KEYS)
-                await asyncio.sleep(1)
-                continue
-            else:
-                raise HTTPException(status_code=500, detail=error_msg)
-    raise HTTPException(status_code=429, detail="All API keys reached their limit.")
+<div class="extra-controls" id="extraControls">
+    <button id="translateModeBtn" class="active">Translator Mode ON</button>
+    <select id="voiceSelect">
+      <option value="man">👨 Man</option>
+      <option value="woman">👩 Woman</option>
+      <option value="girl">👧 Girl</option>
+      <option value="child">🧒 Child</option>
+    </select>
+    <button id="uploadBtn">📁 Avatar</button>
+</div>
 
-@app.post("/transcribe")
-async def transcribe_audio(file: UploadFile = File(...)):
-    global current_key_index
-    content = await file.read()
-    for attempt in range(len(GROQ_API_KEYS)):
-        api_key = GROQ_API_KEYS[current_key_index]
-        try:
-            client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
-            transcription = await client.audio.transcriptions.create(
-                file=(file.filename, content, file.content_type),
-                model="whisper-large-v3-turbo", 
-                response_format="verbose_json"
-            )
-            return {"text": transcription.text, "language": transcription.language}
-        except Exception as e:
-            error_msg = str(e)
-            if "429" in error_msg or "Rate limit" in error_msg:
-                current_key_index = (current_key_index + 1) % len(GROQ_API_KEYS)
-                await asyncio.sleep(1)
-                continue
-            else:
-                raise HTTPException(status_code=500, detail=error_msg)
-    raise HTTPException(status_code=429, detail="All API keys reached their limit.")
+<div id="avatar-wrap">
+  <div id="avatar-container">
+    <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Chat-Core logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
+    <video id="avatar-video" autoplay loop muted playsinline></video>
+  </div>
+  <button id="removeAvatarBtn" title="Reset Avatar"></button>
+  <button id="closeFullscreen" title="Close">✕</button>
+  <input type="file" id="videoUpload" accept="video/*" style="display: none;">
+</div>
+
+<div class="chat-container" id="chatContainer">
+  <div id="chat"></div>
+  <button id="clearBtn" title="Clear Chat">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+  </button>
+</div>
+
+<div id="imagePreviewContainer">
+  <img id="imagePreview" src="" alt="Preview">
+  <button id="cancelImageBtn">✕</button>
+</div>
+
+<div class="row" id="inputRow">
+  <button class="btn" id="musicBtn" title="Music">🎵</button>
+  <button class="btn" id="mediaBtn" title="Media">media</button>
+  <input type="text" id="textInput" placeholder="Type..." />
+  <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+</div>
+<div id="status" class="status-text">Ready</div>
+
+<div id="actionMenu">
+  <button class="action-btn" id="menuCamera">📸 Camera</button>
+  <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
+</div>
+<input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
+<input type="file" id="galleryUpload" accept="image/*" style="display: none;">
+<input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
+<audio id="bgAudio"></audio>
+
+<div id="musicMenu">
+  <h4>🎵 Playlist</h4>
+  <div id="musicList"></div>
+</div>
+
+<script>
+'use strict';
+
+const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
+const REQUEST_TIMEOUT_MS = 90000;
+const HISTORY_LIMIT = 12;
+
+const $ = id => document.getElementById(id);
+const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn');
+const micA = $('micA'), micB = $('micB');
+const langA = $('langA'), langB = $('langB');
+const clearBtn = $('clearBtn'), statusEl = $('status');
+const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video'), closeFullscreen = $('closeFullscreen'), removeAvatarBtn = $('removeAvatarBtn');
+const translateModeBtn = $('translateModeBtn');
+const voiceSelect = $('voiceSelect');
+const uploadBtn = $('uploadBtn'), videoUpload = $('videoUpload');
+const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery');
+const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), audioUpload = $('audioUpload');
+const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
+const lockBtn = $('lockBtn');
+
+const imagePreviewContainer = $('imagePreviewContainer');
+const imagePreview = $('imagePreview');
+const cancelImageBtn = $('cancelImageBtn');
+
+const uiElements = [$('extraControls'), $('avatar-wrap'), $('chatContainer'), $('inputRow'), $('status'), $('topBar'), imagePreviewContainer];
+
+let chatHistory = [];
+let isTranslatorMode = true; 
+let activeSpeaker = null; 
+let isRecording = false;
+let isSending = false;
+let isLocked = false;
+let currentAudio = null;
+let currentAvatarObjectUrl = null;
+let attachedImageBase64 = null;
+let playlist = [], currentSongIndex = -1, cachedVoices = [];
+let currentSpeechId = 0;
+
+function setStatus(s) { statusEl.textContent = s; }
+function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'); }
+resetStatus();
+
+lockBtn.addEventListener('click', () => {
+  isLocked = !isLocked;
+  if (isLocked) {
+    lockBtn.classList.remove('unlocked');
+    lockBtn.classList.add('locked');
+    lockBtn.textContent = '🔒';
+    uiElements.forEach(el => el.classList.add('locked-ui'));
+    stopAudio(); 
+    if (isRecording) recognition.stop(); 
+    setStatus('App is locked 🔒');
+  } else {
+    lockBtn.classList.remove('locked');
+    lockBtn.classList.add('unlocked');
+    lockBtn.textContent = '';
+    uiElements.forEach(el => el.classList.remove('locked-ui'));
+    resetStatus();
+  }
+});
+
+function addMsg(text, className, lang) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + className;
+  if (lang && isTranslatorMode) {
+    const tag = document.createElement('span');
+    tag.className = 'lang-tag';
+    tag.textContent = String(lang).toUpperCase();
+    div.appendChild(tag);
+  }
+  let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+  div.appendChild(document.createTextNode(formattedText));
+  div.innerHTML = div.innerHTML.replace(/&lt;br&gt;/g, '<br>');
+  chatEl.appendChild(div); 
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function unlockAudio() {
+  if ('speechSynthesis' in window) { try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {} }
+  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+}
+document.body.addEventListener('click', unlockAudio, { once: true });
+
+function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German' }[code] || 'English'; }
+function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
+function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-FR', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
+
+avatarWrap.addEventListener('click', (e) => {
+  if (isLocked) return;
+  if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
+  avatarWrap.classList.toggle('fullscreen');
+});
+
+closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
+
+uploadBtn.addEventListener('click', () => { videoUpload.value = ''; videoUpload.click(); });
+videoUpload.addEventListener('change', function (e) {
+  const file = e.target.files[0]; if (!file) return;
+  if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
+  currentAvatarObjectUrl = URL.createObjectURL(file);
+  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
+  avatarVideo.src = currentAvatarObjectUrl; 
+  avatarVideo.pause(); 
+  removeAvatarBtn.style.display = 'block';
+  setStatus('Avatar updated!');
+});
+
+removeAvatarBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
+  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block';
+  removeAvatarBtn.style.display = 'none';
+  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
+  setStatus('Avatar reset to logo.');
+});
+
+translateModeBtn.addEventListener('click', () => {
+  isTranslatorMode = !isTranslatorMode;
+  translateModeBtn.classList.toggle('active', isTranslatorMode);
+  translateModeBtn.textContent = isTranslatorMode ? 'Translator Mode ON' : 'Chat Mode ON';
+  resetStatus();
+});
+
+clearBtn.addEventListener('click', () => {
+  chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot');
+});
+
+mediaBtn.addEventListener('click', (e) => { 
+  e.stopPropagation(); musicMenu.style.display = 'none'; 
+  if (actionMenu.style.display === 'flex') { actionMenu.style.display = 'none'; } 
+  else {
+    const rect = mediaBtn.getBoundingClientRect();
+    actionMenu.style.display = 'flex';
+    actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    actionMenu.style.left = rect.left + 'px';
+    if (rect.left + 150 > window.innerWidth) actionMenu.style.left = (window.innerWidth - 160) + 'px';
+  }
+});
+menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
+menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
+
+function handleImage(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader(); 
+  reader.onload = ev => { 
+    attachedImageBase64 = ev.target.result; 
+    imagePreview.src = attachedImageBase64; 
+    imagePreviewContainer.style.display = 'flex'; 
+    setStatus('Image attached.'); 
+  }; 
+  reader.readAsDataURL(file);
+}
+galleryUpload.addEventListener('change', handleImage);
+cameraUpload.addEventListener('change', handleImage);
+
+cancelImageBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  attachedImageBase64 = null;
+  imagePreviewContainer.style.display = 'none';
+  setStatus('Image removed.');
+});
+
+musicBtn.addEventListener('click', (e) => { 
+  e.stopPropagation(); actionMenu.style.display = 'none'; 
+  if (musicMenu.style.display === 'block') { musicMenu.style.display = 'none'; } 
+  else {
+    const rect = musicBtn.getBoundingClientRect();
+    musicMenu.style.display = 'block';
+    musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    musicMenu.style.left = rect.left + 'px';
+    if (rect.left + 200 > window.innerWidth) musicMenu.style.left = (window.innerWidth - 210) + 'px';
+  }
+});
+
+audioUpload.addEventListener('change', (e) => {
+  const files = e.target.files; for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
+  renderPlaylist(); e.target.value = '';
+});
+
+function renderPlaylist() {
+  musicList.innerHTML = '';
+  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
+  
+  const pauseBtn = document.createElement('div'); 
+  pauseBtn.className = 'music-item pause-btn'; 
+  pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
+  pauseBtn.onclick = (e) => { 
+    e.stopPropagation(); 
+    if (bgAudio.src) { 
+      if (bgAudio.paused) bgAudio.play(); 
+      else bgAudio.pause(); 
+      renderPlaylist(); 
+    } 
+  }; 
+  musicList.appendChild(pauseBtn);
+
+  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
+  
+  playlist.forEach((song, index) => {
+    const div = document.createElement('div'); div.className = 'music-item';
+    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
+    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
+    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
+    div.appendChild(name); div.appendChild(del);
+    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
+    div.onclick = () => playSong(index);
+    musicList.appendChild(div);
+  });
+}
+
+function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
+function playSong(index) { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; } currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); }
+bgAudio.addEventListener('ended', () => playSong((currentSongIndex + 1) % playlist.length));
+bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
+renderPlaylist();
+
+document.addEventListener('click', (e) => { 
+  if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; 
+  if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
+});
+
+// 🎯 هنا السحر: تعليمات قوية للعلوم والترجمة
+function buildSystemPrompt(targetLang) {
+  const langName = langNameFor(targetLang);
+  const locale = localeFor(targetLang);
+  const currentDate = new Date().toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  if (isTranslatorMode) {
+    return `You are a world-class expert translator and linguist. Your ONLY task is to translate the user's input into ${langName}.
+RULES:
+1. Output ONLY the translated text.
+2. Translate the MEANING accurately, not just word-for-word.
+3. Maintain the original tone, idioms, and cultural nuances (especially Tunisian dialect).
+4. If an image is provided, translate the text inside it into ${langName}.
+5. DO NOT answer, explain, or add extra words.`;
+  } 
+  
+  return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
+You are an EXPERT POLYMATH in all fields of science: Mathematics, Physics, Chemistry, Biology, Medicine, Programming, Engineering, and Philosophy.
+
+CURRENT DATE: Today is ${currentDate}.
+
+STRICT RULES:
+1. SCIENTIFIC EXCELLENCE: Solve complex problems with high accuracy. Provide step-by-step mathematical or scientific reasoning.
+2. NO HALLUCINATION: If you don't know a fact, say 'I don't know'. DO NOT invent scientific facts, names, or stories.
+3. MEMORY & CONTEXT: Remember the user's name and context perfectly.
+4. DYNAMIC PERSONA: If the user asks you to change your name or persona, do it immediately.
+5. LANGUAGE: You MUST reply ONLY in ${langName}.
+6. IDENTITY: You are a real human named Chat-Core. Never mention AI, GPT, or OpenAI.`;
+}
+
+async function ask(text, sourceLang, targetLang, speaker) {
+  if (isSending || isLocked) return;
+  isSending = true; setStatus('Processing...');
+  
+  const systemPrompt = buildSystemPrompt(targetLang);
+  const messages = [{ role: 'system', content: systemPrompt }];
+
+  if (!isTranslatorMode) {
+    chatHistory.slice(-HISTORY_LIMIT).forEach(m => messages.push(m));
+  }
+
+  let finalText = text || '';
+  
+  let userContent;
+  if (attachedImageBase64) {
+    userContent = [
+      { type: "text", text: finalText || (isTranslatorMode ? "Translate the text in this image." : "Analyze this image.") },
+      { type: "image_url", image_url: { url: attachedImageBase64 } }
+    ];
+  } else {
+    userContent = finalText;
+  }
+  
+  messages.push({ role: 'user', content: userContent });
+
+  let reply = null;
+  try {
+    const res = await fetchWithTimeout(SERVER_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode })
+    }, REQUEST_TIMEOUT_MS);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Server error');
+    reply = data.reply.trim();
+  } catch (e) {
+    addMsg('Error: ' + e.message, 'bot');
+    setStatus('Error');
+  } finally {
+    isSending = false;
+    if (reply) {
+      const replyClass = (speaker === 'A') ? 'user-b' : 'user-a';
+      const finalClass = isTranslatorMode ? replyClass : 'user-b'; 
+      
+      addMsg(reply, finalClass, targetLang);
+      resetStatus();
+      speak(reply, targetLang);
+
+      if (!isTranslatorMode) {
+        let historyText = text || '';
+        if (attachedImageBase64) historyText = '[Image] ' + historyText;
+        historyText = historyText.trim();
+        if (historyText) {
+          chatHistory.push({ role: 'user', content: historyText });
+          chatHistory.push({ role: 'assistant', content: reply });
+          if (chatHistory.length > HISTORY_LIMIT) chatHistory = chatHistory.slice(-HISTORY_LIMIT);
+        }
+      }
+      attachedImageBase64 = null;
+      imagePreviewContainer.style.display = 'none';
+    } else {
+      unlockMics();
+    }
+  }
+}
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+if (SR) {
+  recognition = new SR();
+  recognition.continuous = false; 
+  recognition.interimResults = false;
+
+  recognition.onstart = () => { isRecording = true; };
+
+  recognition.onresult = e => {
+    if (isLocked) return;
+    const text = e.results[0][0].transcript;
+    if (!text.trim()) { unlockMics(); return; }
+    
+    const isA = activeSpeaker === 'A';
+    const sourceLang = isA ? langA.value : langB.value;
+    const targetLang = isA ? langB.value : langA.value;
+    const msgClass = isA ? 'user-a' : 'user-b';
+
+    addMsg(text, msgClass, sourceLang);
+    ask(text, sourceLang, targetLang, activeSpeaker);
+  };
+
+  recognition.onerror = e => { setStatus('Mic Error: ' + e.error); unlockMics(); };
+  recognition.onend = () => { isRecording = false; if (!isBotTalking && !isSending) unlockMics(); };
+
+  const startMic = (speaker) => {
+    if (isLocked) return;
+    unlockAudio();
+    if (isRecording) { recognition.stop(); return; }
+    stopAudio(); activeSpeaker = speaker;
+    
+    if (speaker === 'A') {
+      recognition.lang = langA.value;
+      micA.classList.add('recording'); micB.disabled = true;
+      setStatus('Listening (You)...');
+    } else {
+      recognition.lang = langB.value;
+      micB.classList.add('recording'); micA.disabled = true;
+      setStatus('Listening (Friend)...');
+    }
+    try { recognition.start(); } catch (e) {}
+  };
+
+  micA.addEventListener('click', () => startMic('A'));
+  micB.addEventListener('click', () => startMic('B'));
+} else {
+  micA.onclick = micB.onclick = () => alert('Browser does not support Mic.');
+}
+
+sendBtn.addEventListener('click', () => {
+  if (isLocked) return;
+  const t = inputEl.value.trim(); 
+  if (!t && !attachedImageBase64) return; 
+  
+  let displayTxt = t;
+  if (attachedImageBase64) displayTxt = t ? '📷 ' + t : '📷 [Image]';
+
+  addMsg(displayTxt, 'user-a', langA.value); 
+  ask(t, langA.value, langB.value, 'A');
+  inputEl.value = '';
+});
+
+let isBotTalking = false;
+
+function unlockMics() {
+  activeSpeaker = null;
+  micA.disabled = false; micB.disabled = false;
+  micA.classList.remove('recording'); micB.classList.remove('recording');
+  if (!isBotTalking) resetStatus();
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
+}
+
+function stopAudio() {
+  currentSpeechId++;
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  isBotTalking = false;
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
+}
+
+function speak(text, lang) {
+  if (isLocked) return; 
+  stopAudio(); isBotTalking = true; 
+  const mySpeechId = currentSpeechId;
+  setStatus('Speaking...');
+
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
+
+  let cleanText = text
+    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const langCode = ttsLangCodeFor(lang);
+  const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+  let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
+  const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
+  candidates.sort((a, b) => score(b) - score(a));
+  const bestVoice = candidates[0];
+
+  const sentences = cleanText.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [cleanText];
+  let chunks = [], current = "";
+  sentences.forEach(s => {
+    s = s.trim(); if (!s) return;
+    if ((current + " " + s).length > 150) { if (current) chunks.push(current); current = s; } 
+    else { current += " " + s; }
+  });
+  if (current) chunks.push(current.trim());
+
+  let index = 0;
+  function playChunk() {
+    if (index >= chunks.length || mySpeechId !== currentSpeechId || isLocked) {
+       if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); }
+       return;
+    }
+    const u = new SpeechSynthesisUtterance(chunks[index]);
+    index++;
+    if (bestVoice) u.voice = bestVoice;
+    u.lang = bestVoice ? bestVoice.lang : langCode;
+    
+    const v = voiceSelect.value;
+    if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
+    else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
+    else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.1; } 
+    else if (v === 'child') { u.pitch = 1.8; u.rate = 1.15; } 
+
+    u.onend = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
+    u.onerror = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
+    speechSynthesis.speak(u);
+  }
+  setTimeout(playChunk, 100);
+}
+
+if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+
+addMsg('Hello! Tap your Mic (Blue) to talk, and your friend taps the Green Mic. I am Chat-Core.', 'bot');
+</script>
+</body>
+</html>
