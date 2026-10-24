@@ -252,6 +252,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German' }[code] || 'English'; }
+function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-FR', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 
 avatarWrap.addEventListener('click', (e) => {
@@ -335,7 +336,6 @@ function renderPlaylist() {
   musicList.innerHTML = '';
   const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
   
-  // 🎯 رجعنا زر Pause/Play
   const pauseBtn = document.createElement('div'); 
   pauseBtn.className = 'music-item pause-btn'; 
   pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
@@ -374,24 +374,32 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 التعليمات الذكية والقديمة اللي ما تهلوسش
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
-  
+  const locale = localeFor(targetLang);
+  const currentDate = new Date().toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
   if (isTranslatorMode) {
     return `You are a literal translation engine. Your ONLY task is to translate the user's input into ${langName}.
 RULES: Output ONLY the exact translated text. Do NOT answer, explain, or add extra words.`;
   } 
   
-  // 🎯 تعليمات صارمة بزاف باش نمنعو الهلوة
-  return `You are a highly intelligent, empathetic, and articulate human.
-CURRENT LANGUAGE: ${langName}.
+  const sharedRules = `YOUR CORE RULES:
+1. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
+2. PSYCHOLOGIST MODE: If the user talks about psychological, family, or social issues, switch to an empathetic psychological counselor persona.
+3. EMPATHY: Show deep empathy for social problems.
+4. SMART SOLUTIONS: Give step-by-step solutions for technical problems.
+5. NO HALLUCINATION: If you don't know, say 'I don't know'.
+6. NEVER mention AI, GPT, or OpenAI. You are a real human.`;
 
-STRICT RULES:
-1. NEVER mention you are an AI, robot, or model. You are human.
-2. DYNAMIC PERSONA: If the user assigns you a name, adopt it immediately.
-3. FORMATTING: Use bullet points and bold text for readability.
-4. ALWAYS reply in ${langName}.
-5. **NO HALLUCINATION**: If you do not know the answer, or if the user's input is unclear, ASK for clarification or say you don't know. DO NOT invent information. Keep your answers concise and strictly related to the user's prompt.`;
+  return `You are a highly intelligent, empathetic, and wise AI consultant. Your default name is vibe-core.
+
+CURRENT DATE: Today is ${currentDate}.
+
+CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}. Even if the user types in Arabic, reply in ${langName}. Do NOT use Arabic.
+
+${sharedRules}`;
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
@@ -411,7 +419,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
   try {
     const res = await fetchWithTimeout(SERVER_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      // 🎯 نبعثو is_translation للسيرفر باش يضبط الحرارة
       body: JSON.stringify({ messages: messages, is_vision: false, is_translation: isTranslatorMode })
     }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
