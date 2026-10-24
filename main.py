@@ -21,7 +21,7 @@ if not GROQ_API_KEYS:
 
 current_key_index = 0
 
-# 🎯 الموديلات الجديدة والمدعومة (بدل اللي تسكّر)
+# 🎯 الموديلات الجديدة والمدعومة
 MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
 VISION_MODEL = "llama-3.2-11b-vision-preview"
 
