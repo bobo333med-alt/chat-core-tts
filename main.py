@@ -21,20 +21,21 @@ if not GROQ_API_KEYS:
 
 current_key_index = 0
 
-MODELS = ["llama-3.3-70b-versatile", "llama3-8b-8192"]
+# 🎯 الموديلات الجديدة والمدعومة (بدل اللي تسكّر)
+MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
 VISION_MODEL = "llama-3.2-11b-vision-preview"
 
 class ChatRequest(BaseModel):
     messages: list
     is_vision: bool = False
-    is_translation: bool = False # 🎯 زدنا هذا باش نعرفو وضع الترجمة
+    is_translation: bool = False 
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     global current_key_index
     model_to_use = VISION_MODEL if request.is_vision else MODELS[0]
     
-    # 🎯 الحل السحري: الحرارة 0.0 للترجمة، و 0.7 للدردشة
+    # 🎯 الحرارة 0.0 للترجمة الحرفية، و 0.7 للدردشة الذكية
     temp = 0.0 if request.is_translation else 0.7
 
     for attempt in range(len(GROQ_API_KEYS)):
