@@ -23,7 +23,8 @@ current_key_index = 0
 
 # 🎯 الموديلات الجديدة والمدعومة
 MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
-VISION_MODEL = "llama-3.2-11b-vision-preview"
+# 🎯 موديل الرؤية الجديد (بدل اللي تسكّر)
+VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 class ChatRequest(BaseModel):
     messages: list
