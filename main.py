@@ -24,8 +24,8 @@ current_key_index = 0
 # 🎯 الموديلات النصية
 MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
 
-# 🎯 موديلات الرؤية الجديدة (باش نحلو مشكل الصور)
-VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.2-90b-vision-preview"]
+# 🎯 موديلات الرؤية (اللي تخدم حالياً في Groq)
+VISION_MODELS = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"]
 
 class ChatRequest(BaseModel):
     messages: list
@@ -38,12 +38,13 @@ async def chat_endpoint(request: ChatRequest):
     models_to_try = VISION_MODELS if request.is_vision else MODELS
     temp = 0.0 if request.is_translation else 0.7
 
+    last_error = "Unknown error"
+    
     for attempt in range(len(GROQ_API_KEYS)):
         api_key = GROQ_API_KEYS[current_key_index]
         try:
             client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
             
-            # نجربو الموديلات واحد ورا واحد باش نمنعو الطيحة
             for model_name in models_to_try:
                 try:
                     response = await client.chat.completions.create(
@@ -54,13 +55,11 @@ async def chat_endpoint(request: ChatRequest):
                     )
                     return {"reply": response.choices[0].message.content}
                 except Exception as e:
-                    error_msg = str(e)
-                    if "400" in error_msg or "decommissioned" in error_msg or "model_not_found" in error_msg:
-                        continue
-                    else:
-                        raise e
+                    last_error = f"Groq Error ({model_name}): {str(e)}"
+                    continue 
             
-            raise Exception("All models failed.")
+            # 🎯 إذا الكل فشل، نطلعو الخطأ الحقيقي
+            raise Exception(last_error)
             
         except Exception as e:
             error_msg = str(e)
@@ -70,6 +69,7 @@ async def chat_endpoint(request: ChatRequest):
                 continue
             else:
                 raise HTTPException(status_code=500, detail=error_msg)
+                
     raise HTTPException(status_code=429, detail="All API keys reached their limit.")
 
 @app.post("/transcribe")
