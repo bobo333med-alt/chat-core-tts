@@ -23,8 +23,9 @@ current_key_index = 0
 
 # 🎯 الموديلات النصية
 MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
-# 🎯 قائمة موديلات الرؤية (باش نضمنو ما يطيحش التطبيق)
-VISION_MODELS = ["llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview", "meta-llama/llama-4-scout-17b-16e-instruct"]
+
+# 🎯 موديلات الرؤية الجديدة
+VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.2-90b-vision-preview"]
 
 class ChatRequest(BaseModel):
     messages: list
@@ -34,19 +35,15 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     global current_key_index
-    
-    # 🎯 نختارو الموديلات حسب الطلب
     models_to_try = VISION_MODELS if request.is_vision else MODELS
-    
-    # 🎯 الحرارة 0.0 للترجمة، و 0.4 للدردشة العلمية الدقيقة
-    temp = 0.0 if request.is_translation else 0.4
+    temp = 0.0 if request.is_translation else 0.7
 
     for attempt in range(len(GROQ_API_KEYS)):
         api_key = GROQ_API_KEYS[current_key_index]
         try:
             client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
             
-            # 🎯 نجربو الموديلات واحد ورا واحد (شبكة أمان)
+            # 🎯 نجربو الموديلات واحد ورا واحد
             for model_name in models_to_try:
                 try:
                     response = await client.chat.completions.create(
@@ -58,13 +55,11 @@ async def chat_endpoint(request: ChatRequest):
                     return {"reply": response.choices[0].message.content}
                 except Exception as e:
                     error_msg = str(e)
-                    # إذا الموديل تسكّر ولا ما موجودش، نجربو اللي بعدو
                     if "400" in error_msg or "decommissioned" in error_msg or "model_not_found" in error_msg:
-                        continue
+                        continue # نجربو الموديل اللي بعدو
                     else:
                         raise e
             
-            # إذا الكل فشلو
             raise Exception("All models failed.")
             
         except Exception as e:
