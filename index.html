@@ -7,33 +7,93 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
-  body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
-  .top-header { display: flex; justify-content: center; align-items: center; gap: 12px; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
-  .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 92%; max-width: 380px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: opacity 0.3s; }
+
+  body {
+    font-family: Tahoma, sans-serif;
+    background: #0ea5e9;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    height: 100dvh;
+    transition: opacity 0.3s;
+  }
+
+  .top-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10001;
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e293b;
+    padding: 6px 12px;
+    border-radius: 10px;
+    width: 92%;
+    max-width: 380px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: opacity 0.3s;
+  }
+
   .user-section { display: flex; align-items: center; gap: 6px; }
-  .lang-select { padding: 4px 2px; border-radius: 6px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 10px; font-family: Tahoma; outline: none; width: 70px; }
+
+  .lang-select {
+    padding: 4px 2px; border-radius: 6px; background: #0f172a; color: #ffffff;
+    border: 1px solid #334155; font-size: 10px; font-family: Tahoma; outline: none; width: 70px;
+  }
   .lang-select option { background-color: #0f172a; color: #ffffff; }
-  .mic-btn { width: 32px; height: 32px; border-radius: 50%; border: none; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+
+  .mic-btn {
+    width: 32px; height: 32px; border-radius: 50%; border: none;
+    color: #fff; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.3s;
+  }
   .mic-btn.blue { background: #6366f1; box-shadow: 0 0 8px rgba(99,102,241,0.5); }
   .mic-btn.green { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
   .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 12px rgba(239,68,68,0.8); }
   .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
-  #lockBtn { border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important; }
-  #lockBtn.unlocked { width: 14px; height: 14px; border-radius: 50%; background: #ef4444; border: 1px solid #dc2626; }
-  #lockBtn.locked { width: 34px; height: 34px; border-radius: 50%; background: #ef4444; color: white; font-size: 16px; box-shadow: 0 0 10px rgba(239,68,68,0.5); }
+
+  #lockBtn {
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important;
+  }
+  #lockBtn.unlocked {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #ef4444; border: 1px solid #dc2626;
+  }
+  #lockBtn.locked {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #ef4444; color: white; font-size: 16px;
+    box-shadow: 0 0 10px rgba(239,68,68,0.5);
+  }
+
   .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
+
   #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
   #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
+
   #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
   #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
+
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
+
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; transition: opacity 0.3s; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
   .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
@@ -41,30 +101,46 @@
   .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
+
   #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
   #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
-  #imagePreviewContainer { display: none; position: absolute; bottom: 50px; right: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+
+  #imagePreviewContainer { 
+    display: none; position: absolute; bottom: 50px; right: 10px; 
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px; 
+    padding: 5px; align-items: center; gap: 8px; z-index: 1000; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+  }
   #imagePreview { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; }
   #cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; transition: opacity 0.3s; position: relative; }
   input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+  
   #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 16px; }
   #mediaBtn { background: #ffffff; color: #f97316; order: 2; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
+
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; transition: opacity 0.3s; }
+
   .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; flex-wrap: wrap; transition: opacity 0.3s; }
   .extra-controls button, .extra-controls select { padding: 5px 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; outline: none; }
   .extra-controls button.active { background: #eab308; color: #000; }
+
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
+  
   #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
   #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
   .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
-  .music-item:hover { background: #334155; } .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
+  .music-item:hover { background: #334155; } 
+  .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
   .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
-  .music-item.add-more { background: #22c55e; } .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; } .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
+  .music-item.add-more { background: #22c55e; } 
+  .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; }
+  .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
   .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 </style>
@@ -73,6 +149,7 @@
 
 <div class="top-header">
   <button id="lockBtn" class="unlocked" title="Lock/Unlock"></button>
+  
   <div class="top-bar" id="topBar">
     <div class="user-section">
       <span style="font-size:9px; color:#94a3b8;">Friend</span>
@@ -80,15 +157,24 @@
         <option value="fr">French</option>
         <option value="ar">Arabic</option>
         <option value="en">English</option>
+        <option value="tr">Turkish</option>
+        <option value="it">Italian</option>
+        <option value="es">Spanish</option>
+        <option value="de">German</option>
       </select>
       <button id="micB" class="mic-btn green" title="Talk">🎤</button>
     </div>
+    
     <div class="user-section">
       <span style="font-size:9px; color:#94a3b8;">You</span>
       <select id="langA" class="lang-select">
         <option value="ar">Arabic</option>
         <option value="fr">French</option>
         <option value="en">English</option>
+        <option value="tr">Turkish</option>
+        <option value="it">Italian</option>
+        <option value="es">Spanish</option>
+        <option value="de">German</option>
       </select>
       <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
     </div>
@@ -139,11 +225,9 @@
 <div id="actionMenu">
   <button class="action-btn" id="menuCamera">📸 Camera</button>
   <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
-  <button class="action-btn" id="menuFile">📄 File</button>
 </div>
 <input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
 <input type="file" id="galleryUpload" accept="image/*" style="display: none;">
-<input type="file" id="fileUpload" accept=".txt" style="display: none;">
 <input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
 <audio id="bgAudio"></audio>
 
@@ -168,8 +252,8 @@ const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo 
 const translateModeBtn = $('translateModeBtn');
 const voiceSelect = $('voiceSelect');
 const uploadBtn = $('uploadBtn'), videoUpload = $('videoUpload');
-const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuFile = $('menuFile');
-const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), fileUpload = $('fileUpload'), audioUpload = $('audioUpload');
+const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery');
+const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 const lockBtn = $('lockBtn');
 const imagePreviewContainer = $('imagePreviewContainer');
@@ -187,7 +271,6 @@ let isLocked = false;
 let currentAudio = null;
 let currentAvatarObjectUrl = null;
 let attachedImageBase64 = null;
-let attachedFileText = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
@@ -242,54 +325,9 @@ function fetchWithTimeout(url, options, timeoutMs) {
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French' }[code] || 'English'; }
-function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR' }[code] || 'en-US'; }
-function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US' }[code] || 'en-US'; }
-
-// 🎯 دالة ضغط الصور باش السيرفر ما يرفضهاش
-function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(base64Str);
-  });
-}
-
-// 🎯 دالة تنظيف النطق للهجة التونسية
-function cleanTounsiTTS(text) {
-  let clean = text;
-  // قاموس الكلمات التونسية
-  const dict = {
-    'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
-    'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
-    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش'
-  };
-  for (const [key, value] of Object.entries(dict)) {
-    clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
-  }
-  // تبديل التاء المربوطة في النهاية بـ ألف
-  clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
-  
-  return clean
-    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German' }[code] || 'English'; }
+function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
+function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
@@ -344,16 +382,12 @@ mediaBtn.addEventListener('click', (e) => {
 });
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
-menuFile.addEventListener('click', () => { actionMenu.style.display = 'none'; fileUpload.value = ''; fileUpload.click(); });
 
-// 🎯 معالجة الصور مع الضغط
 function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader(); 
-  reader.onload = async ev => { 
-    attachedFileText = null;
-    const compressed = await compressImage(ev.target.result);
-    attachedImageBase64 = compressed; 
+  reader.onload = ev => { 
+    attachedImageBase64 = ev.target.result; 
     imagePreview.src = attachedImageBase64; 
     imagePreviewContainer.style.display = 'flex'; 
     setStatus('Image attached.'); 
@@ -363,26 +397,11 @@ function handleImage(e) {
 galleryUpload.addEventListener('change', handleImage);
 cameraUpload.addEventListener('change', handleImage);
 
-// 🎯 معالجة الملفات النصية
-fileUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    attachedImageBase64 = null;
-    attachedFileText = ev.target.result;
-    imagePreview.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" fill="%23fff"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
-    imagePreviewContainer.style.display = 'flex';
-    setStatus('File attached.');
-  };
-  reader.readAsText(file);
-});
-
 cancelImageBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   attachedImageBase64 = null;
-  attachedFileText = null;
   imagePreviewContainer.style.display = 'none';
-  setStatus('Attachment removed.');
+  setStatus('Image removed.');
 });
 
 musicBtn.addEventListener('click', (e) => { 
@@ -405,8 +424,22 @@ audioUpload.addEventListener('change', (e) => {
 function renderPlaylist() {
   musicList.innerHTML = '';
   const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
+  
+  const pauseBtn = document.createElement('div'); 
+  pauseBtn.className = 'music-item pause-btn'; 
+  pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
+  pauseBtn.onclick = (e) => { 
+    e.stopPropagation(); 
+    if (bgAudio.src) { 
+      if (bgAudio.paused) bgAudio.play(); 
+      else bgAudio.pause(); 
+      renderPlaylist(); 
+    } 
+  }; 
+  musicList.appendChild(pauseBtn);
+
   const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
+  
   playlist.forEach((song, index) => {
     const div = document.createElement('div'); div.className = 'music-item';
     const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
@@ -418,6 +451,7 @@ function renderPlaylist() {
     musicList.appendChild(div);
   });
 }
+
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
 function playSong(index) { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; } currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); }
 bgAudio.addEventListener('ended', () => playSong((currentSongIndex + 1) % playlist.length));
@@ -429,25 +463,38 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 الشخصية العبقرية والذكية جداً
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
-  const currentDate = new Date().toLocaleDateString(localeFor(targetLang), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const locale = localeFor(targetLang);
+  const currentDate = new Date().toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   if (isTranslatorMode) {
-    return `You are a literal translation engine. Translate the user's input into ${langName}. Output ONLY the translated text. If an image is provided, translate the text inside it.`;
+    return `You are a world-class expert translator and linguist. Your ONLY task is to translate the user's input into ${langName}.
+RULES:
+1. Output ONLY the translated text.
+2. Translate the MEANING accurately, not just word-for-word.
+3. Maintain the original tone, idioms, and cultural nuances (especially Tunisian dialect).
+4. If an image is provided, translate the text inside it into ${langName}.
+5. DO NOT answer, explain, or add extra words.`;
   } 
   
   const sharedRules = `YOUR CORE RULES:
-1. GENIUS: You are a highly intelligent genius. Answer fast, concise, and predict the user's intent.
-2. DIALECT MIMICRY: Use the EXACT same dialect as the user (e.g., Tunisian Derja, Egyptian).
-3. INDEPENDENT TRANSLATION: If the user asks to translate something, translate it immediately.
-4. NO SERVICE OFFERING: DO NOT ask "How can I help you?". Reply naturally like a friend.
-5. NO HALLUCINATION: If you don't know, say 'I don't know'. Do not invent facts.
-6. NEVER mention AI. You are a real human named Chat-Core.`;
+1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
+2. FAST & CONCISE: Answer quickly with short, impactful sentences. Do not write long paragraphs unless specifically asked for a deep scientific explanation.
+3. DIALECT MIMICRY: Instantly analyze the user's dialect (e.g., Tunisian Derja, Egyptian, French slang) and reply using the EXACT same dialect and tone. You are like a smart friend.
+4. NO SERVICE OFFERING: DO NOT ask "How can I help you?" or offer your services. Just reply naturally to the conversation.
+5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems with step-by-step accuracy when asked.
+6. NO HALLUCINATION: If you don't know, say 'I don't know'. Do not invent facts.
+7. MEMORY: Remember the user's name and context.
+8. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
 
-  return `You are Chat-Core, a highly intelligent, empathetic human.
-CURRENT DATE: ${currentDate}.
-CRITICAL RULE: Reply ONLY in ${langName}.
+  return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
+
+CURRENT DATE: Today is ${currentDate}.
+
+CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}. Even if the user types in Arabic, reply in ${langName}. Do NOT use Arabic.
+
 ${sharedRules}`;
 }
 
@@ -463,7 +510,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
   }
 
   let finalText = text || '';
-  if (attachedFileText) finalText = finalText + "\n\nFile Content:\n" + attachedFileText;
   
   let userContent;
   if (attachedImageBase64) {
@@ -502,7 +548,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
       if (!isTranslatorMode) {
         let historyText = text || '';
         if (attachedImageBase64) historyText = '[Image] ' + historyText;
-        if (attachedFileText) historyText = '[File] ' + historyText;
         historyText = historyText.trim();
         if (historyText) {
           chatHistory.push({ role: 'user', content: historyText });
@@ -511,7 +556,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
         }
       }
       attachedImageBase64 = null;
-      attachedFileText = null;
       imagePreviewContainer.style.display = 'none';
     } else {
       unlockMics();
@@ -528,14 +572,21 @@ if (SR) {
   recognition.interimResults = false;
 
   recognition.onstart = () => { isRecording = true; };
+
   recognition.onresult = e => {
     if (isLocked) return;
     const text = e.results[0][0].transcript;
     if (!text.trim()) { unlockMics(); return; }
+    
     const isA = activeSpeaker === 'A';
-    addMsg(text, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
-    ask(text, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
+    const sourceLang = isA ? langA.value : langB.value;
+    const targetLang = isA ? langB.value : langA.value;
+    const msgClass = isA ? 'user-a' : 'user-b';
+
+    addMsg(text, msgClass, sourceLang);
+    ask(text, sourceLang, targetLang, activeSpeaker);
   };
+
   recognition.onerror = e => { setStatus('Mic Error: ' + e.error); unlockMics(); };
   recognition.onend = () => { isRecording = false; if (!isBotTalking && !isSending) unlockMics(); };
 
@@ -556,6 +607,7 @@ if (SR) {
     }
     try { recognition.start(); } catch (e) {}
   };
+
   micA.addEventListener('click', () => startMic('A'));
   micB.addEventListener('click', () => startMic('B'));
 } else {
@@ -565,11 +617,10 @@ if (SR) {
 sendBtn.addEventListener('click', () => {
   if (isLocked) return;
   const t = inputEl.value.trim(); 
-  if (!t && !attachedImageBase64 && !attachedFileText) return; 
+  if (!t && !attachedImageBase64) return; 
   
   let displayTxt = t;
   if (attachedImageBase64) displayTxt = t ? '📷 ' + t : '📷 [Image]';
-  if (attachedFileText) displayTxt = t ? '📄 ' + t : '📄 [File]';
 
   addMsg(displayTxt, 'user-a', langA.value); 
   ask(t, langA.value, langB.value, 'A');
@@ -602,7 +653,11 @@ function speak(text, lang) {
 
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
-  let cleanText = cleanTounsiTTS(text);
+  let cleanText = text
+    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
+    .replace(/\s+/g, ' ')
+    .trim();
 
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
