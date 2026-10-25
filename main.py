@@ -24,7 +24,7 @@ current_key_index = 0
 # 🎯 الموديلات النصية
 MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
 
-# 🎯 موديلات الرؤية الجديدة
+# 🎯 موديلات الرؤية الجديدة (باش نحلو مشكل الصور)
 VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.2-90b-vision-preview"]
 
 class ChatRequest(BaseModel):
@@ -43,7 +43,7 @@ async def chat_endpoint(request: ChatRequest):
         try:
             client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
             
-            # 🎯 نجربو الموديلات واحد ورا واحد
+            # نجربو الموديلات واحد ورا واحد باش نمنعو الطيحة
             for model_name in models_to_try:
                 try:
                     response = await client.chat.completions.create(
@@ -56,7 +56,7 @@ async def chat_endpoint(request: ChatRequest):
                 except Exception as e:
                     error_msg = str(e)
                     if "400" in error_msg or "decommissioned" in error_msg or "model_not_found" in error_msg:
-                        continue # نجربو الموديل اللي بعدو
+                        continue
                     else:
                         raise e
             
