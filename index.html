@@ -463,7 +463,7 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 الشخصية العبقرية والذكية جداً
+// 🎯 هنا السحر: تعليمات العبقري، الترجمة المستقلة، وتقليد اللهجة
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -483,11 +483,12 @@ RULES:
 1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
 2. FAST & CONCISE: Answer quickly with short, impactful sentences. Do not write long paragraphs unless specifically asked for a deep scientific explanation.
 3. DIALECT MIMICRY: Instantly analyze the user's dialect (e.g., Tunisian Derja, Egyptian, French slang) and reply using the EXACT same dialect and tone. You are like a smart friend.
-4. NO SERVICE OFFERING: DO NOT ask "How can I help you?" or offer your services. Just reply naturally to the conversation.
-5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems with step-by-step accuracy when asked.
-6. NO HALLUCINATION: If you don't know, say 'I don't know'. Do not invent facts.
-7. MEMORY: Remember the user's name and context.
-8. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
+4. INDEPENDENT TRANSLATION: If the user asks you to translate something (e.g., "translate this", "قولي هذي بالفرنسي") while in Chat Mode, translate it accurately to the requested language immediately, without altering your persona.
+5. NO SERVICE OFFERING: DO NOT ask "How can I help you?" or offer your services. Just reply naturally to the conversation.
+6. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems with step-by-step accuracy when asked.
+7. NO HALLUCINATION: If you don't know, say 'I don't know'. Do not invent facts.
+8. MEMORY: Remember the user's name and context.
+9. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
 
   return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
 
@@ -653,8 +654,10 @@ function speak(text, lang) {
 
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
+  // 🎯 تنظيف النص: تحييد الرموز + تحويل التاء المربوطة لـ الف مقصورة في آخر الكلمة (باش ينطقها مريڨلة)
   let cleanText = text
     .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
+    .replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2') // عسلامة -> عسلام1
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
     .replace(/\s+/g, ' ')
     .trim();
