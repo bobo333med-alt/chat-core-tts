@@ -64,7 +64,6 @@
   .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
 
-  /* 🎯 زر الغلق (أحمر في الحالتين) */
   #lockBtn {
     border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
     transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important;
@@ -106,7 +105,6 @@
   #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
   #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
 
-  /* 🎯 صندوق معاينة الصورة (فوق أزرار الميديا) */
   #imagePreviewContainer { 
     display: none; position: absolute; bottom: 50px; right: 10px; 
     background: #1e293b; border: 1px solid #334155; border-radius: 8px; 
@@ -211,7 +209,6 @@
   </button>
 </div>
 
-<!-- 🎯 صندوق معاينة الصورة فوق شريط الكتابة -->
 <div id="imagePreviewContainer">
   <img id="imagePreview" src="" alt="Preview">
   <button id="cancelImageBtn">✕</button>
@@ -259,8 +256,6 @@ const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('me
 const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 const lockBtn = $('lockBtn');
-
-// 🎯 عناصر الصورة
 const imagePreviewContainer = $('imagePreviewContainer');
 const imagePreview = $('imagePreview');
 const cancelImageBtn = $('cancelImageBtn');
@@ -275,7 +270,7 @@ let isSending = false;
 let isLocked = false;
 let currentAudio = null;
 let currentAvatarObjectUrl = null;
-let attachedImageBase64 = null; // 🎯 متغير لحفظ الصورة
+let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
@@ -332,7 +327,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
-function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-FR', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
+function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
@@ -388,7 +383,6 @@ mediaBtn.addEventListener('click', (e) => {
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
 
-// 🎯 دالة قراءة الصورة وعرضها في المعاينة
 function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader(); 
@@ -403,7 +397,6 @@ function handleImage(e) {
 galleryUpload.addEventListener('change', handleImage);
 cameraUpload.addEventListener('change', handleImage);
 
-// 🎯 إلغاء الصورة
 cancelImageBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   attachedImageBase64 = null;
@@ -470,24 +463,33 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 الشخصية العبقرية والذكية جداً
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
   const currentDate = new Date().toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   if (isTranslatorMode) {
-    return `You are a literal translation engine. Your ONLY task is to translate the user's input into ${langName}.
-RULES: Output ONLY the exact translated text. Do NOT answer, explain, or add extra words. If the user sends an image, translate the text inside it.`;
+    return `You are a world-class expert translator and linguist. Your ONLY task is to translate the user's input into ${langName}.
+RULES:
+1. Output ONLY the translated text.
+2. Translate the MEANING accurately, not just word-for-word.
+3. Maintain the original tone, idioms, and cultural nuances (especially Tunisian dialect).
+4. If an image is provided, translate the text inside it into ${langName}.
+5. DO NOT answer, explain, or add extra words.`;
   } 
   
   const sharedRules = `YOUR CORE RULES:
-1. MEMORY & CONTEXT: Remember the user's name and context. If the user gives you a name, NEVER forget it.
-2. NO HALLUCINATION: If you don't know a fact or a name, say 'I don't know'. DO NOT invent names, facts, or stories.
-3. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
-4. SMART SOLUTIONS: Give step-by-step solutions for technical problems.
-5. NEVER mention AI, GPT, or OpenAI. You are a real human named Chat-Core.`;
+1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
+2. FAST & CONCISE: Answer quickly with short, impactful sentences. Do not write long paragraphs unless specifically asked for a deep scientific explanation.
+3. DIALECT MIMICRY: Instantly analyze the user's dialect (e.g., Tunisian Derja, Egyptian, French slang) and reply using the EXACT same dialect and tone. You are like a smart friend.
+4. NO SERVICE OFFERING: DO NOT ask "How can I help you?" or offer your services. Just reply naturally to the conversation.
+5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems with step-by-step accuracy when asked.
+6. NO HALLUCINATION: If you don't know, say 'I don't know'. Do not invent facts.
+7. MEMORY: Remember the user's name and context.
+8. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
 
-  return `You are a highly intelligent, empathetic, and wise human named Chat-Core.
+  return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
 
 CURRENT DATE: Today is ${currentDate}.
 
@@ -509,11 +511,10 @@ async function ask(text, sourceLang, targetLang, speaker) {
 
   let finalText = text || '';
   
-  // 🎯 إذا فما صورة، نبعثوها كـ Array مع النص
   let userContent;
   if (attachedImageBase64) {
     userContent = [
-      { type: "text", text: finalText || (isTranslatorMode ? "Translate the text in this image." : "What do you think of this image?") },
+      { type: "text", text: finalText || (isTranslatorMode ? "Translate the text in this image." : "Analyze this image.") },
       { type: "image_url", image_url: { url: attachedImageBase64 } }
     ];
   } else {
@@ -554,7 +555,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
           if (chatHistory.length > HISTORY_LIMIT) chatHistory = chatHistory.slice(-HISTORY_LIMIT);
         }
       }
-      // 🎯 تنظيف الصورة بعد الإرسال
       attachedImageBase64 = null;
       imagePreviewContainer.style.display = 'none';
     } else {
@@ -617,7 +617,7 @@ if (SR) {
 sendBtn.addEventListener('click', () => {
   if (isLocked) return;
   const t = inputEl.value.trim(); 
-  if (!t && !attachedImageBase64) return; // 🎯 ينجم يبعث حتى كان فما صورة برك
+  if (!t && !attachedImageBase64) return; 
   
   let displayTxt = t;
   if (attachedImageBase64) displayTxt = t ? '📷 ' + t : '📷 [Image]';
@@ -661,10 +661,18 @@ function speak(text, lang) {
 
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+  
   let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
-  const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
-  candidates.sort((a, b) => score(b) - score(a));
-  const bestVoice = candidates[0];
+  let bestVoice = candidates[0];
+  
+  if (lang === 'fr') {
+    let caVoice = voices.find(v => v.lang.toLowerCase() === 'fr-ca');
+    if (caVoice) bestVoice = caVoice;
+  } else {
+    const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
+    candidates.sort((a, b) => score(b) - score(a));
+    bestVoice = candidates[0];
+  }
 
   const sentences = cleanText.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [cleanText];
   let chunks = [], current = "";
