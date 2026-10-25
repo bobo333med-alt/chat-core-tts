@@ -7,93 +7,33 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
-
-  body {
-    font-family: Tahoma, sans-serif;
-    background: #0ea5e9;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    height: 100dvh;
-    transition: opacity 0.3s;
-  }
-
-  .top-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    margin-bottom: 10px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10001;
-  }
-
-  .top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1e293b;
-    padding: 6px 12px;
-    border-radius: 10px;
-    width: 92%;
-    max-width: 380px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    transition: opacity 0.3s;
-  }
-
+  body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
+  .top-header { display: flex; justify-content: center; align-items: center; gap: 12px; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 92%; max-width: 380px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: opacity 0.3s; }
   .user-section { display: flex; align-items: center; gap: 6px; }
-
-  .lang-select {
-    padding: 4px 2px; border-radius: 6px; background: #0f172a; color: #ffffff;
-    border: 1px solid #334155; font-size: 10px; font-family: Tahoma; outline: none; width: 70px;
-  }
+  .lang-select { padding: 4px 2px; border-radius: 6px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 10px; font-family: Tahoma; outline: none; width: 75px; }
   .lang-select option { background-color: #0f172a; color: #ffffff; }
-
-  .mic-btn {
-    width: 32px; height: 32px; border-radius: 50%; border: none;
-    color: #fff; font-size: 14px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; transition: all 0.3s;
-  }
+  .mic-btn { width: 32px; height: 32px; border-radius: 50%; border: none; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
   .mic-btn.blue { background: #6366f1; box-shadow: 0 0 8px rgba(99,102,241,0.5); }
   .mic-btn.green { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
   .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 12px rgba(239,68,68,0.8); }
   .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
-
-  #lockBtn {
-    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important;
-  }
-  #lockBtn.unlocked {
-    width: 14px; height: 14px; border-radius: 50%;
-    background: #ef4444; border: 1px solid #dc2626;
-  }
-  #lockBtn.locked {
-    width: 34px; height: 34px; border-radius: 50%;
-    background: #ef4444; color: white; font-size: 16px;
-    box-shadow: 0 0 10px rgba(239,68,68,0.5);
-  }
-
+  #lockBtn { border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important; }
+  #lockBtn.unlocked { width: 14px; height: 14px; border-radius: 50%; background: #ef4444; border: 1px solid #dc2626; }
+  #lockBtn.locked { width: 34px; height: 34px; border-radius: 50%; background: #ef4444; color: white; font-size: 16px; box-shadow: 0 0 10px rgba(239,68,68,0.5); }
   .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
-
   #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
   #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
-
   #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
   #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
-
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
-
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; transition: opacity 0.3s; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
   .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
@@ -101,46 +41,30 @@
   .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
-
   #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
   #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
-
-  #imagePreviewContainer { 
-    display: none; position: absolute; bottom: 50px; right: 10px; 
-    background: #1e293b; border: 1px solid #334155; border-radius: 8px; 
-    padding: 5px; align-items: center; gap: 8px; z-index: 1000; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-  }
+  #imagePreviewContainer { display: none; position: absolute; bottom: 50px; right: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
   #imagePreview { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; }
   #cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; transition: opacity 0.3s; position: relative; }
   input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
-  
   #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 16px; }
   #mediaBtn { background: #ffffff; color: #f97316; order: 2; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
-
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; transition: opacity 0.3s; }
-
   .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; flex-wrap: wrap; transition: opacity 0.3s; }
   .extra-controls button, .extra-controls select { padding: 5px 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; outline: none; }
   .extra-controls button.active { background: #eab308; color: #000; }
-
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
-  
   #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
   #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
   .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
-  .music-item:hover { background: #334155; } 
-  .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
+  .music-item:hover { background: #334155; } .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
   .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
-  .music-item.add-more { background: #22c55e; } 
-  .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; }
-  .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
+  .music-item.add-more { background: #22c55e; } .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; } .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
   .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 </style>
@@ -149,7 +73,6 @@
 
 <div class="top-header">
   <button id="lockBtn" class="unlocked" title="Lock/Unlock"></button>
-  
   <div class="top-bar" id="topBar">
     <div class="user-section">
       <span style="font-size:9px; color:#94a3b8;">Friend</span>
@@ -164,7 +87,6 @@
       </select>
       <button id="micB" class="mic-btn green" title="Talk">🎤</button>
     </div>
-    
     <div class="user-section">
       <span style="font-size:9px; color:#94a3b8;">You</span>
       <select id="langA" class="lang-select">
@@ -329,6 +251,49 @@ function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'Fr
 function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
 
+// 🎯 دالة ضغط الصور الذكية (تمت إضافتها لحماية السيرفر)
+function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64Str);
+  });
+}
+
+// 🎯 دالة تنظيف النطق للهجة التونسية
+function cleanTounsiTTS(text) {
+  let clean = text;
+  const dict = {
+    'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
+    'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
+    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش'
+  };
+  for (const [key, value] of Object.entries(dict)) {
+    clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
+  }
+  clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
+  
+  return clean
+    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
   if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
@@ -383,11 +348,14 @@ mediaBtn.addEventListener('click', (e) => {
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
 
+// 🎯 معالجة الصور مع الضغط الآلي
 function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader(); 
-  reader.onload = ev => { 
-    attachedImageBase64 = ev.target.result; 
+  reader.onload = async ev => { 
+    setStatus('Compressing image...');
+    const compressed = await compressImage(ev.target.result);
+    attachedImageBase64 = compressed; 
     imagePreview.src = attachedImageBase64; 
     imagePreviewContainer.style.display = 'flex'; 
     setStatus('Image attached.'); 
@@ -424,7 +392,6 @@ audioUpload.addEventListener('change', (e) => {
 function renderPlaylist() {
   musicList.innerHTML = '';
   const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  
   const pauseBtn = document.createElement('div'); 
   pauseBtn.className = 'music-item pause-btn'; 
   pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
@@ -437,9 +404,7 @@ function renderPlaylist() {
     } 
   }; 
   musicList.appendChild(pauseBtn);
-
   const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
-  
   playlist.forEach((song, index) => {
     const div = document.createElement('div'); div.className = 'music-item';
     const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
@@ -463,7 +428,6 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 الشخصية العبقرية والذكية جداً
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -474,27 +438,24 @@ function buildSystemPrompt(targetLang) {
 RULES:
 1. Output ONLY the translated text.
 2. Translate the MEANING accurately, not just word-for-word.
-3. Maintain the original tone, idioms, and cultural nuances (especially Tunisian dialect).
+3. Maintain the original tone, idioms, and cultural nuances.
 4. If an image is provided, translate the text inside it into ${langName}.
 5. DO NOT answer, explain, or add extra words.`;
   } 
   
   const sharedRules = `YOUR CORE RULES:
 1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
-2. FAST & CONCISE: Answer quickly with short, impactful sentences. Do not write long paragraphs unless specifically asked for a deep scientific explanation.
-3. DIALECT MIMICRY: Instantly analyze the user's dialect (e.g., Tunisian Derja, Egyptian, French slang) and reply using the EXACT same dialect and tone. You are like a smart friend.
-4. NO SERVICE OFFERING: DO NOT ask "How can I help you?" or offer your services. Just reply naturally to the conversation.
-5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems with step-by-step accuracy when asked.
-6. NO HALLUCINATION: If you don't know, say 'I don't know'. Do not invent facts.
+2. FAST & CONCISE: Answer quickly with short, impactful sentences.
+3. DIALECT MIMICRY: Instantly analyze the user's dialect and reply using the EXACT same dialect and tone.
+4. NO SERVICE OFFERING: DO NOT ask "How can I help you?". Reply naturally like a friend.
+5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems when asked.
+6. NO HALLUCINATION: If you don't know, say 'I don't know'.
 7. MEMORY: Remember the user's name and context.
 8. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
 
   return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
-
 CURRENT DATE: Today is ${currentDate}.
-
-CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}. Even if the user types in Arabic, reply in ${langName}. Do NOT use Arabic.
-
+CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}.
 ${sharedRules}`;
 }
 
@@ -533,7 +494,14 @@ async function ask(text, sourceLang, targetLang, speaker) {
     if (!res.ok) throw new Error(data.detail || 'Server error');
     reply = data.reply.trim();
   } catch (e) {
-    addMsg('Error: ' + e.message, 'bot');
+    // 🎯 معالجة الأخطاء بشكل احترافي بدون إظهار أكواد تقنية
+    let errorMsg = 'عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.';
+    if (e.message.includes('400') || e.message.includes('decommissioned')) {
+        errorMsg = 'عذراً، ميزة تحليل الصور غير متاحة حالياً. جرب صورة أخرى.';
+    } else if (e.name === 'AbortError') {
+        errorMsg = 'السيرفر استغرق وقتاً طويلاً للرد. يرجى المحاولة مرة أخرى.';
+    }
+    addMsg('⚠️ ' + errorMsg, 'bot');
     setStatus('Error');
   } finally {
     isSending = false;
@@ -653,11 +621,7 @@ function speak(text, lang) {
 
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
-  let cleanText = text
-    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
-    .replace(/\s+/g, ' ')
-    .trim();
+  let cleanText = cleanTounsiTTS(text);
 
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
