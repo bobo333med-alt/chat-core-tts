@@ -653,7 +653,7 @@ async function speak(text, lang) {
     return;
 
   } catch (error) {
-    console.warn('Edge-TTS failed, falling back to browser voice.', error);
+    alert('المشكلة: ' + error.message); console.warn('Edge-TTS failed', error)
   }
 
   setStatus('Speaking (Browser)...');
