@@ -607,7 +607,6 @@ function stopAudio() {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
-// 🎯 دالة النطق (مع إظهار الخطأ)
 async function speak(text, lang) {
   if (isLocked) return; 
   stopAudio(); isBotTalking = true; 
@@ -633,7 +632,10 @@ async function speak(text, lang) {
       })
     });
 
-    if (!response.ok) throw new Error('Voice API error');
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Voice API error');
+    }
     
     const audioBlob = await response.blob();
     if (mySpeechId !== currentSpeechId || isLocked) return;
@@ -654,7 +656,6 @@ async function speak(text, lang) {
     return;
 
   } catch (error) {
-    // 🎯 هنا التنبيه اللي باش يظهرلنا المشكلة
     alert('السبب: ' + error.message); 
     console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
