@@ -1,9 +1,11 @@
 import os
 import asyncio
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from openai import AsyncOpenAI
+import httpx
 
 app = FastAPI()
 
@@ -21,11 +23,8 @@ if not GROQ_API_KEYS:
 
 current_key_index = 0
 
-# 🎯 الموديلات النصية
 MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
-
-# 🎯 موديلات الرؤية (اللي تخدم حالياً في Groq)
-VISION_MODELS = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"]
+VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.2-11b-vision-preview"]
 
 class ChatRequest(BaseModel):
     messages: list
@@ -58,7 +57,6 @@ async def chat_endpoint(request: ChatRequest):
                     last_error = f"Groq Error ({model_name}): {str(e)}"
                     continue 
             
-            # 🎯 إذا الكل فشل، نطلعو الخطأ الحقيقي
             raise Exception(last_error)
             
         except Exception as e:
@@ -95,3 +93,20 @@ async def transcribe_audio(file: UploadFile = File(...)):
             else:
                 raise HTTPException(status_code=500, detail=error_msg)
     raise HTTPException(status_code=429, detail="All API keys reached their limit.")
+
+# 🎯 السيرفر الوسيط للصوت
+@app.post("/tts")
+async def proxy_tts(request: Request):
+    try:
+        data = await request.json()
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://chat-core-voice.onrender.com/v1/audio/speech",
+                json=data,
+                timeout=60.0
+            )
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail=response.text)
+            return Response(content=response.content, media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
