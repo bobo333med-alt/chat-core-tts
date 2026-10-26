@@ -158,10 +158,11 @@
   <div id="musicList"></div>
 </div>
 
-<script type="module">
+<script>
 'use strict';
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
+const VOICE_SERVER_URL = "YOUR_RENDER_URL_HERE/tts"; // ⚠️ هنا تحط الرابط متاع Render (بدون / في الأخير) + /tts
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
 
@@ -196,11 +197,16 @@ let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
-// 🎯 متغيرات Piper TTS
-let piperModule = null;
-let piperReady = false;
-let piperLoading = false;
-let ttsSession = null;
+// 🎯 خريطة أصوات Edge-TTS التونسية والفرنسية
+const EDGE_VOICES = {
+  'ar': 'ar-TN-HediNeural',     // صوت رجل تونسي
+  'fr': 'fr-FR-HenriNeural',    // صوت رجل فرنسي
+  'en': 'en-US-ChristopherNeural',
+  'tr': 'tr-TR-AhmetNeural',
+  'it': 'it-IT-DiegoNeural',
+  'es': 'es-ES-AlvaroNeural',
+  'de': 'de-DE-ConradNeural'
+};
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'); }
@@ -280,56 +286,14 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 دالة تنظيف النطق للهجة التونسية
-function cleanTounsiTTS(text) {
-  let clean = text;
-  const dict = {
-    'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
-    'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
-    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش'
-  };
-  for (const [key, value] of Object.entries(dict)) {
-    clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
-  }
-  clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
-  
-  return clean
+// 🎯 دالة تنظيف النصوص (مسح الرموز والإيموجي)
+function cleanText(text) {
+  return text
     .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
     .replace(/\s+/g, ' ')
     .trim();
 }
-
-// 🎯 تحميل مكتبة Piper TTS
-async function initPiper() {
-  if (piperReady || piperLoading) return;
-  piperLoading = true;
-  try {
-    piperModule = await import('https://cdn.jsdelivr.net/npm/@realtimex/piper-tts-web@1.1.1/+esm');
-    
-    ttsSession = new piperModule.TtsSession({
-      voiceId: 'ar_JO-kareem-medium',
-      wasmPaths: {
-        onnxWasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/',
-        piperData: 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm/build/piper_phonemize.data',
-        piperWasm: 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm/build/piper_phonemize.wasm'
-      },
-      progress: (progress) => {},
-      logger: (msg) => { console.log('Piper Log:', msg); }
-    });
-
-    piperReady = true;
-    console.log('Piper TTS loaded.');
-  } catch (e) {
-    alert('خطأ في تحميل المكتبة: ' + e.message);
-    piperReady = false;
-    ttsSession = null;
-  } finally {
-    piperLoading = false;
-  }
-}
-// بدء التحميل في الخلفية فور فتح التطبيق
-initPiper();
 
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
@@ -648,7 +612,7 @@ function stopAudio() {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
-// 🎯 دالة النطق المطورة (Piper للعربية فقط، والمتصفح للأجنبية لتسريع الاستجابة)
+// 🎯 دالة النطق الجديدة (Edge-TTS)
 async function speak(text, lang) {
   if (isLocked) return; 
   stopAudio(); isBotTalking = true; 
@@ -656,104 +620,60 @@ async function speak(text, lang) {
 
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
-  let cleanText = cleanTounsiTTS(text);
+  let cleanString = cleanText(text);
+  const voiceId = EDGE_VOICES[lang] || EDGE_VOICES['en'];
 
-  // 1. استخدام Piper TTS (فقط للغة العربية لتسريع الاستجابة للغات الأخرى)
-  if (lang === 'ar' && piperReady && ttsSession) {
-    try {
-      setStatus('Generating AI Voice...');
-      
-      // تقسيم النص الطويل إلى جمل لتحسين الأداء
-      const sentences = cleanText.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [cleanText];
-      let chunks = [], current = "";
-      sentences.forEach(s => {
-        s = s.trim(); if (!s) return;
-        if ((current + " " + s).length > 150) { if (current) chunks.push(current); current = s; } 
-        else { current += " " + s; }
-      });
-      if (current) chunks.push(current.trim());
+  try {
+    setStatus('Generating AI Voice...');
+    
+    const response = await fetch(VOICE_SERVER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: cleanString, voice: voiceId })
+    });
 
-      for (let i = 0; i < chunks.length; i++) {
-        if (mySpeechId !== currentSpeechId || isLocked) return;
-        
-        const wav = await ttsSession.predict(chunks[i]);
-        
-        if (mySpeechId !== currentSpeechId || isLocked) return;
+    if (!response.ok) throw new Error('Voice API error');
+    
+    const audioBlob = await response.blob();
+    if (mySpeechId !== currentSpeechId || isLocked) return;
 
-        const audioUrl = URL.createObjectURL(wav);
-        const audio = new Audio(audioUrl);
-        currentAudio = audio;
-        
-        await new Promise((resolve) => {
-          audio.onended = () => {
-            URL.revokeObjectURL(audioUrl);
-            resolve();
-          };
-          audio.onerror = () => { resolve(); }
-          audio.play().catch(() => resolve());
-        });
-      }
-      
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    currentAudio = audio;
+    
+    audio.onended = () => {
       if (mySpeechId === currentSpeechId) {
         isBotTalking = false; unlockMics();
-        setStatus('Speaking (AI)...');
+        URL.revokeObjectURL(audioUrl);
       }
-      return; // نجح Piper
-      
-    } catch (piperError) {
-      console.warn('Piper TTS failed:', piperError);
-      // Fallback to browser
-    }
+    };
+    
+    await audio.play();
+    setStatus('Speaking (AI)...');
+    return;
+
+  } catch (error) {
+    console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
 
-  // 2. الخطة الاحتياطية: أصوات المتصفح (لللغات الأجنبية أو إذا فشل Piper)
+  // Fallback (في حال كان السيرفر نائم أو الشبكة ضعيفة)
   setStatus('Speaking (Browser)...');
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+  let bestVoice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
+
+  const u = new SpeechSynthesisUtterance(cleanString);
+  if (bestVoice) u.voice = bestVoice;
+  u.lang = bestVoice ? bestVoice.lang : langCode;
   
-  let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
-  let bestVoice = candidates[0];
-  
-  if (lang === 'fr') {
-    let caVoice = voices.find(v => v.lang.toLowerCase() === 'fr-ca');
-    if (caVoice) bestVoice = caVoice;
-  } else {
-    const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
-    candidates.sort((a, b) => score(b) - score(a));
-    bestVoice = candidates[0];
-  }
+  const v = voiceSelect.value;
+  if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
+  else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
+  else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.1; } 
+  else if (v === 'child') { u.pitch = 1.8; u.rate = 1.15; } 
 
-  const sentences = cleanText.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [cleanText];
-  let chunks = [], current = "";
-  sentences.forEach(s => {
-    s = s.trim(); if (!s) return;
-    if ((current + " " + s).length > 150) { if (current) chunks.push(current); current = s; } 
-    else { current += " " + s; }
-  });
-  if (current) chunks.push(current.trim());
-
-  let index = 0;
-  function playChunk() {
-    if (index >= chunks.length || mySpeechId !== currentSpeechId || isLocked) {
-       if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); }
-       return;
-    }
-    const u = new SpeechSynthesisUtterance(chunks[index]);
-    index++;
-    if (bestVoice) u.voice = bestVoice;
-    u.lang = bestVoice ? bestVoice.lang : langCode;
-    
-    const v = voiceSelect.value;
-    if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
-    else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
-    else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.1; } 
-    else if (v === 'child') { u.pitch = 1.8; u.rate = 1.15; } 
-
-    u.onend = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
-    u.onerror = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
-    speechSynthesis.speak(u);
-  }
-  setTimeout(playChunk, 100);
+  u.onend = () => { if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); } };
+  speechSynthesis.speak(u);
 }
 
 if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
