@@ -308,7 +308,7 @@ async function initPiper() {
     piperReady = true;
     console.log('Piper TTS loaded successfully.');
   } catch (e) {
-    console.warn('Piper TTS failed to load, falling back to browser speechSynthesis.', e);
+    alert('خطأ في تحميل المكتبة: ' + e.message);
     piperReady = false;
   } finally {
     piperLoading = false;
@@ -680,8 +680,7 @@ async function speak(text, lang) {
       return; // نجح Piper، نخرج من الدالة
       
     } catch (piperError) {
-      console.warn('Piper TTS failed, falling back to browser voice.', piperError);
-      // إذا فشل Piper، نكمل للخطة الاحتياطية
+      alert('خطأ في تشغيل الصوت: ' + piperError.message);
     }
   }
 
