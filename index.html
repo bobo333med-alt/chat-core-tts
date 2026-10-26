@@ -607,6 +607,7 @@ function stopAudio() {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
+// 🎯 دالة النطق (مع إظهار الخطأ)
 async function speak(text, lang) {
   if (isLocked) return; 
   stopAudio(); isBotTalking = true; 
@@ -653,7 +654,9 @@ async function speak(text, lang) {
     return;
 
   } catch (error) {
-    alert('المشكلة: ' + error.message); console.warn('Edge-TTS failed', error)
+    // 🎯 هنا التنبيه اللي باش يظهرلنا المشكلة
+    alert('السبب: ' + error.message); 
+    console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
 
   setStatus('Speaking (Browser)...');
