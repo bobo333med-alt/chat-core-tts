@@ -162,8 +162,7 @@
 'use strict';
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
-// 🎯 هنا رابط السيرفر الجديد متاع الصوت (لاحظ /v1/audio/speech في الأخير)
-const VOICE_SERVER_URL = "https://chat-core-voice.onrender.com/v1/audio/speech"; 
+const VOICE_SERVER_URL = "YOUR_RENDER_URL_HERE/tts"; // ⚠️ هنا تحط الرابط متاع Render (بدون / في الأخير) + /tts
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
 
@@ -287,7 +286,7 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 دالة تنظيف النصوص
+// 🎯 دالة تنظيف النصوص (مسح الرموز والإيموجي)
 function cleanText(text) {
   return text
     .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
@@ -613,7 +612,7 @@ function stopAudio() {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
-// 🎯 دالة النطق الجديدة (Edge-TTS API)
+// 🎯 دالة النطق الجديدة (Edge-TTS)
 async function speak(text, lang) {
   if (isLocked) return; 
   stopAudio(); isBotTalking = true; 
@@ -630,11 +629,7 @@ async function speak(text, lang) {
     const response = await fetch(VOICE_SERVER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        model: "tts-1", 
-        input: cleanString, 
-        voice: voiceId 
-      })
+      body: JSON.stringify({ text: cleanString, voice: voiceId })
     });
 
     if (!response.ok) throw new Error('Voice API error');
@@ -661,7 +656,7 @@ async function speak(text, lang) {
     console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
 
-  // Fallback
+  // Fallback (في حال كان السيرفر نائم أو الشبكة ضعيفة)
   setStatus('Speaking (Browser)...');
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
