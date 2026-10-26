@@ -282,13 +282,26 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 دالة تنظيف النطق للهجة التونسية (ترجعت هنا)
+// 🎯 قاموس النطق التونسي المطور (يحول الكلمات لطريقة نطقها الصحيحة)
 function cleanTounsiTTS(text) {
   let clean = text;
   const dict = {
     'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
     'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
-    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش'
+    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش',
+    'باش': 'باش', 'نحب': 'نحب', 'تنجم': 'تنجم', 'نجم': 'نجم', 'برشا': 'برشا',
+    'شوف': 'شوف', 'خلي': 'خلي', 'باهي': 'باهي', 'ياخي': 'ياخي', 'معلش': 'معلش',
+    'علخاطر': 'علخاطر', 'كيما': 'كيما', 'هكة': 'هاكا', 'توا': 'توه', 'دبر': 'دبر',
+    'سامحني': 'سامحني', 'يعيشك': 'يعيشك', 'عيشك': 'عيشك', 'ربي': 'ربي', 'يخليك': 'يخليك',
+    'الڨلب': 'القلب', 'ڨلب': 'قلب', 'ڨدام': 'قدام', 'ڨبل': 'قبل', 'ڨعد': 'قعد',
+    'ڨالي': 'قلي', 'ڨلك': 'قلك', 'ڨال': 'قال', 'ڨالت': 'قالت', 'ڨالو': 'قالو',
+    'نتكلم': 'نتكلم', 'نحكي': 'نحكي', 'نحكيلك': 'نحكيلك', 'كلام': 'كلام',
+    'برشا': 'برشا', 'ياخي': 'ياخي', 'مزيان': 'مزيان', 'مزيانة': 'مزيانا',
+    'عام': 'عام', 'عامين': 'عامين', 'سنة': 'سنا', 'سنين': 'سنين',
+    'مرا': 'مرا', 'راجل': 'راجل', 'وليد': 'وليد', 'بنت': 'بنت', 'صغير': 'صغير', 'كبير': 'كبير',
+    'ياخي': 'ياخي', 'علاش': 'علاش', 'كيفاش': 'كيفاش', 'شنية': 'شنوه', 'وقتاش': 'وقتاش',
+    'وين': 'وين', 'لوين': 'لوين', 'منين': 'منين', 'قداش': 'قداش', 'شحال': 'شحال',
+    'برشة': 'برشا', 'شوية': 'شويا', 'توة': 'توه', 'تو': 'تو', 'هكة': 'هاكا', 'هكا': 'هاكا'
   };
   for (const [key, value] of Object.entries(dict)) {
     clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
@@ -435,7 +448,6 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 تعديل الـ Prompt باش يجبر الذكاء الاصطناعي يهدر دارجة
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -454,7 +466,7 @@ RULES:
   const sharedRules = `YOUR CORE RULES:
 1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
 2. FAST & CONCISE: Answer quickly with short, impactful sentences.
-3. CRITICAL DIALECT RULE: If the user speaks Tunisian, you MUST reply in deep Tunisian Derja (use words like: شنية، برشة، كيفاش، علاش، توة، باهي، مريقل). DO NOT reply in Modern Standard Arabic or Egyptian.
+3. CRITICAL DIALECT RULE: You MUST reply in deep Tunisian Derja (e.g., شنية، برشة، كيفاش، علاش، توة، باهي، مريقل). DO NOT reply in Modern Standard Arabic or Egyptian. Use French words naturally if they fit (code-switching like normal Tunisians).
 4. NO SERVICE OFFERING: DO NOT ask "How can I help you?". Reply naturally like a friend.
 5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems when asked.
 6. NO HALLUCINATION: If you don't know, say 'I don't know'.
@@ -627,7 +639,6 @@ async function speak(text, lang) {
 
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
-  // 🎯 هنا نستعملوا دالة التنظيف التونسية
   let cleanString = cleanTounsiTTS(text);
   
   const gender = voiceSelect.value === 'woman' ? 'woman' : 'man';
