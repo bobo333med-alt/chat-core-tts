@@ -196,7 +196,7 @@ let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
-// 🎯 متغيرات Piper TTS (باستخدام النسخة المطورة)
+// 🎯 متغيرات Piper TTS
 let piperModule = null;
 let piperReady = false;
 let piperLoading = false;
@@ -300,32 +300,26 @@ function cleanTounsiTTS(text) {
     .trim();
 }
 
-// 🎯 تحميل مكتبة Piper TTS (النسخة المطورة مع تخصيص مسارات WASM)
+// 🎯 تحميل مكتبة Piper TTS
 async function initPiper() {
   if (piperReady || piperLoading) return;
   piperLoading = true;
   try {
-    // استخدام نسخة realtimex التي تدعم تخصيص wasmPaths
     piperModule = await import('https://cdn.jsdelivr.net/npm/@realtimex/piper-tts-web@1.1.1/+esm');
     
-    // إعداد الجلسة مع مسارات jsDelivr بدلاً من cdnjs المحظور
     ttsSession = new piperModule.TtsSession({
-      voiceId: 'ar_JO-kareem-medium', // افتراضي، سيتم تغييره ديناميكياً
+      voiceId: 'ar_JO-kareem-medium',
       wasmPaths: {
         onnxWasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/',
         piperData: 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm/build/piper_phonemize.data',
         piperWasm: 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm/build/piper_phonemize.wasm'
       },
-      progress: (progress) => {
-        // يمكن تجاهل رسائل التحميل أو عرضها
-      },
-      logger: (msg) => {
-        console.log('Piper Log:', msg);
-      }
+      progress: (progress) => {},
+      logger: (msg) => { console.log('Piper Log:', msg); }
     });
 
     piperReady = true;
-    console.log('Piper TTS (realtimex) loaded successfully with custom WASM paths.');
+    console.log('Piper TTS loaded.');
   } catch (e) {
     alert('خطأ في تحميل المكتبة: ' + e.message);
     piperReady = false;
@@ -336,17 +330,6 @@ async function initPiper() {
 }
 // بدء التحميل في الخلفية فور فتح التطبيق
 initPiper();
-
-// 🎯 خريطة أصوات Piper حسب اللغة
-const PIPER_VOICES = {
-  'ar': 'ar_JO-kareem-medium',
-  'en': 'en_US-lessac-medium',
-  'fr': 'fr_FR-siwis-medium',
-  'tr': 'tr_TR-dfki-medium',
-  'it': 'it_IT-riccardo-x_low',
-  'es': 'es_ES-davefx-medium',
-  'de': 'de_DE-thorsten-medium'
-};
 
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
@@ -665,7 +648,7 @@ function stopAudio() {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
-// 🎯 دالة النطق المطورة (Piper أولاً، ثم المتصفح كخطة احتياطية)
+// 🎯 دالة النطق المطورة (Piper للعربية فقط، والمتصفح للأجنبية لتسريع الاستجابة)
 async function speak(text, lang) {
   if (isLocked) return; 
   stopAudio(); isBotTalking = true; 
@@ -675,40 +658,55 @@ async function speak(text, lang) {
 
   let cleanText = cleanTounsiTTS(text);
 
-  // 1. محاولة استخدام Piper TTS (الذكاء الاصطناعي في المتصفح)
-  if (piperReady && ttsSession) {
+  // 1. استخدام Piper TTS (فقط للغة العربية لتسريع الاستجابة للغات الأخرى)
+  if (lang === 'ar' && piperReady && ttsSession) {
     try {
       setStatus('Generating AI Voice...');
-      const voiceId = PIPER_VOICES[lang] || PIPER_VOICES['en'];
       
-      // تحديث الصوت في الجلسة
-      ttsSession.voiceId = voiceId;
-      
-      const wav = await ttsSession.predict(cleanText);
-      
-      if (mySpeechId !== currentSpeechId || isLocked) return;
+      // تقسيم النص الطويل إلى جمل لتحسين الأداء
+      const sentences = cleanText.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [cleanText];
+      let chunks = [], current = "";
+      sentences.forEach(s => {
+        s = s.trim(); if (!s) return;
+        if ((current + " " + s).length > 150) { if (current) chunks.push(current); current = s; } 
+        else { current += " " + s; }
+      });
+      if (current) chunks.push(current.trim());
 
-      const audioUrl = URL.createObjectURL(wav);
-      const audio = new Audio(audioUrl);
-      currentAudio = audio;
+      for (let i = 0; i < chunks.length; i++) {
+        if (mySpeechId !== currentSpeechId || isLocked) return;
+        
+        const wav = await ttsSession.predict(chunks[i]);
+        
+        if (mySpeechId !== currentSpeechId || isLocked) return;
+
+        const audioUrl = URL.createObjectURL(wav);
+        const audio = new Audio(audioUrl);
+        currentAudio = audio;
+        
+        await new Promise((resolve) => {
+          audio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+            resolve();
+          };
+          audio.onerror = () => { resolve(); }
+          audio.play().catch(() => resolve());
+        });
+      }
       
-      audio.onended = () => {
-        if (mySpeechId === currentSpeechId) {
-          isBotTalking = false; unlockMics();
-          URL.revokeObjectURL(audioUrl);
-        }
-      };
-      
-      await audio.play();
-      setStatus('Speaking (AI)...');
-      return; // نجح Piper، نخرج من الدالة
+      if (mySpeechId === currentSpeechId) {
+        isBotTalking = false; unlockMics();
+        setStatus('Speaking (AI)...');
+      }
+      return; // نجح Piper
       
     } catch (piperError) {
-      alert('خطأ في تشغيل الصوت: ' + piperError.message);
+      console.warn('Piper TTS failed:', piperError);
+      // Fallback to browser
     }
   }
 
-  // 2. الخطة الاحتياطية: أصوات المتصفح (Web Speech API)
+  // 2. الخطة الاحتياطية: أصوات المتصفح (لللغات الأجنبية أو إذا فشل Piper)
   setStatus('Speaking (Browser)...');
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
