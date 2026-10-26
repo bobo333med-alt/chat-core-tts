@@ -195,7 +195,6 @@ let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
-// 🎯 خريطة أصوات Edge-TTS (رجل وامرأة) لكل لغة
 const EDGE_VOICES = {
   'ar': { man: 'ar-TN-HediNeural', woman: 'ar-TN-ReemNeural' },
   'fr': { man: 'fr-FR-HenriNeural', woman: 'fr-FR-DeniseNeural' },
@@ -618,12 +617,11 @@ async function speak(text, lang) {
 
   let cleanString = cleanText(text);
   
-  // اختيار الصوت بناءً على اللغة والجنس المختار
   const gender = voiceSelect.value === 'woman' ? 'woman' : 'man';
   const voiceId = EDGE_VOICES[lang] ? EDGE_VOICES[lang][gender] : EDGE_VOICES['en'][gender];
 
   try {
-    setStatus('Generating AI Voice...');
+    setStatus('Generating Voice...'); // 🎯 تنحى AI من هنا
     
     const response = await fetch(VOICE_SERVER_URL, {
       method: 'POST',
@@ -652,14 +650,13 @@ async function speak(text, lang) {
     };
     
     await audio.play();
-    setStatus('Speaking (AI)...');
+    setStatus('Speaking...'); // 🎯 تنحى AI من هنا
     return;
 
   } catch (error) {
     console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
 
-  // Fallback (في حال كان السيرفر نائم أو الشبكة ضعيفة)
   setStatus('Speaking (Browser)...');
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
