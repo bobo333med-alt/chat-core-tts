@@ -282,8 +282,20 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-function cleanText(text) {
-  return text
+// 🎯 دالة تنظيف النطق للهجة التونسية (ترجعت هنا)
+function cleanTounsiTTS(text) {
+  let clean = text;
+  const dict = {
+    'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
+    'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
+    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش'
+  };
+  for (const [key, value] of Object.entries(dict)) {
+    clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
+  }
+  clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
+  
+  return clean
     .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
     .replace(/\s+/g, ' ')
@@ -423,6 +435,7 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 تعديل الـ Prompt باش يجبر الذكاء الاصطناعي يهدر دارجة
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -441,7 +454,7 @@ RULES:
   const sharedRules = `YOUR CORE RULES:
 1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
 2. FAST & CONCISE: Answer quickly with short, impactful sentences.
-3. DIALECT MIMICRY: Instantly analyze the user's dialect and reply using the EXACT same dialect and tone.
+3. CRITICAL DIALECT RULE: If the user speaks Tunisian, you MUST reply in deep Tunisian Derja (use words like: شنية، برشة، كيفاش، علاش، توة، باهي، مريقل). DO NOT reply in Modern Standard Arabic or Egyptian.
 4. NO SERVICE OFFERING: DO NOT ask "How can I help you?". Reply naturally like a friend.
 5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems when asked.
 6. NO HALLUCINATION: If you don't know, say 'I don't know'.
@@ -614,7 +627,8 @@ async function speak(text, lang) {
 
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
-  let cleanString = cleanText(text);
+  // 🎯 هنا نستعملوا دالة التنظيف التونسية
+  let cleanString = cleanTounsiTTS(text);
   
   const gender = voiceSelect.value === 'woman' ? 'woman' : 'man';
   const voiceId = EDGE_VOICES[lang] ? EDGE_VOICES[lang][gender] : EDGE_VOICES['en'][gender];
@@ -656,7 +670,6 @@ async function speak(text, lang) {
     return;
 
   } catch (error) {
-    alert('السبب: ' + error.message); 
     console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
 
