@@ -195,7 +195,7 @@ let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
-// 🎯 متغيرات جديدة لتسجيل الصوت
+// متغيرات تسجيل الصوت (Whisper)
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
@@ -287,9 +287,13 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
+// 🎯 التعديل الجذري لدالة التنظيف: تحويل كل الكلمات لصيغة يفهمها الصوت
 function cleanTounsiTTS(text) {
   let clean = text;
+  // تبديل الحروف
   clean = clean.replace(/ڨ/g, 'ق').replace(/ث/g, 'ت').replace(/ض/g, 'د').replace(/ظ/g, 'د');
+  
+  // قاموس ضخم يخلي "هدي" ينطق الكلام مريقل
   const dict = {
     'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
     'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
@@ -308,25 +312,29 @@ function cleanTounsiTTS(text) {
     'وين': 'وين', 'لوين': 'لوين', 'منين': 'منين', 'قداش': 'قداش', 'شحال': 'شحال',
     'برشة': 'برشا', 'شوية': 'شويا', 'توة': 'توه', 'تو': 'تو', 'هكة': 'هاكا', 'هكا': 'هاكا',
     'منيش': 'منيش', 'مانيش': 'مانيش', 'ماهوش': 'ماهوش', 'ماهيش': 'ماهيش', 
-    'فماشي': 'فماشي', 'ماكش': 'ماكش', 'كيفك': 'كيفك', 'كيفها': 'كيفها'
+    'فماشي': 'فماشي', 'ماكش': 'ماكش', 'كيفك': 'كيفك', 'كيفها': 'كيفها',
+    'حوالك': 'حواليك', 'شبيك': 'شبيك', 'فيك': 'فيك'
   };
   for (const [key, value] of Object.entries(dict)) {
     clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
   }
+  
+  // التاء المربوطة تولي ألف (باش ينطقها صح)
   clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
-  return clean.replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
+  
+  // مسح أي رموز أو إيموجي يخربقوا الصوت
+  return clean
+    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-// 🎯 تسجيل الصوت وإرساله لـ Whisper
 async function startRecording(speaker) {
   if (isLocked) return;
   unlockAudio();
-  
   if (isRecording) {
-    // إذا كان يسجل، يوقف التسجيل
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     return;
   }
 
@@ -348,12 +356,9 @@ async function startRecording(speaker) {
       micA.disabled = false; micB.disabled = false;
       
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      stream.getTracks().forEach(track => track.stop()); // إغلاق الميكرو
+      stream.getTracks().forEach(track => track.stop());
 
-      if (audioBlob.size < 1000) {
-        resetStatus();
-        return; // تسجيل فارغ جداً
-      }
+      if (audioBlob.size < 1000) { resetStatus(); return; }
 
       setStatus('جاري تحويل الصوت لنص...');
       
@@ -361,10 +366,7 @@ async function startRecording(speaker) {
       formData.append('file', audioBlob, 'record.webm');
 
       try {
-        const res = await fetch(TRANSCRIBE_URL, {
-          method: 'POST',
-          body: formData
-        });
+        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
         const data = await res.json();
         
         if (!res.ok) throw new Error(data.detail || 'Transcription error');
@@ -398,7 +400,6 @@ async function startRecording(speaker) {
       micB.classList.add('recording'); micA.disabled = true;
       setStatus('جاري التسجيل... اضغط مرة أخرى للإيقاف');
     }
-    
   } catch (err) {
     setStatus('الميكروفون غير متاح أو تم رفض الإذن.');
     setTimeout(resetStatus, 3000);
@@ -408,7 +409,6 @@ async function startRecording(speaker) {
 micA.addEventListener('click', () => startRecording('A'));
 micB.addEventListener('click', () => startRecording('B'));
 
-// باقي الكود (من إرسال الرسائل، والـ TTS، والـ UI)
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
   if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
@@ -542,6 +542,7 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 التعليمات (Prompt): نجبروه يكتب بطريقة تنطق صح، ويحط نقط وفواصل باش الصوت ما يهلوسش
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -558,14 +559,12 @@ RULES:
   } 
   
   const sharedRules = `YOUR CORE RULES:
-1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
+1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius.
 2. FAST & CONCISE: Answer quickly with short, impactful sentences.
-3. CRITICAL DIALECT RULE: You MUST reply in deep Tunisian Derja (e.g., شنية، برشة، كيفاش، علاش، توة، باهي، مريقل). DO NOT reply in Modern Standard Arabic or Egyptian. Use French words naturally if they fit (code-switching like normal Tunisians).
-4. NO SERVICE OFFERING: DO NOT ask "How can I help you?". Reply naturally like a friend.
-5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems when asked.
-6. NO HALLUCINATION: If you don't know, say 'I don't know'.
-7. MEMORY: Remember the user's name and context.
-8. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
+3. CRITICAL DIALECT & TTS SPELLING RULE: You MUST reply in deep Tunisian Derja. TO AVOID VOICE HALLUCINATION, write Derja words phonetically as they are pronounced in Standard Arabic. Example: Write "شنوه" instead of "شنية", write "برشا" instead of "برشة", write "علاش", write "حواليك" instead of "حوالك".
+4. PUNCTUATION RULE: You MUST use commas (,) and periods (.) frequently so the Text-to-Speech engine can breathe and sound natural.
+5. NO EMOJIS: Do not use any emojis or special characters.
+6. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
 
   return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
 CURRENT DATE: Today is ${currentDate}.
