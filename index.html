@@ -282,17 +282,10 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 قاموس النطق التونسي المطور + استبدال الحروف الصعيبة
+// 🎯 قاموس النطق التونسي
 function cleanTounsiTTS(text) {
   let clean = text;
-  
-  // 1. استبدال الحروف اللي الصوت ما ينطقهاش مريقل في الدارجة
-  clean = clean.replace(/ڨ/g, 'ق'); // القاف التونسية تتقرا ق
-  clean = clean.replace(/ث/g, 'ت'); // الثاء تتقرا ت
-  clean = clean.replace(/ض/g, 'د'); // الضاد تتقرا د
-  clean = clean.replace(/ظ/g, 'د'); // الظاء تتقرا د
-
-  // 2. استبدال الكلمات
+  clean = clean.replace(/ڨ/g, 'ق').replace(/ث/g, 'ت').replace(/ض/g, 'د').replace(/ظ/g, 'د');
   const dict = {
     'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
     'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
@@ -316,15 +309,8 @@ function cleanTounsiTTS(text) {
   for (const [key, value] of Object.entries(dict)) {
     clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
   }
-  
-  // 3. التاء المربوطة تولي ألف
   clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
-  
-  return clean
-    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
-    .replace(/\s+/g, ' ')
-    .trim();
+  return clean.replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
 avatarWrap.addEventListener('click', (e) => {
@@ -460,7 +446,7 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 هنا دمجنا تعليماتك الخاصة بترجمة الدارجة التونسية
+// 🎯 التعليمات الجديدة (WhatsApp Style)
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -477,16 +463,14 @@ RULES:
   } 
   
   const sharedRules = `YOUR CORE RULES:
-1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius. Read between the lines. Predict the user's intent and answer the core idea directly.
-2. FAST & CONCISE: Answer quickly with short, impactful sentences.
-3. CRITICAL DIALECT RULE: You MUST reply in deep Tunisian Derja (e.g., شنية، برشة، كيفاش، علاش، توة، باهي، مريقل). DO NOT reply in Modern Standard Arabic or Egyptian. Use French words naturally if they fit (code-switching like normal Tunisians).
-4. NO SERVICE OFFERING: DO NOT ask "How can I help you?". Reply naturally like a friend.
-5. EXPERT IN SCIENCES: You are a polymath. Solve complex math, science, and programming problems when asked.
-6. NO HALLUCINATION: If you don't know, say 'I don't know'.
-7. MEMORY: Remember the user's name and context.
-8. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
+1. WHATSAPP STYLE: You are chatting on WhatsApp with a close friend. DO NOT write essays or formal text. Keep responses VERY short (1 to 3 sentences max).
+2. TUNISIAN DIALECT: You MUST reply in deep Tunisian Derja (e.g., شنية، برشة، كيفاش، علاش، توة، باهي، مريقل). Use filler words naturally (يا خي، أزيد، يعيشك، شبيك). 
+3. PUNCTUATION: Use punctuation (commas, periods) to make the voice sound natural and give it time to breathe.
+4. NO ROBOTIC TALK: DO NOT say "كيف يمكنني مساعدتك" or "أنا هنا لمساعدتك". You are a real human friend.
+5. MEMORY: Remember the user's name and context.
+6. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
 
-  return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
+  return `You are Chat-Core, a highly intelligent, empathetic, and wise human friend.
 CURRENT DATE: Today is ${currentDate}.
 CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}.
 ${sharedRules}`;
