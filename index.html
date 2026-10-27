@@ -161,6 +161,7 @@
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const VOICE_SERVER_URL = "https://vibe-core-0m1r.onrender.com/tts"; 
+const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
 
@@ -186,7 +187,6 @@ const uiElements = [$('extraControls'), $('avatar-wrap'), $('chatContainer'), $(
 let chatHistory = [];
 let isTranslatorMode = true; 
 let activeSpeaker = null; 
-let isRecording = false;
 let isSending = false;
 let isLocked = false;
 let currentAudio = null;
@@ -194,6 +194,11 @@ let currentAvatarObjectUrl = null;
 let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
+
+// 🎯 متغيرات جديدة لتسجيل الصوت
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
 
 const EDGE_VOICES = {
   'ar': { man: 'ar-TN-HediNeural', woman: 'ar-TN-ReemNeural' },
@@ -217,7 +222,7 @@ lockBtn.addEventListener('click', () => {
     lockBtn.textContent = '🔒';
     uiElements.forEach(el => el.classList.add('locked-ui'));
     stopAudio(); 
-    if (isRecording) recognition.stop(); 
+    if (isRecording && mediaRecorder) mediaRecorder.stop(); 
     setStatus('App is locked 🔒');
   } else {
     lockBtn.classList.remove('locked');
@@ -282,7 +287,6 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 دالة تنظيف النطق التونسي (اللي كنا متفقين عليها)
 function cleanTounsiTTS(text) {
   let clean = text;
   clean = clean.replace(/ڨ/g, 'ق').replace(/ث/g, 'ت').replace(/ض/g, 'د').replace(/ظ/g, 'د');
@@ -313,6 +317,98 @@ function cleanTounsiTTS(text) {
   return clean.replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
+// 🎯 تسجيل الصوت وإرساله لـ Whisper
+async function startRecording(speaker) {
+  if (isLocked) return;
+  unlockAudio();
+  
+  if (isRecording) {
+    // إذا كان يسجل، يوقف التسجيل
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    return;
+  }
+
+  stopAudio(); 
+  activeSpeaker = speaker;
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size > 0) audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      isRecording = false;
+      micA.classList.remove('recording'); micB.classList.remove('recording');
+      micA.disabled = false; micB.disabled = false;
+      
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      stream.getTracks().forEach(track => track.stop()); // إغلاق الميكرو
+
+      if (audioBlob.size < 1000) {
+        resetStatus();
+        return; // تسجيل فارغ جداً
+      }
+
+      setStatus('جاري تحويل الصوت لنص...');
+      
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'record.webm');
+
+      try {
+        const res = await fetch(TRANSCRIBE_URL, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.detail || 'Transcription error');
+        
+        const text = data.text.trim();
+        if (text) {
+          const isA = activeSpeaker === 'A';
+          const sourceLang = isA ? langA.value : langB.value;
+          const targetLang = isA ? langB.value : langA.value;
+          const msgClass = isA ? 'user-a' : 'user-b';
+          
+          addMsg(text, msgClass, sourceLang);
+          ask(text, sourceLang, targetLang, activeSpeaker);
+        } else {
+          setStatus('لم يتم التعرف على الصوت.');
+          setTimeout(resetStatus, 2000);
+        }
+      } catch (err) {
+        setStatus('خطأ في الاتصال بالسيرفر.');
+        setTimeout(resetStatus, 2000);
+      }
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    
+    if (speaker === 'A') {
+      micA.classList.add('recording'); micB.disabled = true;
+      setStatus('جاري التسجيل... اضغط مرة أخرى للإيقاف');
+    } else {
+      micB.classList.add('recording'); micA.disabled = true;
+      setStatus('جاري التسجيل... اضغط مرة أخرى للإيقاف');
+    }
+    
+  } catch (err) {
+    setStatus('الميكروفون غير متاح أو تم رفض الإذن.');
+    setTimeout(resetStatus, 3000);
+  }
+}
+
+micA.addEventListener('click', () => startRecording('A'));
+micB.addEventListener('click', () => startRecording('B'));
+
+// باقي الكود (من إرسال الرسائل، والـ TTS، والـ UI)
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
   if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
@@ -446,7 +542,6 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 التعليمات (Prompt) العادية: يجاوب بالدارجة بذكاء وحرية، بدون تقييد
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -543,61 +638,8 @@ async function ask(text, sourceLang, targetLang, speaker) {
       }
       attachedImageBase64 = null;
       imagePreviewContainer.style.display = 'none';
-    } else {
-      unlockMics();
     }
   }
-}
-
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-
-if (SR) {
-  recognition = new SR();
-  recognition.continuous = false; 
-  recognition.interimResults = false;
-
-  recognition.onstart = () => { isRecording = true; };
-
-  recognition.onresult = e => {
-    if (isLocked) return;
-    const text = e.results[0][0].transcript;
-    if (!text.trim()) { unlockMics(); return; }
-    
-    const isA = activeSpeaker === 'A';
-    const sourceLang = isA ? langA.value : langB.value;
-    const targetLang = isA ? langB.value : langA.value;
-    const msgClass = isA ? 'user-a' : 'user-b';
-
-    addMsg(text, msgClass, sourceLang);
-    ask(text, sourceLang, targetLang, activeSpeaker);
-  };
-
-  recognition.onerror = e => { setStatus('Mic Error: ' + e.error); unlockMics(); };
-  recognition.onend = () => { isRecording = false; if (!isBotTalking && !isSending) unlockMics(); };
-
-  const startMic = (speaker) => {
-    if (isLocked) return;
-    unlockAudio();
-    if (isRecording) { recognition.stop(); return; }
-    stopAudio(); activeSpeaker = speaker;
-    
-    if (speaker === 'A') {
-      recognition.lang = langA.value;
-      micA.classList.add('recording'); micB.disabled = true;
-      setStatus('Listening (You)...');
-    } else {
-      recognition.lang = langB.value;
-      micB.classList.add('recording'); micA.disabled = true;
-      setStatus('Listening (Friend)...');
-    }
-    try { recognition.start(); } catch (e) {}
-  };
-
-  micA.addEventListener('click', () => startMic('A'));
-  micB.addEventListener('click', () => startMic('B'));
-} else {
-  micA.onclick = micB.onclick = () => alert('Browser does not support Mic.');
 }
 
 sendBtn.addEventListener('click', () => {
