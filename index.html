@@ -108,6 +108,8 @@
     <select id="voiceSelect">
       <option value="man">👨 Man</option>
       <option value="woman">👩 Woman</option>
+      <option value="boy">👦 Teen Boy</option>
+      <option value="girl">👧 Teen Girl</option>
     </select>
     <button id="uploadBtn">📁 Avatar</button>
 </div>
@@ -195,20 +197,19 @@ let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
-// متغيرات تسجيل الصوت
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
-let recordStartTime = 0; // لحساب مدة التسجيل ومنع الهلوسة
+let recordStartTime = 0;
 
 const EDGE_VOICES = {
-  'ar': { man: 'ar-TN-HediNeural', woman: 'ar-TN-ReemNeural' },
-  'fr': { man: 'fr-FR-HenriNeural', woman: 'fr-FR-DeniseNeural' },
-  'en': { man: 'en-US-ChristopherNeural', woman: 'en-US-JennyNeural' },
-  'tr': { man: 'tr-TR-AhmetNeural', woman: 'tr-TR-EmelNeural' },
-  'it': { man: 'it-IT-DiegoNeural', woman: 'it-IT-ElsaNeural' },
-  'es': { man: 'es-ES-AlvaroNeural', woman: 'es-ES-ElviraNeural' },
-  'de': { man: 'de-DE-ConradNeural', woman: 'de-DE-KatjaNeural' }
+  'ar': { man: 'ar-TN-HediNeural', woman: 'ar-TN-ReemNeural', boy: 'ar-TN-HediNeural', girl: 'ar-TN-ReemNeural' },
+  'fr': { man: 'fr-FR-HenriNeural', woman: 'fr-FR-DeniseNeural', boy: 'fr-FR-HenriNeural', girl: 'fr-FR-DeniseNeural' },
+  'en': { man: 'en-US-ChristopherNeural', woman: 'en-US-JennyNeural', boy: 'en-US-ChristopherNeural', girl: 'en-US-JennyNeural' },
+  'tr': { man: 'tr-TR-AhmetNeural', woman: 'tr-TR-EmelNeural', boy: 'tr-TR-AhmetNeural', girl: 'tr-TR-EmelNeural' },
+  'it': { man: 'it-IT-DiegoNeural', woman: 'it-IT-ElsaNeural', boy: 'it-IT-DiegoNeural', girl: 'it-IT-ElsaNeural' },
+  'es': { man: 'es-ES-AlvaroNeural', woman: 'es-ES-ElviraNeural', boy: 'es-ES-AlvaroNeural', girl: 'es-ES-ElviraNeural' },
+  'de': { man: 'de-DE-ConradNeural', woman: 'de-DE-KatjaNeural', boy: 'de-DE-ConradNeural', girl: 'de-DE-KatjaNeural' }
 };
 
 function setStatus(s) { statusEl.textContent = s; }
@@ -319,7 +320,6 @@ function cleanTounsiTTS(text) {
   return clean.replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
-// 🎯 تسجيل الصوت مع منع الهلوسة (الحد الأدنى 2 ثانية)
 async function startRecording(speaker) {
   if (isLocked) return;
   unlockAudio();
@@ -336,7 +336,7 @@ async function startRecording(speaker) {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
-    recordStartTime = Date.now(); // نبدأ نحسبو الوقت
+    recordStartTime = Date.now();
 
     mediaRecorder.ondataavailable = event => {
       if (event.data.size > 0) audioChunks.push(event.data);
@@ -351,7 +351,6 @@ async function startRecording(speaker) {
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       stream.getTracks().forEach(track => track.stop());
 
-      // 🎯 منع الهلوسة: إذا التسجيل أقل من ثانيتين، نطنشوه
       if (duration < 2 || audioBlob.size < 5000) { 
         setStatus('التسجيل قصير جداً...'); 
         setTimeout(resetStatus, 2000);
@@ -540,7 +539,6 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 التعليمات النهائية: منع الحروف اللاتينية، وفصل اللغات
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -556,7 +554,6 @@ RULES:
 4. If an image is provided, translate the text inside it.`;
   } 
   
-  // 🎯 إذا كانت اللغة عربية (تونسية)
   if (targetLang === 'ar') {
     return `You are Chat-Core, a highly intelligent, empathetic, and wise human friend.
 CURRENT DATE: Today is ${currentDate}.
@@ -566,7 +563,6 @@ ABSOLUTE RULE 2: Use commas and periods to allow the voice to breathe naturally.
 NEVER mention AI or GPT.`;
   } 
   
-  // 🎯 إذا كانت اللغة أجنبية (فرنسية، إنجليزية...)
   return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
 CURRENT DATE: Today is ${currentDate}.
 CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}. DO NOT USE ARABIC.
@@ -682,8 +678,23 @@ async function speak(text, lang) {
 
   let cleanString = cleanTounsiTTS(text);
   
-  const gender = voiceSelect.value === 'woman' ? 'woman' : 'man';
+  const gender = voiceSelect.value;
   const voiceId = EDGE_VOICES[lang] ? EDGE_VOICES[lang][gender] : EDGE_VOICES['en'][gender];
+
+  // 🎯 تحديد النبرة والسرعة بناءً على الشخصية
+  let rate = "-10%";
+  let pitch = "+0Hz";
+
+  if (gender === 'boy') {
+    rate = "+0%";
+    pitch = "+30Hz"; // نرفعوا النبرة باش يطلع مراهق
+  } else if (gender === 'girl') {
+    rate = "+0%";
+    pitch = "+40Hz"; // نرفعوا النبرة أكثر للبنت
+  } else if (gender === 'woman') {
+    rate = "-5%";
+    pitch = "+10Hz";
+  }
 
   try {
     setStatus('Generating Voice...');
@@ -694,7 +705,9 @@ async function speak(text, lang) {
       body: JSON.stringify({ 
         model: "tts-1", 
         input: cleanString, 
-        voice: voiceId 
+        voice: voiceId,
+        rate: rate,
+        pitch: pitch
       })
     });
 
@@ -737,6 +750,8 @@ async function speak(text, lang) {
   const v = voiceSelect.value;
   if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
   else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
+  else if (v === 'boy') { u.pitch = 1.6; u.rate = 1.1; } 
+  else if (v === 'girl') { u.pitch = 1.8; u.rate = 1.1; } 
 
   u.onend = () => { if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); } };
   speechSynthesis.speak(u);
