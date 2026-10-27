@@ -3,764 +3,1032 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Chat-Core - Translator</title>
+<title>vibe-core</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
-  body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
-  .top-header { display: flex; justify-content: center; align-items: center; gap: 12px; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
-  .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 92%; max-width: 380px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: opacity 0.3s; }
-  .user-section { display: flex; align-items: center; gap: 6px; }
-  .lang-select { padding: 4px 2px; border-radius: 6px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 10px; font-family: Tahoma; outline: none; width: 75px; }
+
+  body {
+    font-family: Tahoma, sans-serif;
+    background: #0ea5e9;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    height: 100dvh;
+  }
+
+  #uploadBtn {
+    position: fixed; top: 15px; left: 15px;
+    width: 50px; height: 35px; border-radius: 8px;
+    background: #ffffff; border: 2px solid #cbd5e1;
+    color: #eab308; font-size: 18px; cursor: pointer;
+    z-index: 1000; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+
+  .top-bar { display: flex; justify-content: center; align-items: flex-start; margin-bottom: 10px; flex-shrink: 0; gap: 5px; }
+  .lang-controls { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; flex: 1; }
+  .lang-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .lang-label { font-size: 9px; color: #0f172a; font-weight: bold; }
+  .lang-select {
+    padding: 4px; border-radius: 6px; background: #0f172a; color: #ffffff;
+    border: 1px solid #1e293b; font-size: 10px; font-family: Tahoma;
+    outline: none; width: 65px;
+  }
   .lang-select option { background-color: #0f172a; color: #ffffff; }
-  .mic-btn { width: 32px; height: 32px; border-radius: 50%; border: none; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
-  .mic-btn.blue { background: #6366f1; box-shadow: 0 0 8px rgba(99,102,241,0.5); }
-  .mic-btn.green { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
-  .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 12px rgba(239,68,68,0.8); }
-  .mic-btn:disabled { background: #475569 !important; box-shadow: none; cursor: not-allowed; opacity: 0.5; animation: none; }
-  @keyframes pulse { 50% { transform: scale(1.1); } }
-  #lockBtn { border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; padding: 0; outline: none; pointer-events: auto !important; }
-  #lockBtn.unlocked { width: 14px; height: 14px; border-radius: 50%; background: #ef4444; border: 1px solid #dc2626; }
-  #lockBtn.locked { width: 34px; height: 34px; border-radius: 50%; background: #ef4444; color: white; font-size: 16px; box-shadow: 0 0 10px rgba(239,68,68,0.5); }
-  .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
-  #avatar-wrap { width: 120px; height: 120px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; cursor: pointer; }
-  #avatar-container { width: 110px; height: 110px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
+
+  #avatar-wrap { width: 180px; height: 180px; margin: 0 auto 12px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; }
+  #avatar-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid transparent; transition: border-color 0.3s; }
+  #avatar-ring.talking { border-color: #22c55e; animation: ring-pulse 1s infinite; }
+  #avatar-ring.thinking { border-color: #eab308; border-top-color: transparent; animation: spin 1s linear infinite; }
+  #avatar-ring.listening { border-color: #ef4444; animation: ring-pulse 0.6s infinite; }
+  @keyframes ring-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.7; } }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  #avatar-container { width: 160px; height: 160px; border-radius: 50%; overflow: hidden; position: relative; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; cursor: pointer; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
-  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
-  #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
-  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
+
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; margin: 0; }
+  #avatar-wrap.fullscreen #avatar-container { width: 95vmin; height: 95vmin; }
+  #avatar-wrap.fullscreen #avatar-ring { width: 98vmin; height: 98vmin; top: 50%; left: 50%; transform: translate(-50%, -50%); inset: auto; border-width: 5px; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
-  #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
-  #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
-  #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
-  .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; transition: opacity 0.3s; }
-  #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
+  #avatar-wrap.fullscreen #fsMicBtn { display: flex; }
+
+  #closeFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4); color: #fff; font-size: 26px; width: 55px; height: 55px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+  #fsMicBtn { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80px; height: 80px; border-radius: 50%; background: #6366f1; border: 4px solid rgba(255,255,255,0.2); color: #fff; font-size: 36px; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(99,102,241,0.8); }
+  #fsMicBtn.recording { background: #ef4444; animation: pulse 0.8s infinite; }
+
+  #wave { display: flex; justify-content: center; align-items: flex-end; gap: 4px; height: 0; overflow: hidden; transition: height 0.3s; margin-bottom: 8px; flex-shrink: 0; }
+  #wave.on { height: 26px; }
+  #wave span { width: 3px; background: #22c55e; border-radius: 2px; animation: wave-bar 0.6s infinite ease-in-out; }
+  #wave span:nth-child(1) { animation-delay: 0s; }
+  #wave span:nth-child(2) { animation-delay: 0.1s; }
+  #wave span:nth-child(3) { animation-delay: 0.2s; }
+  #wave span:nth-child(4) { animation-delay: 0.3s; }
+  #wave span:nth-child(5) { animation-delay: 0.4s; }
+  @keyframes wave-bar { 0%, 100% { height: 6px; } 50% { height: 26px; } }
+
+  #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; margin-bottom: 10px; min-height: 100px; position: relative; }
   .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
-  .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } 
-  .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
-  .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
+  .user { background: #4f46e5; margin-left: auto; }
+  .bot { background: #334155; margin-right: auto; }
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
-  #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-  #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
-  #imagePreviewContainer { display: none; position: absolute; bottom: 50px; right: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-  #imagePreview { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; }
-  #cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-  .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; transition: opacity 0.3s; position: relative; }
-  input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
-  button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
-  #musicBtn { background: #ffffff; color: #000000; order: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 16px; }
-  #mediaBtn { background: #ffffff; color: #f97316; order: 2; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-  #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
-  #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
-  #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; transition: opacity 0.3s; }
-  .extra-controls { display: flex; gap: 5px; margin-bottom: 8px; justify-content: center; flex-wrap: wrap; transition: opacity 0.3s; }
-  .extra-controls button, .extra-controls select { padding: 5px 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; outline: none; }
-  .extra-controls button.active { background: #eab308; color: #000; }
-  #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); flex-direction: column; gap: 8px; }
-  .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
-  #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 200px; max-height: 250px; overflow-y: auto; }
+
+  #imagePreviewContainer { display: none; padding: 5px 10px; background: #1e293b; border-radius: 10px; margin-bottom: 5px; align-items: center; gap: 10px; width: fit-content; }
+  #imagePreview { width: 40px; height: 40px; border-radius: 5px; object-fit: cover; }
+  #cancelImageBtn { background: #dc2626; border: none; color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  #actionMenu {
+    display: none; position: fixed; bottom: 70px; right: 10px;
+    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 10px; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    flex-direction: column; gap: 8px;
+  }
+  .action-btn {
+    padding: 10px 15px; border-radius: 8px; border: none; background: #0f172a;
+    color: #fff; font-size: 14px; cursor: pointer; text-align: right;
+    display: flex; align-items: center; gap: 10px; transition: background 0.2s;
+  }
+  .action-btn:hover { background: #334155; }
+
+  #musicMenu {
+    display: none; position: fixed; bottom: 70px; right: 10px;
+    background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+    padding: 10px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    width: 220px; max-height: 280px; overflow-y: auto;
+  }
   #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
-  .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
-  .music-item:hover { background: #334155; } .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
-  .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
-  .music-item.add-more { background: #22c55e; } .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; } .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
-  .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
-  .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
+  .music-item {
+    padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    margin-bottom: 4px; background: #0f172a; transition: background 0.2s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .music-item:hover { background: #334155; }
+  .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; }
+  .music-item.add-more { background: #22c55e; text-align: center; font-weight: bold; }
+  .music-item.stop-btn { background: #991b1b; text-align: center; font-weight: bold; margin-bottom: 8px; }
+  .music-item.stop-btn:hover { background: #dc2626; }
+
+  .row { display: flex; gap: 4px; align-items: center; flex-shrink: 0; position: relative; }
+  input[type=text] { flex: 1; padding: 10px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; min-width: 40px; order: 3; }
+
+  button.btn { padding: 0; border: none; border-radius: 50%; color: #fff; font-size: 16px; font-weight: bold; width: 40px; height: 40px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+  button.btn:disabled { background: #475569; cursor: not-allowed; }
+
+  #imageBtn { background: #10b981; order: 1; }
+  #micBtn { background: #6366f1; order: 2; }
+  #micBtn.recording { background: #ef4444; animation: pulse 0.8s infinite; }
+  #translateModeBtn { background: #475569; order: 4; }
+  #translateModeBtn.active { background: #eab308; color: #000; box-shadow: 0 0 10px #eab308; }
+  #sendBtn { background: #1d4ed8; order: 5; position: relative; }
+  #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
+
+  #clearBtn {
+    position: fixed; bottom: 80px; left: 15px;
+    width: 35px; height: 35px; border-radius: 50%; background: #991b1b;
+    border: 2px solid #7f1d1d; color: #fff; font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  #clearBtn:active { background: #7f1d1d; }
+
+  @keyframes pulse { 50% { transform: scale(1.08); } }
+
+  #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; flex-shrink: 0; font-weight: bold; }
+
+  body.fs-active .top-bar, body.fs-active #chat, body.fs-active #wave, body.fs-active .row,
+  body.fs-active #status, body.fs-active #imagePreviewContainer, body.fs-active #uploadBtn,
+  body.fs-active #musicMenu, body.fs-active #clearBtn, body.fs-active #actionMenu { display: none; }
+  body.fs-active #avatar-wrap { margin: 0; }
 </style>
 </head>
 <body>
 
-<div class="top-header">
-  <button id="lockBtn" class="unlocked" title="Lock/Unlock"></button>
-  <div class="top-bar" id="topBar">
-    <div class="user-section">
-      <span style="font-size:9px; color:#94a3b8;">Friend</span>
-      <select id="langB" class="lang-select">
-        <option value="fr">French</option>
-        <option value="ar">Arabic</option>
-        <option value="en">English</option>
-        <option value="tr">Turkish</option>
-        <option value="it">Italian</option>
-        <option value="es">Spanish</option>
-        <option value="de">German</option>
+<button id="uploadBtn" title="تحميل فيديو للأفاتار">📁</button>
+
+<div class="top-bar">
+  <div class="lang-controls">
+    <div class="lang-group">
+      <span class="lang-label">Mic</span>
+      <select id="micLang" class="lang-select">
+        <option value="ar-TN">Arabic</option>
+        <option value="en-US">English</option>
+        <option value="fr-FR">French</option>
+        <option value="tr-TR">Turkish</option>
+        <option value="it-IT">Italian</option>
+        <option value="es-ES">Spanish</option>
+        <option value="de-DE">German</option>
+        <option value="zh-CN">Chinese</option>
+        <option value="ja-JP">Japanese</option>
       </select>
-      <button id="micB" class="mic-btn green" title="Talk">🎤</button>
     </div>
-    <div class="user-section">
-      <span style="font-size:9px; color:#94a3b8;">You</span>
-      <select id="langA" class="lang-select">
-        <option value="ar">Arabic</option>
-        <option value="fr">French</option>
+    <div class="lang-group">
+      <span class="lang-label">Reply</span>
+      <select id="replyLang" class="lang-select">
         <option value="en">English</option>
+        <option value="fr">French</option>
+        <option value="ar">Arabic</option>
         <option value="tr">Turkish</option>
         <option value="it">Italian</option>
         <option value="es">Spanish</option>
         <option value="de">German</option>
+        <option value="zh">Chinese</option>
+        <option value="ja">Japanese</option>
       </select>
-      <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
+    </div>
+    <div class="lang-group">
+      <span class="lang-label">Voice</span>
+      <select id="voiceSelect" class="lang-select">
+        <option value="man">👨 Man</option>
+        <option value="woman">👩 Woman</option>
+        <option value="girl">👧 Girl</option>
+        <option value="child">🧒 Child</option>
+        <option value="oldman">👴 Old</option>
+        <option value="oldwoman">👵 Old W</option>
+      </select>
     </div>
   </div>
-</div>
-
-<div class="extra-controls" id="extraControls">
-    <button id="translateModeBtn" class="active">Translator Mode ON</button>
-    <select id="voiceSelect">
-      <option value="man">👨 Man</option>
-      <option value="woman">👩 Woman</option>
-      <option value="boy">👦 Teen Boy</option>
-      <option value="girl">👧 Teen Girl</option>
-    </select>
-    <button id="uploadBtn">📁 Avatar</button>
 </div>
 
 <div id="avatar-wrap">
+  <div id="avatar-ring"></div>
   <div id="avatar-container">
-    <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Chat-Core logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
+    <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg" alt="vibe-core logo">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
-  <button id="removeAvatarBtn" title="Reset Avatar"></button>
   <button id="closeFullscreen" title="Close">✕</button>
+  <button id="fsMicBtn" title="Talk">🎤</button>
   <input type="file" id="videoUpload" accept="video/*" style="display: none;">
 </div>
 
-<div class="chat-container" id="chatContainer">
-  <div id="chat"></div>
-  <button id="clearBtn" title="Clear Chat">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-  </button>
-</div>
+<div id="wave"></div>
+<div id="chat"></div>
+
+<button id="clearBtn" title="Clear Chat">🗑️</button>
 
 <div id="imagePreviewContainer">
   <img id="imagePreview" src="" alt="Preview">
   <button id="cancelImageBtn">✕</button>
 </div>
 
-<div class="row" id="inputRow">
-  <button class="btn" id="musicBtn" title="Music">🎵</button>
-  <button class="btn" id="mediaBtn" title="Media">media</button>
-  <input type="text" id="textInput" placeholder="Type..." />
-  <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
-</div>
-<div id="status" class="status-text">Ready</div>
-
 <div id="actionMenu">
-  <button class="action-btn" id="menuCamera">📸 Camera</button>
-  <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
+  <button class="action-btn" id="menuCamera">📸 كاميرا</button>
+  <button class="action-btn" id="menuGallery">🖼️ صور</button>
+  <button class="action-btn" id="menuMusic">🎵 موسيقى</button>
 </div>
-<input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
-<input type="file" id="galleryUpload" accept="image/*" style="display: none;">
-<input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
-<audio id="bgAudio"></audio>
 
+<!-- نحي loop من هنا -->
+<audio id="bgAudio"></audio>
+<input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
+<input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
 <div id="musicMenu">
-  <h4>🎵 Playlist</h4>
+  <h4>🎵 قائمة الأغاني</h4>
   <div id="musicList"></div>
 </div>
+
+<div class="row">
+  <button class="btn" id="imageBtn" title="Options">📷</button>
+  <button class="btn" id="micBtn" title="Talk">🎤</button>
+  <input type="text" id="textInput" placeholder="Type..." />
+  <button class="btn" id="translateModeBtn" title="Translator Mode">🌐</button>
+  <button class="btn" id="sendBtn" title="Send">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+    </svg>
+  </button>
+</div>
+<div id="status">Ready</div>
 
 <script>
 'use strict';
 
+/* =========================================================
+   CONFIG — المفتاح السري يبقى في Render (env vars)
+   ========================================================= */
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
-const TTS_URL = "https://vibe-core-0m1r.onrender.com/tts"; 
-const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
 const REQUEST_TIMEOUT_MS = 90000;
-const HISTORY_LIMIT = 12;
+const MAX_TEXT_FILE_SIZE = 500 * 1024;
+const HISTORY_LIMIT = 6;   // آخر 6 رسائل فقط لتقليل التأخير
 
+/* =========================================================
+   DOM
+   ========================================================= */
 const $ = id => document.getElementById(id);
-const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn');
-const micA = $('micA'), micB = $('micB');
-const langA = $('langA'), langB = $('langB');
-const clearBtn = $('clearBtn'), statusEl = $('status');
-const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video'), closeFullscreen = $('closeFullscreen'), removeAvatarBtn = $('removeAvatarBtn');
-const translateModeBtn = $('translateModeBtn');
+const chatEl = $('chat');
+const inputEl = $('textInput');
+const sendBtn = $('sendBtn');
+const micBtn = $('micBtn');
+const fsMicBtn = $('fsMicBtn');
+const clearBtn = $('clearBtn');
+const statusEl = $('status');
+const avatarWrap = $('avatar-wrap');
+const avatarRing = $('avatar-ring');
+const avatarContainer = $('avatar-container');
+const avatarLogo = $('avatar-logo');
+const avatarVideo = $('avatar-video');
+const waveEl = $('wave');
+const closeFullscreen = $('closeFullscreen');
+const micLang = $('micLang');
+const replyLang = $('replyLang');
 const voiceSelect = $('voiceSelect');
-const uploadBtn = $('uploadBtn'), videoUpload = $('videoUpload');
-const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery');
-const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), audioUpload = $('audioUpload');
-const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
-const lockBtn = $('lockBtn');
+const translateModeBtn = $('translateModeBtn');
+const imageBtn = $('imageBtn');
+const actionMenu = $('actionMenu');
+const menuCamera = $('menuCamera');
+const menuGallery = $('menuGallery');
+const menuMusic = $('menuMusic');
+const cameraUpload = $('cameraUpload');
+const audioUpload = $('audioUpload');
+const bgAudio = $('bgAudio');
+const musicMenu = $('musicMenu');
+const musicList = $('musicList');
 const imagePreviewContainer = $('imagePreviewContainer');
 const imagePreview = $('imagePreview');
 const cancelImageBtn = $('cancelImageBtn');
+const uploadBtn = $('uploadBtn');
+const videoUpload = $('videoUpload');
 
-const uiElements = [$('extraControls'), $('avatar-wrap'), $('chatContainer'), $('inputRow'), $('status'), $('topBar'), imagePreviewContainer];
-
-let chatHistory = [];
-let isTranslatorMode = true; 
-let activeSpeaker = null; 
-let isSending = false;
-let isLocked = false;
-let currentAudio = null;
-let currentAvatarObjectUrl = null;
+/* =========================================================
+   STATE
+   ========================================================= */
 let attachedImageBase64 = null;
-let playlist = [], currentSongIndex = -1, cachedVoices = [];
-let currentSpeechId = 0;
-
-let mediaRecorder = null;
-let audioChunks = [];
+let attachedTextContent = null;
+let chatHistory = [];
+let isTranslatorMode = false;
 let isRecording = false;
-let recordStartTime = 0;
+let isBotTalking = false;
+let isSending = false;
+let currentAudio = null;
+let audioUnlocked = false;
+let playlist = [];
+let currentSongIndex = -1;
+let cachedVoices = [];
+let currentAvatarObjectUrl = null;
 
-const EDGE_VOICES = {
-  'ar': { man: 'ar-TN-HediNeural', woman: 'ar-TN-ReemNeural', boy: 'ar-TN-HediNeural', girl: 'ar-TN-ReemNeural' },
-  'fr': { man: 'fr-FR-HenriNeural', woman: 'fr-FR-DeniseNeural', boy: 'fr-FR-HenriNeural', girl: 'fr-FR-DeniseNeural' },
-  'en': { man: 'en-US-ChristopherNeural', woman: 'en-US-JennyNeural', boy: 'en-US-ChristopherNeural', girl: 'en-US-JennyNeural' },
-  'tr': { man: 'tr-TR-AhmetNeural', woman: 'tr-TR-EmelNeural', boy: 'tr-TR-AhmetNeural', girl: 'tr-TR-EmelNeural' },
-  'it': { man: 'it-IT-DiegoNeural', woman: 'it-IT-ElsaNeural', boy: 'it-IT-DiegoNeural', girl: 'it-IT-ElsaNeural' },
-  'es': { man: 'es-ES-AlvaroNeural', woman: 'es-ES-ElviraNeural', boy: 'es-ES-AlvaroNeural', girl: 'es-ES-ElviraNeural' },
-  'de': { man: 'de-DE-ConradNeural', woman: 'de-DE-KatjaNeural', boy: 'de-DE-ConradNeural', girl: 'de-DE-KatjaNeural' }
-};
-
+/* =========================================================
+   HELPERS
+   ========================================================= */
 function setStatus(s) { statusEl.textContent = s; }
-function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'); }
-resetStatus();
 
-lockBtn.addEventListener('click', () => {
-  isLocked = !isLocked;
-  if (isLocked) {
-    lockBtn.classList.remove('unlocked');
-    lockBtn.classList.add('locked');
-    lockBtn.textContent = '🔒';
-    uiElements.forEach(el => el.classList.add('locked-ui'));
-    stopAudio(); 
-    if (isRecording && mediaRecorder) mediaRecorder.stop(); 
-    setStatus('App is locked 🔒');
+function getLangShort(code) { return String(code).split('-')[0].toUpperCase(); }
+
+function resetStatus() {
+  if (isTranslatorMode) {
+    setStatus(`🌐 ${getLangShort(micLang.value)} ⇄ ${getLangShort(replyLang.value)}`);
   } else {
-    lockBtn.classList.remove('locked');
-    lockBtn.classList.add('unlocked');
-    lockBtn.textContent = '';
-    uiElements.forEach(el => el.classList.remove('locked-ui'));
-    resetStatus();
+    setStatus('Ready');
   }
-});
+}
 
-function addMsg(text, className, lang) {
+function addMsg(text, who, lang) {
   const div = document.createElement('div');
-  div.className = 'msg ' + className;
-  if (lang && isTranslatorMode) {
+  div.className = 'msg ' + who;
+  if (lang && who === 'bot') {
     const tag = document.createElement('span');
     tag.className = 'lang-tag';
     tag.textContent = String(lang).toUpperCase();
     div.appendChild(tag);
   }
-  let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-  div.appendChild(document.createTextNode(formattedText));
-  div.innerHTML = div.innerHTML.replace(/&lt;br&gt;/g, '<br>');
-  chatEl.appendChild(div); 
+  div.appendChild(document.createTextNode(text));
+  chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
-function unlockAudio() {
-  if ('speechSynthesis' in window) { try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {} }
-  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+function setAvatar(state) {
+  avatarRing.className = '';
+  if (state === 'talking') { avatarRing.classList.add('talking'); waveEl.classList.add('on'); }
+  else if (state === 'thinking') { avatarRing.classList.add('thinking'); waveEl.classList.remove('on'); }
+  else if (state === 'listening') { avatarRing.classList.add('listening'); waveEl.classList.remove('on'); }
+  else { waveEl.classList.remove('on'); }
 }
-document.body.addEventListener('click', unlockAudio, { once: true });
+
+function trimHistory() {
+  if (chatHistory.length > HISTORY_LIMIT) chatHistory = chatHistory.slice(-HISTORY_LIMIT);
+}
 
 function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
 }
 
-function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish', 'de': 'German' }[code] || 'English'; }
-function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
-function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US', 'tr': 'tr-TR', 'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE' }[code] || 'en-US'; }
-
-function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(base64Str);
-  });
-}
-
-function cleanTounsiTTS(text) {
-  let clean = text;
-  clean = clean.replace(/ڨ/g, 'ق').replace(/ث/g, 'ت').replace(/ض/g, 'د').replace(/ظ/g, 'د');
-  const dict = {
-    'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
-    'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
-    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش',
-    'باش': 'باش', 'نحب': 'نحب', 'تنجم': 'تنجم', 'نجم': 'نجم', 'برشا': 'برشا',
-    'شوف': 'شوف', 'خلي': 'خلي', 'باهي': 'باهي', 'ياخي': 'ياخي', 'معلش': 'معلش',
-    'علخاطر': 'علخاطر', 'كيما': 'كيما', 'هكة': 'هاكا', 'توا': 'توه', 'دبر': 'دبر',
-    'سامحني': 'سامحني', 'يعيشك': 'يعيشك', 'عيشك': 'عيشك', 'ربي': 'ربي', 'يخليك': 'يخليك',
-    'الڨلب': 'القلب', 'ڨلب': 'قلب', 'ڨدام': 'قدام', 'ڨبل': 'قبل', 'ڨعد': 'قعد',
-    'ڨالي': 'قلي', 'ڨلك': 'قلك', 'ڨال': 'قال', 'ڨالت': 'قالت', 'ڨالو': 'قالو',
-    'نتكلم': 'نتكلم', 'نحكي': 'نحكي', 'نحكيلك': 'نحكيلك', 'كلام': 'كلام',
-    'برشا': 'برشا', 'ياخي': 'ياخي', 'مزيان': 'مزيان', 'مزيانة': 'مزيانا',
-    'عام': 'عام', 'عامين': 'عامين', 'سنة': 'سنا', 'سنين': 'سنين',
-    'مرا': 'مرا', 'راجل': 'راجل', 'وليد': 'وليد', 'بنت': 'بنت', 'صغير': 'صغير', 'كبير': 'كبير',
-    'ياخي': 'ياخي', 'علاش': 'علاش', 'كيفاش': 'كيفاش', 'شنية': 'شنوه', 'وقتاش': 'وقتاش',
-    'وين': 'وين', 'لوين': 'لوين', 'منين': 'منين', 'قداش': 'قداش', 'شحال': 'شحال',
-    'برشة': 'برشا', 'شوية': 'شويا', 'توة': 'توه', 'تو': 'تو', 'هكة': 'هاكا', 'هكا': 'هاكا',
-    'منيش': 'منيش', 'مانيش': 'مانيش', 'ماهوش': 'ماهوش', 'ماهيش': 'ماهيش', 
-    'فماشي': 'فماشي', 'ماكش': 'ماكش', 'كيفك': 'كيفك', 'كيفها': 'كيفها',
-    'حوالك': 'حواليك', 'شبيك': 'شبيك', 'فيك': 'فيك'
+/* =========================================================
+   LANGUAGE NAMES
+   ========================================================= */
+function langNameFor(code) {
+  const map = {
+    'ar': 'Tunisian Arabic (Derja)', 'en': 'English', 'fr': 'French',
+    'tr': 'Turkish', 'it': 'Italian', 'es': 'Spanish',
+    'de': 'German', 'zh': 'Chinese', 'ja': 'Japanese'
   };
-  for (const [key, value] of Object.entries(dict)) {
-    clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
-  }
-  clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
-  return clean.replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
+  return map[code] || 'English';
 }
 
-async function startRecording(speaker) {
-  if (isLocked) return;
-  unlockAudio();
-  
-  if (isRecording) {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+function micLangNameFor(code) {
+  const map = {
+    'ar-TN': 'Tunisian Arabic', 'en-US': 'English', 'fr-FR': 'French',
+    'tr-TR': 'Turkish', 'it-IT': 'Italian', 'es-ES': 'Spanish',
+    'de-DE': 'German', 'zh-CN': 'Chinese', 'ja-JP': 'Japanese'
+  };
+  return map[code] || 'English';
+}
+
+function localeFor(code) {
+  const map = {
+    'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'tr': 'tr-TR',
+    'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE', 'zh': 'zh-CN', 'ja': 'ja-JP'
+  };
+  return map[code] || 'en-US';
+}
+
+function ttsLangCodeFor(code) {
+  const map = {
+    'ar': 'ar-SA', 'fr': 'fr-FR', 'en': 'en-US', 'tr': 'tr-TR',
+    'it': 'it-IT', 'es': 'es-ES', 'de': 'de-DE', 'zh': 'zh-CN', 'ja': 'ja-JP'
+  };
+  return map[code] || 'en-US';
+}
+
+/* =========================================================
+   VOICE PICKING — نفضّل الأصوات الطبيعية
+   ========================================================= */
+function pickBestVoice(voices, langCode) {
+  if (!voices || voices.length === 0) return null;
+  const langLower = langCode.toLowerCase();
+  const langBase = langLower.split('-')[0];
+
+  let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langLower));
+  if (candidates.length === 0) {
+    candidates = voices.filter(v => v.lang.toLowerCase().split('-')[0] === langBase);
+  }
+  if (candidates.length === 0) return null;
+
+  const score = v => {
+    const n = v.name.toLowerCase();
+    let s = 0;
+    if (n.includes('natural') || n.includes('neural')) s += 100;
+    if (n.includes('google')) s += 80;
+    if (n.includes('siri')) s += 70;
+    if (/(samantha|alex|thomas|karen|daniel|moira|tessa|fiona|serena)/.test(n)) s += 60;
+    if (n.includes('premium') || n.includes('enhanced')) s += 50;
+    if (n.includes('microsoft')) s += 40;
+    if (v.lang.toLowerCase() === langLower) s += 25;
+    if (n.includes('compact') || n.includes('espeak')) s -= 50;
+    return s;
+  };
+  candidates.sort((a, b) => score(b) - score(a));
+  return candidates[0];
+}
+
+/* =========================================================
+   AUDIO UNLOCK
+   ========================================================= */
+function unlockAudio() {
+  if (audioUnlocked) return;
+  if ('speechSynthesis' in window) {
+    try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
+  }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+  } catch (e) {}
+  try {
+    const silent = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+    silent.play().catch(() => {});
+  } catch (e) {}
+  audioUnlocked = true;
+}
+document.body.addEventListener('click', unlockAudio, { once: true });
+
+/* =========================================================
+   WAVE BARS
+   ========================================================= */
+for (let i = 0; i < 5; i++) waveEl.appendChild(document.createElement('span'));
+
+/* =========================================================
+   AVATAR
+   ========================================================= */
+function showAvatarVideo(src) {
+  avatarLogo.style.display = 'none';
+  avatarVideo.style.display = 'block';
+  avatarVideo.src = src;
+  avatarVideo.play().catch(() => {});
+}
+
+avatarContainer.addEventListener('click', function (e) {
+  e.stopPropagation();
+  if (avatarWrap.classList.contains('fullscreen')) exitFullscreen();
+  else enterFullscreen();
+});
+avatarWrap.addEventListener('click', function () {
+  if (avatarWrap.classList.contains('fullscreen')) exitFullscreen();
+});
+closeFullscreen.addEventListener('click', function (e) {
+  e.stopPropagation();
+  exitFullscreen();
+});
+function enterFullscreen() {
+  avatarWrap.classList.add('fullscreen');
+  document.body.classList.add('fs-active');
+}
+function exitFullscreen() {
+  avatarWrap.classList.remove('fullscreen');
+  document.body.classList.remove('fs-active');
+}
+
+/* =========================================================
+   CLEAR CHAT
+   ========================================================= */
+clearBtn.addEventListener('click', function (e) {
+  e.stopPropagation();
+  chatEl.querySelectorAll('.msg').forEach(m => m.remove());
+  chatHistory = [];
+  stopAudio();
+  addMsg('تم مسح المحادثة. كيفاش نجم نعاونك توة؟', 'bot', 'ar');
+});
+
+/* =========================================================
+   TRANSLATOR MODE
+   ========================================================= */
+translateModeBtn.addEventListener('click', function () {
+  isTranslatorMode = !isTranslatorMode;
+  translateModeBtn.classList.toggle('active', isTranslatorMode);
+  resetStatus();
+});
+micLang.addEventListener('change', () => { if (isTranslatorMode) resetStatus(); });
+replyLang.addEventListener('change', () => { if (isTranslatorMode) resetStatus(); });
+
+/* =========================================================
+   AVATAR VIDEO UPLOAD (فيديو فقط)
+   ========================================================= */
+uploadBtn.addEventListener('click', () => { videoUpload.value = ''; videoUpload.click(); });
+
+videoUpload.addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('video/')) {
+    setStatus('Only video files are supported for avatar.');
+    e.target.value = '';
+    return;
+  }
+  if (currentAvatarObjectUrl) {
+    URL.revokeObjectURL(currentAvatarObjectUrl);
+    currentAvatarObjectUrl = null;
+  }
+  currentAvatarObjectUrl = URL.createObjectURL(file);
+  showAvatarVideo(currentAvatarObjectUrl);
+  setStatus('Video avatar updated!');
+  e.target.value = '';
+});
+
+/* =========================================================
+   ACTION MENU + GALLERY
+   ========================================================= */
+const galleryInput = document.createElement('input');
+galleryInput.type = 'file';
+galleryInput.accept = 'image/*,text/plain,.txt';
+galleryInput.style.display = 'none';
+galleryInput.addEventListener('change', handleImageSelection);
+document.body.appendChild(galleryInput);
+
+imageBtn.addEventListener('click', function (e) {
+  e.stopPropagation();
+  actionMenu.style.display = (actionMenu.style.display === 'flex') ? 'none' : 'flex';
+});
+menuCamera.addEventListener('click', function () {
+  actionMenu.style.display = 'none';
+  cameraUpload.value = '';
+  cameraUpload.click();
+});
+menuGallery.addEventListener('click', function () {
+  actionMenu.style.display = 'none';
+  galleryInput.value = '';
+  galleryInput.click();
+});
+menuMusic.addEventListener('click', function () {
+  actionMenu.style.display = 'none';
+  audioUpload.value = '';
+  audioUpload.click();
+});
+cameraUpload.addEventListener('change', handleImageSelection);
+
+/* =========================================================
+   IMAGE / TEXT ATTACHMENT
+   ========================================================= */
+function handleImageSelection(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      attachedImageBase64 = ev.target.result;
+      attachedTextContent = null;
+      imagePreview.src = attachedImageBase64;
+      imagePreviewContainer.style.display = 'flex';
+      setStatus('Image attached.');
+    };
+    reader.readAsDataURL(file);
     return;
   }
 
-  stopAudio(); 
-  activeSpeaker = speaker;
-  
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    recordStartTime = Date.now();
+  const isText = file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt');
+  if (!isText) { setStatus('Only images or .txt files are supported.'); e.target.value = ''; return; }
+  if (file.size > MAX_TEXT_FILE_SIZE) { setStatus('Text file too large (max 500 KB).'); e.target.value = ''; return; }
 
-    mediaRecorder.ondataavailable = event => {
-      if (event.data.size > 0) audioChunks.push(event.data);
-    };
-
-    mediaRecorder.onstop = async () => {
-      isRecording = false;
-      micA.classList.remove('recording'); micB.classList.remove('recording');
-      micA.disabled = false; micB.disabled = false;
-      
-      const duration = (Date.now() - recordStartTime) / 1000;
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      stream.getTracks().forEach(track => track.stop());
-
-      // 🎯 فلتر الصمت: إذا التسجيل أقل من 3 ثواني، نطنشوه
-      if (duration < 3 || audioBlob.size < 5000) { 
-        setStatus('التسجيل قصير جداً...'); 
-        setTimeout(resetStatus, 2000);
-        return; 
-      }
-
-      setStatus('جاري تحويل الصوت لنص...');
-      
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'record.webm');
-
-      try {
-        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-        const data = await res.json();
-        
-        if (!res.ok) throw new Error(data.detail || 'Transcription error');
-        
-        const text = data.text.trim();
-        if (text) {
-          const isA = activeSpeaker === 'A';
-          const sourceLang = isA ? langA.value : langB.value;
-          const targetLang = isA ? langB.value : langA.value;
-          const msgClass = isA ? 'user-a' : 'user-b';
-          
-          addMsg(text, msgClass, sourceLang);
-          ask(text, sourceLang, targetLang, activeSpeaker);
-        } else {
-          setStatus('لم يتم التعرف على الصوت.');
-          setTimeout(resetStatus, 2000);
-        }
-      } catch (err) {
-        setStatus('خطأ في الاتصال بالسيرفر.');
-        setTimeout(resetStatus, 2000);
-      }
-    };
-
-    mediaRecorder.start();
-    isRecording = true;
-    
-    if (speaker === 'A') {
-      micA.classList.add('recording'); micB.disabled = true;
-      setStatus('جاري التسجيل... اضغط مرة أخرى للإيقاف');
-    } else {
-      micB.classList.add('recording'); micA.disabled = true;
-      setStatus('جاري التسجيل... اضغط مرة أخرى للإيقاف');
-    }
-  } catch (err) {
-    setStatus('الميكروفون غير متاح أو تم رفض الإذن.');
-    setTimeout(resetStatus, 3000);
-  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    attachedImageBase64 = null;
+    attachedTextContent = ev.target.result;
+    imagePreview.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="%23fff"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
+    imagePreviewContainer.style.display = 'flex';
+    setStatus('File attached.');
+  };
+  reader.readAsText(file);
 }
 
-micA.addEventListener('click', () => startRecording('A'));
-micB.addEventListener('click', () => startRecording('B'));
-
-avatarWrap.addEventListener('click', (e) => {
-  if (isLocked) return;
-  if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
-  avatarWrap.classList.toggle('fullscreen');
-});
-
-closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
-
-uploadBtn.addEventListener('click', () => { videoUpload.value = ''; videoUpload.click(); });
-videoUpload.addEventListener('change', function (e) {
-  const file = e.target.files[0]; if (!file) return;
-  if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
-  currentAvatarObjectUrl = URL.createObjectURL(file);
-  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
-  avatarVideo.src = currentAvatarObjectUrl; 
-  avatarVideo.pause(); 
-  removeAvatarBtn.style.display = 'block';
-  setStatus('Avatar updated!');
-});
-
-removeAvatarBtn.addEventListener('click', (e) => {
+cancelImageBtn.addEventListener('click', function (e) {
   e.stopPropagation();
-  avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
-  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block';
-  removeAvatarBtn.style.display = 'none';
-  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
-  setStatus('Avatar reset to logo.');
-});
-
-translateModeBtn.addEventListener('click', () => {
-  isTranslatorMode = !isTranslatorMode;
-  translateModeBtn.classList.toggle('active', isTranslatorMode);
-  translateModeBtn.textContent = isTranslatorMode ? 'Translator Mode ON' : 'Chat Mode ON';
+  attachedImageBase64 = null;
+  attachedTextContent = null;
+  imagePreviewContainer.style.display = 'none';
   resetStatus();
 });
 
-clearBtn.addEventListener('click', () => {
-  chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot');
-});
-
-mediaBtn.addEventListener('click', (e) => { 
-  e.stopPropagation(); musicMenu.style.display = 'none'; 
-  if (actionMenu.style.display === 'flex') { actionMenu.style.display = 'none'; } 
-  else {
-    const rect = mediaBtn.getBoundingClientRect();
-    actionMenu.style.display = 'flex';
-    actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
-    actionMenu.style.left = rect.left + 'px';
-    if (rect.left + 150 > window.innerWidth) actionMenu.style.left = (window.innerWidth - 160) + 'px';
+/* =========================================================
+   MUSIC PLAYER — مع enchaînement + stop
+   ========================================================= */
+audioUpload.addEventListener('change', function (e) {
+  const files = e.target.files;
+  for (let i = 0; i < files.length; i++) {
+    playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
   }
-});
-menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
-
-function handleImage(e) {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader(); 
-  reader.onload = async ev => { 
-    setStatus('Compressing image...');
-    const compressed = await compressImage(ev.target.result);
-    attachedImageBase64 = compressed; 
-    imagePreview.src = attachedImageBase64; 
-    imagePreviewContainer.style.display = 'flex'; 
-    setStatus('Image attached.'); 
-  }; 
-  reader.readAsDataURL(file);
-}
-galleryUpload.addEventListener('change', handleImage);
-cameraUpload.addEventListener('change', handleImage);
-
-cancelImageBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  attachedImageBase64 = null;
-  imagePreviewContainer.style.display = 'none';
-  setStatus('Image removed.');
-});
-
-musicBtn.addEventListener('click', (e) => { 
-  e.stopPropagation(); actionMenu.style.display = 'none'; 
-  if (musicMenu.style.display === 'block') { musicMenu.style.display = 'none'; } 
-  else {
-    const rect = musicBtn.getBoundingClientRect();
-    musicMenu.style.display = 'block';
-    musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
-    musicMenu.style.left = rect.left + 'px';
-    if (rect.left + 200 > window.innerWidth) musicMenu.style.left = (window.innerWidth - 210) + 'px';
-  }
-});
-
-audioUpload.addEventListener('change', (e) => {
-  const files = e.target.files; for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
-  renderPlaylist(); e.target.value = '';
+  renderPlaylist();
+  musicMenu.style.display = 'block';
+  e.target.value = '';
 });
 
 function renderPlaylist() {
   musicList.innerHTML = '';
-  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  const pauseBtn = document.createElement('div'); 
-  pauseBtn.className = 'music-item pause-btn'; 
-  pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
-  pauseBtn.onclick = (e) => { 
-    e.stopPropagation(); 
-    if (bgAudio.src) { 
-      if (bgAudio.paused) bgAudio.play(); 
-      else bgAudio.pause(); 
-      renderPlaylist(); 
-    } 
-  }; 
-  musicList.appendChild(pauseBtn);
-  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
+
+  const stopBtn = document.createElement('div');
+  stopBtn.className = 'music-item stop-btn';
+  stopBtn.textContent = '🛑 إيقاف الموسيقى';
+  stopBtn.addEventListener('click', e => { e.stopPropagation(); stopMusic(); });
+  musicList.appendChild(stopBtn);
+
+  const addBtn = document.createElement('div');
+  addBtn.className = 'music-item add-more';
+  addBtn.textContent = '➕ إضافة أغاني';
+  addBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    audioUpload.value = '';
+    audioUpload.click();
+  });
+  musicList.appendChild(addBtn);
+
   playlist.forEach((song, index) => {
-    const div = document.createElement('div'); div.className = 'music-item';
-    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
-    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
-    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
-    div.appendChild(name); div.appendChild(del);
-    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
-    div.onclick = () => playSong(index);
+    const div = document.createElement('div');
+    div.className = 'music-item';
+    div.dataset.index = index;
+    div.textContent = song.name;
+    if (index === currentSongIndex) div.classList.add('active');
+    div.addEventListener('click', e => { e.stopPropagation(); playSong(index); });
     musicList.appendChild(div);
   });
 }
 
-function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
-function playSong(index) { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; } currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); }
-bgAudio.addEventListener('ended', () => playSong((currentSongIndex + 1) % playlist.length));
-bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
-renderPlaylist();
-
-document.addEventListener('click', (e) => { 
-  if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; 
-  if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
-});
-
-// 🎯 التعليمات النهائية
-function buildSystemPrompt(targetLang) {
-  const langName = langNameFor(targetLang);
-  const locale = localeFor(targetLang);
-  const currentDate = new Date().toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-  if (isTranslatorMode) {
-    return `أنت مترجم خبير في اللهجة التونسية الدارجة. 
-Your ONLY task is to translate the user's input into ${langName}.
-RULES:
-1. قم بترجمة النص التونسي بدقة إلى ${langName}.
-2. ترجم المعنى والمقصد التونسي وليس الترجمة الحرفية.
-3. Output ONLY the translated text. DO NOT answer, explain, or add extra words.
-4. If an image is provided, translate the text inside it.`;
-  } 
-  
-  if (targetLang === 'ar') {
-    return `You are Chat-Core, a highly intelligent, empathetic, and wise human friend.
-CURRENT DATE: Today is ${currentDate}.
-CRITICAL DIALECT RULE: You MUST reply in deep Tunisian Derja.
-ABSOLUTE RULE 1: YOU ARE STRICTLY FORBIDDEN FROM USING LATIN CHARACTERS (FRANCO-ARAB / ARABIZI). YOU MUST WRITE ONLY IN ARABIC SCRIPT (e.g., أنا، شنوة، برشة).
-ABSOLUTE RULE 2: Use commas and periods to allow the voice to breathe naturally.
-NEVER mention AI or GPT.`;
-  } 
-  
-  return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
-CURRENT DATE: Today is ${currentDate}.
-CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}. DO NOT USE ARABIC.
-NEVER mention AI or GPT.`;
+function stopMusic() {
+  bgAudio.pause();
+  bgAudio.currentTime = 0;
+  bgAudio.removeAttribute('src');
+  bgAudio.load();
+  currentSongIndex = -1;
+  musicList.querySelectorAll('.music-item[data-index]').forEach(el => el.classList.remove('active'));
 }
 
-async function ask(text, sourceLang, targetLang, speaker) {
-  if (isSending || isLocked) return;
-  isSending = true; setStatus('Processing...');
-  
-  const systemPrompt = buildSystemPrompt(targetLang);
+function playSong(index) {
+  if (index < 0 || index >= playlist.length) return;
+  const song = playlist[index];
+
+  // toggle: إذا نفس الأغنية وتشتغل → وقّف
+  if (currentSongIndex === index && !bgAudio.paused) {
+    stopMusic();
+    return;
+  }
+
+  currentSongIndex = index;
+  bgAudio.src = song.url;
+  bgAudio.play().catch(() => {});
+  musicList.querySelectorAll('.music-item[data-index]').forEach(el => el.classList.remove('active'));
+  const el = musicList.querySelector(`.music-item[data-index="${index}"]`);
+  if (el) el.classList.add('active');
+}
+
+// 🎵 enchaînement: كي تكمّل الأغنية، مرّر للي بعدها، وكي تكمّل الليستة عاود من الأول
+bgAudio.addEventListener('ended', function () {
+  if (playlist.length === 0) return;
+  const nextIndex = (currentSongIndex + 1) % playlist.length;
+  playSong(nextIndex);
+});
+
+/* =========================================================
+   GLOBAL CLICK
+   ========================================================= */
+document.addEventListener('click', function (e) {
+  if (!actionMenu.contains(e.target) && !imageBtn.contains(e.target)) {
+    actionMenu.style.display = 'none';
+  }
+  if (!musicMenu.contains(e.target)) {
+    musicMenu.style.display = 'none';
+  }
+});
+
+/* =========================================================
+   SYSTEM PROMPT (ثنائي الاتجاه للترجمة)
+   ========================================================= */
+function buildSystemPrompt(targetLang, currentDate) {
+  if (isTranslatorMode) {
+    const micName = micLangNameFor(micLang.value);
+    const replyName = langNameFor(replyLang.value);
+    return `You are a professional bidirectional translation machine.
+
+RULES:
+1. The user speaks either ${micName} or ${replyName}.
+2. If the user's message is in ${micName}, translate it into ${replyName}.
+3. If the user's message is in ${replyName} OR any other language, translate it into ${micName}.
+4. DO NOT reply to the user, explain, or add any extra words.
+5. If the user uploads an image, translate the text inside the image using the same rules.
+6. Output ONLY the translation. Nothing else.`;
+  }
+
+  const langName = langNameFor(targetLang);
+  const sharedRules = `YOUR CORE RULES:
+1. DYNAMIC PERSONA: If the user asks you to change your name, gender, or personality, accept it and adopt the new persona immediately.
+2. PSYCHOLOGIST MODE: If the user talks about psychological, family, or social issues, switch to an empathetic psychological counselor persona.
+3. EMPATHY: Show deep empathy for social problems.
+4. SMART SOLUTIONS: Give step-by-step solutions for technical problems.
+5. NO HALLUCINATION: If you don't know, say 'I don't know'.
+6. NEVER mention AI, GPT, or OpenAI. You are a real human.`;
+
+  if (targetLang === 'ar') {
+    return `You are a highly intelligent, empathetic, and wise AI consultant. Your default name is vibe-core, and you are a Tunisian male.
+
+CURRENT DATE: Today is ${currentDate}.
+
+DIALECT RULES (STRICT):
+- You MUST reply in the EXACT SAME Arabic dialect the user speaks.
+- NEVER use Standard Arabic (Fusha).
+- If the user speaks Tunisian, reply in Tunisian. If Moroccan, reply in Moroccan. If Egyptian, reply in Egyptian.
+
+${sharedRules}`;
+  }
+
+  return `You are a highly intelligent, empathetic, and wise AI consultant. Your default name is vibe-core.
+
+CURRENT DATE: Today is ${currentDate}.
+
+CRITICAL LANGUAGE RULE: The user has selected ${langName}. You MUST reply ONLY in ${langName}. Even if the user types in Arabic, reply in ${langName}. Do NOT use Arabic.
+
+${sharedRules}`;
+}
+
+/* =========================================================
+   ASK (main API call)
+   ========================================================= */
+async function ask(text) {
+  if (isSending) return;
+  isSending = true;
+  sendBtn.disabled = true;
+  setStatus(isTranslatorMode ? '🌐 Translating...' : 'Processing...');
+  setAvatar('thinking');
+  stopAudio();
+
+  const targetLang = replyLang.value;
+  const locale = localeFor(targetLang);
+  const currentDate = new Date().toLocaleDateString(locale, {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  const systemPrompt = buildSystemPrompt(targetLang, currentDate);
   const messages = [{ role: 'system', content: systemPrompt }];
 
   if (!isTranslatorMode) {
-    chatHistory.slice(-HISTORY_LIMIT).forEach(m => messages.push(m));
+    chatHistory.slice(-HISTORY_LIMIT).forEach(m => messages.push({ role: m.role, content: m.content }));
   }
 
   let finalText = text || '';
-  
+  if (attachedTextContent) {
+    finalText = (isTranslatorMode ? 'Translate this file:\n' : 'File content:\n') + attachedTextContent;
+  }
+
   let userContent;
   if (attachedImageBase64) {
     userContent = [
-      { type: "text", text: finalText || (isTranslatorMode ? "Translate the text in this image." : "Analyze this image.") },
-      { type: "image_url", image_url: { url: attachedImageBase64 } }
+      { type: 'text', text: finalText || (isTranslatorMode ? 'Translate the text in this image.' : 'What do you think of this image?') },
+      { type: 'image_url', image_url: { url: attachedImageBase64 } }
     ];
   } else {
     userContent = finalText;
   }
-  
   messages.push({ role: 'user', content: userContent });
 
   let reply = null;
+
   try {
     const res = await fetchWithTimeout(SERVER_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: messages,
+        is_vision: attachedImageBase64 != null
+      })
     }, REQUEST_TIMEOUT_MS);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Server error');
-    reply = data.reply.trim();
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || `Server error (${res.status})`);
+    reply = data.reply;
+
   } catch (e) {
-    let errorMsg = 'عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.';
-    if (e.message.includes('400') || e.message.includes('decommissioned')) {
-        errorMsg = 'عذراً، ميزة تحليل الصور غير متاحة حالياً. جرب صورة أخرى.';
-    } else if (e.name === 'AbortError') {
-        errorMsg = 'السيرفر استغرق وقتاً طويلاً للرد. يرجى المحاولة مرة أخرى.';
+    if (e.name === 'AbortError') {
+      addMsg('⏱️ الخادم بطيء (cold start). عاود جرب بعد شوية.', 'bot', 'ar');
+      setStatus('Timeout — retry in a moment');
+    } else {
+      addMsg('Error: ' + e.message, 'bot', 'en');
+      setStatus('Error');
     }
-    addMsg('⚠️ ' + errorMsg, 'bot');
-    setStatus('Error');
+    setAvatar('idle');
   } finally {
     isSending = false;
+    sendBtn.disabled = false;
+
     if (reply) {
-      const replyClass = (speaker === 'A') ? 'user-b' : 'user-a';
-      const finalClass = isTranslatorMode ? replyClass : 'user-b'; 
-      
-      addMsg(reply, finalClass, targetLang);
+      addMsg(reply, 'bot', targetLang);
       resetStatus();
-      speak(reply, targetLang);
+
+      // 🎯 في وضع الترجمة، نحدد لغة TTS من نص الرد نفسه
+      const ttsLang = isTranslatorMode ? detectTtsLang(reply, targetLang) : targetLang;
+      speak(reply, ttsLang);
 
       if (!isTranslatorMode) {
         let historyText = text || '';
         if (attachedImageBase64) historyText = '[Image] ' + historyText;
+        if (attachedTextContent) historyText = '[File] ' + historyText;
         historyText = historyText.trim();
         if (historyText) {
           chatHistory.push({ role: 'user', content: historyText });
           chatHistory.push({ role: 'assistant', content: reply });
-          if (chatHistory.length > HISTORY_LIMIT) chatHistory = chatHistory.slice(-HISTORY_LIMIT);
+          trimHistory();
         }
       }
+
       attachedImageBase64 = null;
+      attachedTextContent = null;
       imagePreviewContainer.style.display = 'none';
     }
   }
 }
 
-sendBtn.addEventListener('click', () => {
-  if (isLocked) return;
-  const t = inputEl.value.trim(); 
-  if (!t && !attachedImageBase64) return; 
-  
+/* في وضع الترجمة، نستنتج لغة TTS من نص الرد */
+function detectTtsLang(text, targetLang) {
+  if (/[\u0600-\u06FF]/.test(text)) return 'ar';
+  if (/[\u4E00-\u9FFF]/.test(text)) return 'zh';
+  if (/[\u3040-\u30FF]/.test(text)) return 'ja';
+  return targetLang;
+}
+
+/* =========================================================
+   SEND
+   ========================================================= */
+function send() {
+  unlockAudio();
+  if (isSending) return;
+
+  const t = inputEl.value.trim();
+  if (!t && !attachedImageBase64 && !attachedTextContent) return;
+
   let displayTxt = t;
   if (attachedImageBase64) displayTxt = t ? '📷 ' + t : '📷 [Image]';
+  if (attachedTextContent) displayTxt = t ? '📄 ' + t : '📄 [File]';
 
-  addMsg(displayTxt, 'user-a', langA.value); 
-  ask(t, langA.value, langB.value, 'A');
+  addMsg(displayTxt, 'user', replyLang.value);
   inputEl.value = '';
+  ask(t);
+}
+
+sendBtn.addEventListener('click', send);
+inputEl.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); send(); }
 });
 
-let isBotTalking = false;
-
-function unlockMics() {
-  activeSpeaker = null;
-  micA.disabled = false; micB.disabled = false;
-  micA.classList.remove('recording'); micB.classList.remove('recording');
-  if (!isBotTalking) resetStatus();
-  if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
-}
-
+/* =========================================================
+   TTS — مع مزامنة الحلقة مع الصوت الفعلي
+   ========================================================= */
 function stopAudio() {
-  currentSpeechId++;
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+  setAvatar('idle');
+  resetStatus();
   isBotTalking = false;
-  if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
-async function speak(text, lang) {
-  if (isLocked) return; 
-  stopAudio(); isBotTalking = true; 
-  const mySpeechId = currentSpeechId;
+function speak(text, lang) {
+  if (!text) return;
+  stopAudio();
+  isBotTalking = true;
 
-  if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
+  // 🎵 وقّف الموسيقى وقت ما يحكي البوت
+  if (!bgAudio.paused) bgAudio.pause();
 
-  let cleanString = cleanTounsiTTS(text);
-  
-  const gender = voiceSelect.value;
-  const voiceId = EDGE_VOICES[lang] ? EDGE_VOICES[lang][gender] : EDGE_VOICES['en'][gender];
+  let textToSpeak = text;
+  textToSpeak = textToSpeak.replace(/[*_#`~|\\\/<>]/g, ' ');
+  textToSpeak = textToSpeak.replace(/[ًٌٍَُِّْ]/g, '');
+  textToSpeak = textToSpeak.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+  textToSpeak = textToSpeak.replace(/\s+/g, ' ').trim();
 
-  // 🎯 تحديد النبرة والسرعة بناءً على الشخصية
-  let rate = "-10%";
-  let pitch = "+0Hz";
+  if (!textToSpeak) { isBotTalking = false; return; }
 
-  if (gender === 'boy') {
-    rate = "+0%";
-    pitch = "+30Hz"; 
-  } else if (gender === 'girl') {
-    rate = "+0%";
-    pitch = "+40Hz"; 
-  } else if (gender === 'woman') {
-    rate = "-5%";
-    pitch = "+10Hz";
-  }
+  // 🎯 الحلقة تولّي "thinking" حتى الصوت يبدا فعلياً
+  setAvatar('thinking');
+  setStatus('Preparing voice...');
 
-  try {
-    setStatus('Generating Voice...');
-    
-    const response = await fetch(TTS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        input: cleanString, 
-        voice: voiceId,
-        rate: rate,
-        pitch: pitch
-      })
-    });
-
-    if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Voice API error');
-    }
-    
-    const audioBlob = await response.blob();
-    if (mySpeechId !== currentSpeechId || isLocked) return;
-
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    currentAudio = audio;
-    
-    audio.onended = () => {
-      if (mySpeechId === currentSpeechId) {
-        isBotTalking = false; unlockMics();
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-    
-    await audio.play();
-    setStatus('Speaking...');
+  if (!('speechSynthesis' in window)) {
+    speakFallback(textToSpeak, lang);
     return;
-
-  } catch (error) {
-    console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
 
-  setStatus('Speaking (Browser)...');
   const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
-  let bestVoice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
+  const bestVoice = pickBestVoice(voices, langCode);
 
-  const u = new SpeechSynthesisUtterance(cleanString);
+  const u = new SpeechSynthesisUtterance(textToSpeak);
   if (bestVoice) u.voice = bestVoice;
   u.lang = bestVoice ? bestVoice.lang : langCode;
-  
-  const v = voiceSelect.value;
-  if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
-  else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
-  else if (v === 'boy') { u.pitch = 1.6; u.rate = 1.1; } 
-  else if (v === 'girl') { u.pitch = 1.8; u.rate = 1.1; } 
 
-  u.onend = () => { if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); } };
+  // 🎯 إعدادات أقل روبوتية
+  const v = voiceSelect.value;
+  if (v === 'woman') { u.pitch = 1.1; u.rate = 1.0; }
+  else if (v === 'girl') { u.pitch = 1.35; u.rate = 1.05; }
+  else if (v === 'child') { u.pitch = 1.55; u.rate = 1.15; }
+  else if (v === 'oldman') { u.pitch = 0.75; u.rate = 0.9; }
+  else if (v === 'oldwoman') { u.pitch = 1.0; u.rate = 0.9; }
+  else { u.pitch = 1.0; u.rate = 0.95; }
+
+  // 🎯 الحلقة تولّي "talking" غير كي الصوت يبدا فعلياً
+  u.onstart = () => {
+    setAvatar('talking');
+    setStatus('Speaking...');
+  };
+  u.onended = () => {
+    setAvatar('idle');
+    resetStatus();
+    isBotTalking = false;
+  };
+  u.onerror = () => speakFallback(textToSpeak, lang);
+
   speechSynthesis.speak(u);
 }
 
-if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function speakFallback(text, lang) {
+  const url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' +
+    lang + '&q=' + encodeURIComponent(text);
+  const audio = new Audio(url);
+  currentAudio = audio;
 
-addMsg('Hello! Tap your Mic (Blue) to talk, and your friend taps the Green Mic. I am Chat-Core.', 'bot');
+  audio.onplaying = () => {
+    setAvatar('talking');
+    setStatus('Speaking...');
+  };
+  const done = () => { setAvatar('idle'); resetStatus(); isBotTalking = false; };
+  audio.onended = done;
+  audio.onerror = done;
+  audio.play().catch(done);
+}
+
+/* =========================================================
+   VOICES PRELOAD
+   ========================================================= */
+if ('speechSynthesis' in window) {
+  const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); };
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+/* =========================================================
+   MIC
+   ========================================================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+if (SR) {
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    micBtn.classList.add('recording');
+    fsMicBtn.classList.add('recording');
+    if (!isBotTalking) {
+      setStatus('🎤 Listening...');
+      setAvatar('listening');
+    }
+  };
+
+  recognition.onresult = e => {
+    const text = e.results[0][0].transcript;
+    if (!text.trim() || isBotTalking) return;
+    addMsg(text, 'user', replyLang.value);
+    ask(text);
+  };
+
+  recognition.onerror = e => {
+    if (e.error === 'no-speech') { setStatus('No speech detected, try again'); return; }
+    isRecording = false;
+    micBtn.classList.remove('recording');
+    fsMicBtn.classList.remove('recording');
+    setStatus('Mic error: ' + e.error);
+    setAvatar('idle');
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    micBtn.classList.remove('recording');
+    fsMicBtn.classList.remove('recording');
+    if (!isBotTalking) { resetStatus(); setAvatar('idle'); }
+  };
+
+  const toggleMic = () => {
+    unlockAudio();
+    recognition.lang = micLang.value;
+    if (isRecording) {
+      recognition.stop();
+    } else {
+      if (isBotTalking) stopAudio();
+      try { recognition.start(); } catch (e) {}
+    }
+  };
+
+  micBtn.addEventListener('click', toggleMic);
+  fsMicBtn.addEventListener('click', e => { e.stopPropagation(); toggleMic(); });
+
+} else {
+  micBtn.addEventListener('click', () => alert('Browser does not support Mic.'));
+}
+
+/* =========================================================
+   WELCOME
+   ========================================================= */
+addMsg('عسلامة! أنا vibe-core، رفيقك الإلكتروني. أنا هنا باش نسمعك، نعاونك، ونحل معاك أي مشكلة. شنوة تحب نعملو اليوم؟', 'bot', 'ar');
 </script>
 </body>
 </html>
