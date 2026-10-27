@@ -195,10 +195,11 @@ let attachedImageBase64 = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
 
-// متغيرات تسجيل الصوت (Whisper)
+// متغيرات تسجيل الصوت
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
+let recordStartTime = 0; // لحساب مدة التسجيل ومنع الهلوسة
 
 const EDGE_VOICES = {
   'ar': { man: 'ar-TN-HediNeural', woman: 'ar-TN-ReemNeural' },
@@ -287,13 +288,9 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 التعديل الجذري لدالة التنظيف: تحويل كل الكلمات لصيغة يفهمها الصوت
 function cleanTounsiTTS(text) {
   let clean = text;
-  // تبديل الحروف
   clean = clean.replace(/ڨ/g, 'ق').replace(/ث/g, 'ت').replace(/ض/g, 'د').replace(/ظ/g, 'د');
-  
-  // قاموس ضخم يخلي "هدي" ينطق الكلام مريقل
   const dict = {
     'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
     'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
@@ -318,21 +315,15 @@ function cleanTounsiTTS(text) {
   for (const [key, value] of Object.entries(dict)) {
     clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
   }
-  
-  // التاء المربوطة تولي ألف (باش ينطقها صح)
   clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
-  
-  // مسح أي رموز أو إيموجي يخربقوا الصوت
-  return clean
-    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
-    .replace(/\s+/g, ' ')
-    .trim();
+  return clean.replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
+// 🎯 تسجيل الصوت مع منع الهلوسة (الحد الأدنى 2 ثانية)
 async function startRecording(speaker) {
   if (isLocked) return;
   unlockAudio();
+  
   if (isRecording) {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     return;
@@ -345,6 +336,7 @@ async function startRecording(speaker) {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
+    recordStartTime = Date.now(); // نبدأ نحسبو الوقت
 
     mediaRecorder.ondataavailable = event => {
       if (event.data.size > 0) audioChunks.push(event.data);
@@ -355,10 +347,16 @@ async function startRecording(speaker) {
       micA.classList.remove('recording'); micB.classList.remove('recording');
       micA.disabled = false; micB.disabled = false;
       
+      const duration = (Date.now() - recordStartTime) / 1000;
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       stream.getTracks().forEach(track => track.stop());
 
-      if (audioBlob.size < 1000) { resetStatus(); return; }
+      // 🎯 منع الهلوسة: إذا التسجيل أقل من ثانيتين، نطنشوه
+      if (duration < 2 || audioBlob.size < 5000) { 
+        setStatus('التسجيل قصير جداً...'); 
+        setTimeout(resetStatus, 2000);
+        return; 
+      }
 
       setStatus('جاري تحويل الصوت لنص...');
       
@@ -542,7 +540,7 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
-// 🎯 التعليمات (Prompt): نجبروه يكتب بطريقة تنطق صح، ويحط نقط وفواصل باش الصوت ما يهلوسش
+// 🎯 التعليمات النهائية: منع الحروف اللاتينية، وفصل اللغات
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -558,18 +556,21 @@ RULES:
 4. If an image is provided, translate the text inside it.`;
   } 
   
-  const sharedRules = `YOUR CORE RULES:
-1. GENIUS & PREDICTIVE: You are a highly intelligent, fast-thinking genius.
-2. FAST & CONCISE: Answer quickly with short, impactful sentences.
-3. CRITICAL DIALECT & TTS SPELLING RULE: You MUST reply in deep Tunisian Derja. TO AVOID VOICE HALLUCINATION, write Derja words phonetically as they are pronounced in Standard Arabic. Example: Write "شنوه" instead of "شنية", write "برشا" instead of "برشة", write "علاش", write "حواليك" instead of "حوالك".
-4. PUNCTUATION RULE: You MUST use commas (,) and periods (.) frequently so the Text-to-Speech engine can breathe and sound natural.
-5. NO EMOJIS: Do not use any emojis or special characters.
-6. NEVER mention AI or GPT. You are a real human named Chat-Core.`;
-
+  // 🎯 إذا كانت اللغة عربية (تونسية)
+  if (targetLang === 'ar') {
+    return `You are Chat-Core, a highly intelligent, empathetic, and wise human friend.
+CURRENT DATE: Today is ${currentDate}.
+CRITICAL DIALECT RULE: You MUST reply in deep Tunisian Derja.
+ABSOLUTE RULE 1: YOU ARE STRICTLY FORBIDDEN FROM USING LATIN CHARACTERS (FRANCO-ARAB / ARABIZI). YOU MUST WRITE ONLY IN ARABIC SCRIPT (e.g., أنا، شنوة، برشة).
+ABSOLUTE RULE 2: Use commas and periods to allow the voice to breathe naturally.
+NEVER mention AI or GPT.`;
+  } 
+  
+  // 🎯 إذا كانت اللغة أجنبية (فرنسية، إنجليزية...)
   return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
 CURRENT DATE: Today is ${currentDate}.
-CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}.
-${sharedRules}`;
+CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}. DO NOT USE ARABIC.
+NEVER mention AI or GPT.`;
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
