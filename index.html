@@ -162,7 +162,7 @@
 'use strict';
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
-const VOICE_SERVER_URL = "https://vibe-core-0m1r.onrender.com/tts"; 
+const TTS_URL = "https://vibe-core-0m1r.onrender.com/tts"; 
 const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
@@ -351,7 +351,8 @@ async function startRecording(speaker) {
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       stream.getTracks().forEach(track => track.stop());
 
-      if (duration < 2 || audioBlob.size < 5000) { 
+      // 🎯 فلتر الصمت: إذا التسجيل أقل من 3 ثواني، نطنشوه
+      if (duration < 3 || audioBlob.size < 5000) { 
         setStatus('التسجيل قصير جداً...'); 
         setTimeout(resetStatus, 2000);
         return; 
@@ -539,6 +540,7 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 التعليمات النهائية
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
@@ -687,10 +689,10 @@ async function speak(text, lang) {
 
   if (gender === 'boy') {
     rate = "+0%";
-    pitch = "+30Hz"; // نرفعوا النبرة باش يطلع مراهق
+    pitch = "+30Hz"; 
   } else if (gender === 'girl') {
     rate = "+0%";
-    pitch = "+40Hz"; // نرفعوا النبرة أكثر للبنت
+    pitch = "+40Hz"; 
   } else if (gender === 'woman') {
     rate = "-5%";
     pitch = "+10Hz";
@@ -699,11 +701,10 @@ async function speak(text, lang) {
   try {
     setStatus('Generating Voice...');
     
-    const response = await fetch(VOICE_SERVER_URL, {
+    const response = await fetch(TTS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        model: "tts-1", 
         input: cleanString, 
         voice: voiceId,
         rate: rate,
