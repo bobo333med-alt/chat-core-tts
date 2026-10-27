@@ -1,11 +1,12 @@
 import os
 import asyncio
+import tempfile
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
 from openai import AsyncOpenAI
-import httpx
+import edge_tts
 
 app = FastAPI()
 
@@ -24,12 +25,19 @@ if not GROQ_API_KEYS:
 current_key_index = 0
 
 MODELS = ["openai/gpt-oss-120b", "llama-3.1-8b-instant"]
-VISION_MODELS = ["meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.2-11b-vision-preview"]
+# 🎯 الموديل الوحيد الشغال حالياً للصور في Groq
+VISION_MODELS = ["qwen/qwen3.8-27b"]
 
 class ChatRequest(BaseModel):
     messages: list
     is_vision: bool = False
     is_translation: bool = False 
+
+class TTSRequest(BaseModel):
+    input: str
+    voice: str
+    rate: str = "-10%"
+    pitch: str = "+0Hz"
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
@@ -86,18 +94,20 @@ async def transcribe_audio(file: UploadFile = File(...)):
                 raise HTTPException(status_code=500, detail=error_msg)
     raise HTTPException(status_code=429, detail="All API keys reached their limit.")
 
+# 🎯 دالة الصوت المدمجة (Edge-TTS) - ما عادش نحتاجوا سيرفر منفصل
 @app.post("/tts")
-async def proxy_tts(request: Request):
+async def text_to_speech(request: TTSRequest):
     try:
-        data = await request.json()
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://chat-core-voice.onrender.com/v1/audio/speech",
-                json=data,
-                timeout=60.0
-            )
-            if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail=response.text)
-            return Response(content=response.content, media_type="audio/mpeg")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            tmp_path = tmp.name
+        
+        communicate = edge_tts.Communicate(request.input, request.voice, rate=request.rate, pitch=request.pitch)
+        await communicate.save(tmp_path)
+        
+        with open(tmp_path, "rb") as f:
+            audio_data = f.read()
+        
+        os.unlink(tmp_path)
+        return Response(content=audio_data, media_type="audio/mpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
