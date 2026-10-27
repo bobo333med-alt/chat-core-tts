@@ -36,29 +36,22 @@ async def chat_endpoint(request: ChatRequest):
     global current_key_index
     models_to_try = VISION_MODELS if request.is_vision else MODELS
     temp = 0.0 if request.is_translation else 0.7
-
     last_error = "Unknown error"
     
     for attempt in range(len(GROQ_API_KEYS)):
         api_key = GROQ_API_KEYS[current_key_index]
         try:
             client = AsyncOpenAI(base_url="https://api.groq.com/openai/v1", api_key=api_key)
-            
             for model_name in models_to_try:
                 try:
                     response = await client.chat.completions.create(
-                        model=model_name, 
-                        messages=request.messages, 
-                        temperature=temp, 
-                        max_tokens=2000
+                        model=model_name, messages=request.messages, temperature=temp, max_tokens=2000
                     )
                     return {"reply": response.choices[0].message.content}
                 except Exception as e:
                     last_error = f"Groq Error ({model_name}): {str(e)}"
                     continue 
-            
             raise Exception(last_error)
-            
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "Rate limit" in error_msg:
@@ -67,7 +60,6 @@ async def chat_endpoint(request: ChatRequest):
                 continue
             else:
                 raise HTTPException(status_code=500, detail=error_msg)
-                
     raise HTTPException(status_code=429, detail="All API keys reached their limit.")
 
 @app.post("/transcribe")
@@ -94,7 +86,6 @@ async def transcribe_audio(file: UploadFile = File(...)):
                 raise HTTPException(status_code=500, detail=error_msg)
     raise HTTPException(status_code=429, detail="All API keys reached their limit.")
 
-# 🎯 السيرفر الوسيط للصوت
 @app.post("/tts")
 async def proxy_tts(request: Request):
     try:
