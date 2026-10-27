@@ -4,3 +4,4 @@ openai
 pydantic
 httpx
 edge-tts
+python-multipart
