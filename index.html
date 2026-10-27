@@ -282,7 +282,7 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 قاموس النطق التونسي المطور (يحول الكلمات لطريقة نطقها الصحيحة)
+// 🎯 دالة تنظيف النطق للهجة التونسية
 function cleanTounsiTTS(text) {
   let clean = text;
   const dict = {
@@ -448,19 +448,20 @@ document.addEventListener('click', (e) => {
   if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; 
 });
 
+// 🎯 هنا دمجنا تعليماتك الخاصة بترجمة الدارجة التونسية
 function buildSystemPrompt(targetLang) {
   const langName = langNameFor(targetLang);
   const locale = localeFor(targetLang);
   const currentDate = new Date().toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   if (isTranslatorMode) {
-    return `You are a world-class expert translator and linguist. Your ONLY task is to translate the user's input into ${langName}.
+    return `أنت مترجم خبير في اللهجة التونسية الدارجة. 
+Your ONLY task is to translate the user's input into ${langName}.
 RULES:
-1. Output ONLY the translated text.
-2. Translate the MEANING accurately, not just word-for-word.
-3. Maintain the original tone, idioms, and cultural nuances.
-4. If an image is provided, translate the text inside it into ${langName}.
-5. DO NOT answer, explain, or add extra words.`;
+1. قم بترجمة النص التونسي بدقة إلى ${langName}.
+2. ترجم المعنى والمقصد التونسي وليس الترجمة الحرفية.
+3. Output ONLY the translated text. DO NOT answer, explain, or add extra words.
+4. If an image is provided, translate the text inside it.`;
   } 
   
   const sharedRules = `YOUR CORE RULES:
