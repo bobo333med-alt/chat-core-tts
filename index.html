@@ -156,6 +156,7 @@
 'use strict';
 
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
+const VOICE_SERVER_URL = "https://vibe-core-0m1r.onrender.com/tts"; 
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
 
@@ -190,6 +191,13 @@ let attachedImageBase64 = null;
 let attachedFileText = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
+
+// خريطة أصوات Edge-TTS
+const EDGE_VOICES = {
+  'ar': { man: 'ar-TN-HediNeural', woman: 'ar-TN-ReemNeural', girl: 'ar-TN-ReemNeural', child: 'ar-TN-ReemNeural' },
+  'fr': { man: 'fr-FR-HenriNeural', woman: 'fr-FR-DeniseNeural', girl: 'fr-FR-DeniseNeural', child: 'fr-FR-DeniseNeural' },
+  'en': { man: 'en-US-ChristopherNeural', woman: 'en-US-JennyNeural', girl: 'en-US-JennyNeural', child: 'en-US-JennyNeural' }
+};
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'); }
@@ -244,9 +252,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR' }[code] || 'en-US'; }
-function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US' }[code] || 'en-US'; }
 
-// 🎯 دالة ضغط الصور باش السيرفر ما يرفضهاش
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -269,24 +275,35 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// 🎯 دالة تنظيف النطق للهجة التونسية
 function cleanTounsiTTS(text) {
   let clean = text;
+  clean = clean.replace(/ڨ/g, 'ق').replace(/ث/g, 'ت').replace(/ض/g, 'د').replace(/ظ/g, 'د');
   const dict = {
     'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
     'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
-    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش'
+    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش',
+    'باش': 'باش', 'نحب': 'نحب', 'تنجم': 'تنجم', 'نجم': 'نجم', 'برشا': 'برشا',
+    'شوف': 'شوف', 'خلي': 'خلي', 'باهي': 'باهي', 'ياخي': 'ياخي', 'معلش': 'معلش',
+    'علخاطر': 'علخاطر', 'كيما': 'كيما', 'هكة': 'هاكا', 'توا': 'توه', 'دبر': 'دبر',
+    'سامحني': 'سامحني', 'يعيشك': 'يعيشك', 'عيشك': 'عيشك', 'ربي': 'ربي', 'يخليك': 'يخليك',
+    'الڨلب': 'القلب', 'ڨلب': 'قلب', 'ڨدام': 'قدام', 'ڨبل': 'قبل', 'ڨعد': 'قعد',
+    'ڨالي': 'قلي', 'ڨلك': 'قلك', 'ڨال': 'قال', 'ڨالت': 'قالت', 'ڨالو': 'قالو',
+    'نتكلم': 'نتكلم', 'نحكي': 'نحكي', 'نحكيلك': 'نحكيلك', 'كلام': 'كلام',
+    'برشا': 'برشا', 'ياخي': 'ياخي', 'مزيان': 'مزيان', 'مزيانة': 'مزيانا',
+    'عام': 'عام', 'عامين': 'عامين', 'سنة': 'سنا', 'سنين': 'سنين',
+    'مرا': 'مرا', 'راجل': 'راجل', 'وليد': 'وليد', 'بنت': 'بنت', 'صغير': 'صغير', 'كبير': 'كبير',
+    'ياخي': 'ياخي', 'علاش': 'علاش', 'كيفاش': 'كيفاش', 'شنية': 'شنوه', 'وقتاش': 'وقتاش',
+    'وين': 'وين', 'لوين': 'لوين', 'منين': 'منين', 'قداش': 'قداش', 'شحال': 'شحال',
+    'برشة': 'برشا', 'شوية': 'شويا', 'توة': 'توه', 'تو': 'تو', 'هكة': 'هاكا', 'هكا': 'هاكا',
+    'منيش': 'منيش', 'مانيش': 'مانيش', 'ماهوش': 'ماهوش', 'ماهيش': 'ماهيش', 
+    'فماشي': 'فماشي', 'ماكش': 'ماكش', 'كيفك': 'كيفك', 'كيفها': 'كيفها',
+    'حوالك': 'حواليك', 'شبيك': 'شبيك', 'فيك': 'فيك'
   };
   for (const [key, value] of Object.entries(dict)) {
     clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
   }
   clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
-  
-  return clean
-    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
-    .replace(/\s+/g, ' ')
-    .trim();
+  return clean.replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
 avatarWrap.addEventListener('click', (e) => {
@@ -344,7 +361,6 @@ menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; 
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
 menuFile.addEventListener('click', () => { actionMenu.style.display = 'none'; fileUpload.value = ''; fileUpload.click(); });
 
-// 🎯 معالجة الصور مع الضغط
 function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader(); 
@@ -362,7 +378,6 @@ function handleImage(e) {
 galleryUpload.addEventListener('change', handleImage);
 cameraUpload.addEventListener('change', handleImage);
 
-// 🎯 معالجة الملفات النصية
 fileUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -404,7 +419,18 @@ audioUpload.addEventListener('change', (e) => {
 function renderPlaylist() {
   musicList.innerHTML = '';
   const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
+  const pauseBtn = document.createElement('div'); 
+  pauseBtn.className = 'music-item pause-btn'; 
+  pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause'; 
+  pauseBtn.onclick = (e) => { 
+    e.stopPropagation(); 
+    if (bgAudio.src) { 
+      if (bgAudio.paused) bgAudio.play(); 
+      else bgAudio.pause(); 
+      renderPlaylist(); 
+    } 
+  }; 
+  musicList.appendChild(pauseBtn);
   const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
   playlist.forEach((song, index) => {
     const div = document.createElement('div'); div.className = 'music-item';
@@ -417,6 +443,7 @@ function renderPlaylist() {
     musicList.appendChild(div);
   });
 }
+
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
 function playSong(index) { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); return; } currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); }
 bgAudio.addEventListener('ended', () => playSong((currentSongIndex + 1) % playlist.length));
@@ -542,18 +569,22 @@ if (SR) {
     if (isLocked) return;
     unlockAudio();
     if (isRecording) { recognition.stop(); return; }
-    stopAudio(); activeSpeaker = speaker;
     
-    if (speaker === 'A') {
-      recognition.lang = langA.value;
-      micA.classList.add('recording'); micB.disabled = true;
-      setStatus('Listening (You)...');
-    } else {
-      recognition.lang = langB.value;
-      micB.classList.add('recording'); micA.disabled = true;
-      setStatus('Listening (Friend)...');
-    }
-    try { recognition.start(); } catch (e) {}
+    // إصلاح مشكلة الميكرو الأخضر: نضمنو إيقاف أي صوت ومنع أي تعارض
+    stopAudio(); 
+    activeSpeaker = speaker;
+    setTimeout(() => {
+      if (speaker === 'A') {
+        recognition.lang = langA.value;
+        micA.classList.add('recording'); micB.disabled = true;
+        setStatus('Listening (You)...');
+      } else {
+        recognition.lang = langB.value;
+        micB.classList.add('recording'); micA.disabled = true;
+        setStatus('Listening (Friend)...');
+      }
+      try { recognition.start(); } catch (e) {}
+    }, 100);
   };
   micA.addEventListener('click', () => startMic('A'));
   micB.addEventListener('click', () => startMic('B'));
@@ -593,62 +624,74 @@ function stopAudio() {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
-function speak(text, lang) {
+// 🎯 دالة النطق (رجعناها لـ Edge-TTS باش ترجع اللكنة التونسية)
+async function speak(text, lang) {
   if (isLocked) return; 
   stopAudio(); isBotTalking = true; 
   const mySpeechId = currentSpeechId;
-  setStatus('Speaking...');
 
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
-  let cleanText = cleanTounsiTTS(text);
-
-  const langCode = ttsLangCodeFor(lang);
-  const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+  let cleanString = cleanTounsiTTS(text);
   
-  let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
-  let bestVoice = candidates[0];
-  
-  if (lang === 'fr') {
-    let caVoice = voices.find(v => v.lang.toLowerCase() === 'fr-ca');
-    if (caVoice) bestVoice = caVoice;
-  } else {
-    const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
-    candidates.sort((a, b) => score(b) - score(a));
-    bestVoice = candidates[0];
-  }
+  const gender = voiceSelect.value;
+  const voiceId = EDGE_VOICES[lang] ? EDGE_VOICES[lang][gender] : EDGE_VOICES['en'][gender];
 
-  const sentences = cleanText.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [cleanText];
-  let chunks = [], current = "";
-  sentences.forEach(s => {
-    s = s.trim(); if (!s) return;
-    if ((current + " " + s).length > 150) { if (current) chunks.push(current); current = s; } 
-    else { current += " " + s; }
-  });
-  if (current) chunks.push(current.trim());
-
-  let index = 0;
-  function playChunk() {
-    if (index >= chunks.length || mySpeechId !== currentSpeechId || isLocked) {
-       if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); }
-       return;
-    }
-    const u = new SpeechSynthesisUtterance(chunks[index]);
-    index++;
-    if (bestVoice) u.voice = bestVoice;
-    u.lang = bestVoice ? bestVoice.lang : langCode;
+  try {
+    setStatus('Generating Voice...');
     
-    const v = voiceSelect.value;
-    if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
-    else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
-    else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.1; } 
-    else if (v === 'child') { u.pitch = 1.8; u.rate = 1.15; } 
+    const response = await fetch(VOICE_SERVER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        model: "tts-1", 
+        input: cleanString, 
+        voice: voiceId 
+      })
+    });
 
-    u.onend = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
-    u.onerror = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
-    speechSynthesis.speak(u);
+    if (!response.ok) throw new Error('Voice API error');
+    
+    const audioBlob = await response.blob();
+    if (mySpeechId !== currentSpeechId || isLocked) return;
+
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    currentAudio = audio;
+    
+    audio.onended = () => {
+      if (mySpeechId === currentSpeechId) {
+        isBotTalking = false; unlockMics();
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+    
+    await audio.play();
+    setStatus('Speaking...');
+    return;
+
+  } catch (error) {
+    console.warn('Edge-TTS failed, falling back to browser voice.', error);
   }
-  setTimeout(playChunk, 100);
+
+  // Fallback (في حال السيرفر طايح)
+  setStatus('Speaking (Browser)...');
+  const langCode = lang === 'ar' ? 'ar-SA' : (lang === 'fr' ? 'fr-FR' : 'en-US');
+  const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+  let bestVoice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
+
+  const u = new SpeechSynthesisUtterance(cleanString);
+  if (bestVoice) u.voice = bestVoice;
+  u.lang = bestVoice ? bestVoice.lang : langCode;
+  
+  const v = voiceSelect.value;
+  if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
+  else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
+  else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.1; } 
+  else if (v === 'child') { u.pitch = 1.8; u.rate = 1.15; } 
+
+  u.onend = () => { if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); } };
+  speechSynthesis.speak(u);
 }
 
 if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
