@@ -38,12 +38,10 @@
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
 
-  /* 📹 تنسيقات الكاميرا وتكبيرها */
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; }
-  
   #videoContainer.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100%; z-index: 9999; margin: 0; border-radius: 0; }
   #videoContainer.fullscreen #remoteVideo { object-fit: contain; }
   #videoContainer.fullscreen #localVideo { width: 120px; height: 160px; bottom: 20px; right: 20px; }
@@ -162,7 +160,7 @@
 <div class="top-header" id="topHeader">
   <button id="lockBtn" class="unlocked" title="Lock/Unlock"></button>
   <div class="top-bar" id="topBar">
-    <div class="user-section">
+    <div class="user-section" id="friendSection">
       <span style="font-size:9px; color:#94a3b8;">Friend</span>
       <select id="langB" class="lang-select">
         <option value="fr">French</option><option value="ar">Arabic</option><option value="en">English</option>
@@ -171,7 +169,7 @@
       </select>
       <button id="micB" class="mic-btn green" title="Talk">🎤</button>
     </div>
-    <div class="user-section">
+    <div class="user-section" id="youSection">
       <span style="font-size:9px; color:#94a3b8;">You</span>
       <select id="langA" class="lang-select">
         <option value="ar">Arabic</option><option value="fr">French</option><option value="en">English</option>
@@ -341,12 +339,14 @@ function setModeUI(mode) {
     topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none';
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
     videoContainer.style.display = 'none'; avatarWrap.style.display = 'flex';
+    $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
     $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
-    topHeader.style.display = 'none'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
+    topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
     mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'inline-block';
     avatarWrap.style.display = 'none';
-    $('extraControls').style.display = 'flex'; // إظهار أزرار الترجمة في الغرف
+    $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none'; // إخفاء مايكات الشريط العلوي
+    $('extraControls').style.display = 'flex';
   }
 }
 
@@ -354,18 +354,25 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-// 📋 نسخ كود الغرفة
+// 🌍 تغيير اللغة أثناء الغرفة
+langA.addEventListener('change', () => {
+  if (appMode === 'remote') {
+    myLang = langA.value;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'change_lang', lang: myLang }));
+    }
+    addMsg(`تم تغيير لغتك إلى ${langA.options[langA.selectedIndex].text}`, 'bot');
+  }
+});
+
 $('copyRoomBtn').addEventListener('click', () => {
   if (!currentRoomCode) return;
   navigator.clipboard.writeText(currentRoomCode).then(() => {
     setStatus('تم نسخ الكود!');
     setTimeout(resetStatus, 2000);
-  }).catch(() => {
-    alert('كود الغرفة: ' + currentRoomCode);
-  });
+  }).catch(() => alert('كود الغرفة: ' + currentRoomCode));
 });
 
-// 📹 تكبير الكاميرا
 videoContainer.addEventListener('click', (e) => {
   if (e.target === closeVideoFullscreen) return;
   videoContainer.classList.toggle('fullscreen');
@@ -582,6 +589,8 @@ $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
   if (!name) return alert('أدخل اسمك');
   myName = name; myLang = lang;
+  langA.value = lang; // مزامنة القائمة العلوية مع لغة الدخول
+  
   const btn = $('createRoomBtn'); btn.textContent = '⏳ جارٍ الاتصال...'; btn.disabled = true;
   try {
     const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
@@ -595,7 +604,9 @@ $('joinRoomBtn').addEventListener('click', () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value, code = $('joinCodeInput').value.trim().toUpperCase();
   if (!name) return alert('أدخل اسمك');
   if (code.length !== 6) return alert('كود غير صحيح');
-  myName = name; myLang = lang; enterRemoteRoom(code);
+  myName = name; myLang = lang; 
+  langA.value = lang;
+  enterRemoteRoom(code);
 });
 
 function enterRemoteRoom(code) {
