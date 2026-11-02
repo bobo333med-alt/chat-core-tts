@@ -45,6 +45,11 @@ class RoomManager:
             self.rooms[code]["users"][ws] = {"name": name, "lang": lang}
             return True
 
+    async def update_user_lang(self, code, ws, new_lang):
+        async with self.lock:
+            if code in self.rooms and ws in self.rooms[code]["users"]:
+                self.rooms[code]["users"][ws]["lang"] = new_lang
+
     async def leave(self, code, ws):
         async with self.lock:
             if code in self.rooms and ws in self.rooms[code]["users"]:
@@ -113,7 +118,6 @@ async def lifespan(app):
 
 app = FastAPI(title="Chat-Core API", version="5.0", lifespan=lifespan)
 
-# ---------- CORS ----------
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
         "ALLOWED_ORIGINS", "https://bobo333med-alt.github.io"
@@ -127,7 +131,6 @@ app.add_middleware(
     allow_credentials=False,
 )
 
-# ---------- Keys ----------
 OXEN_KEY = os.environ.get("OXEN_API_KEY", "").strip()
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 USE_OXEN = os.environ.get("USE_OXEN", "1") == "1" and OXEN_KEY != ""
@@ -140,12 +143,10 @@ OXEN_VISION_MODELS = ["qwen/qwen3.8-27b"]
 GROQ_TEXT_MODELS = ["llama-3.1-8b-instant", "openai/gpt-oss-120b"]
 GROQ_VISION_MODELS = ["qwen/qwen3.8-27b"]
 
-# ---------- TTS ----------
 TTS_ENABLED = os.environ.get("TTS_ENABLED", "0") == "1"
 OXEN_TTS_MODEL = "bytedance-seed-audio-1-0"
 TTS_VOICES = {"man": "Fritz", "woman": "Celeste", "girl": "Arista", "child": "Cillian"}
 
-# ---------- Session memory ----------
 _sessions: dict = {}
 SESSION_MAX_MSGS = 16
 
@@ -162,7 +163,6 @@ def get_session(sid, last_n=6):
         return []
     return _sessions.get(sid, [])[-last_n:]
 
-# ---------- Pydantic ----------
 class ChatRequest(BaseModel):
     messages: List[dict]
     is_vision: bool = False
@@ -176,7 +176,6 @@ class TTSRequest(BaseModel):
     voice: str = "woman"
     session_id: Optional[str] = None
 
-# ---------- Key rotation ----------
 _groq_idx = {"i": 0}
 def next_groq_key():
     if not GROQ_KEYS:
@@ -185,7 +184,6 @@ def next_groq_key():
     _groq_idx["i"] += 1
     return k
 
-# ---------- AI calls ----------
 async def call_oxen(messages, models, temperature=0.7, max_tokens=2000):
     last_err = "no model"
     for model in models:
@@ -231,7 +229,6 @@ async def smart_chat(messages, is_vision, temperature, max_tokens):
         return await call_groq(messages, models, temperature, max_tokens)
     raise HTTPException(502, detail="لا يوجد مزوّد متاح")
 
-# 🌍 اللغات الجديدة
 LANG_NAMES = {
     "ar": "Arabic", "fr": "French", "en": "English", 
     "de": "German", "tr": "Turkish", "it": "Italian", 
@@ -252,13 +249,9 @@ async def translate_for_room(text, source_lang, target_lang):
     except Exception as e:
         return text
 
-# ---------- REST Endpoints ----------
 @app.get("/health")
 async def health():
-    return {
-        "ok": True, "provider": "oxen" if USE_OXEN else "groq",
-        "active_rooms": len(room_manager.rooms),
-    }
+    return {"ok": True, "provider": "oxen" if USE_OXEN else "groq", "active_rooms": len(room_manager.rooms)}
 
 @app.post("/rooms/create")
 async def create_room_endpoint():
@@ -313,7 +306,6 @@ async def tts_endpoint(req: TTSRequest):
     except httpx.HTTPError:
         raise HTTPException(502, detail="خطأ شبكة TTS")
 
-# ---------- WebSocket ----------
 @app.websocket("/ws/{room_code}")
 async def ws_endpoint(websocket: WebSocket, room_code: str):
     room_code = room_code.upper().strip()
@@ -369,7 +361,13 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 await websocket.send_json({"type": "pong"})
                 continue
 
-            # 📹 تمرير إشارات الكاميرا (WebRTC) بين المستخدمين
+            elif mtype == "change_lang":
+                new_lang = msg.get("lang")
+                if new_lang in LANG_NAMES:
+                    my_lang = new_lang
+                    await room_manager.update_user_lang(room_code, websocket, my_lang)
+                continue
+
             elif mtype in ["rtc-offer", "rtc-answer", "rtc-ice"]:
                 await room_manager.broadcast(room_code, msg, exclude=websocket)
                 continue
