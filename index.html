@@ -38,10 +38,17 @@
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
 
-  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+  /* 📹 تنسيقات الكاميرا وتكبيرها */
+  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; }
+  
+  #videoContainer.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100%; z-index: 9999; margin: 0; border-radius: 0; }
+  #videoContainer.fullscreen #remoteVideo { object-fit: contain; }
+  #videoContainer.fullscreen #localVideo { width: 120px; height: 160px; bottom: 20px; right: 20px; }
+  #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+  #videoContainer.fullscreen #closeVideoFullscreen { display: flex; }
 
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
@@ -85,7 +92,9 @@
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 
   #remoteBar { display: none; background: #1e293b; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  #remoteBar .room-info { display: flex; align-items: center; gap: 8px; }
   #remoteBar strong { color: #fbbf24; letter-spacing: 2px; font-size: 14px; }
+  #copyRoomBtn { background: #6366f1; color: #fff; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold; }
   #leaveRoomBtn { background: #ef4444; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
 
   .overlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; }
@@ -142,7 +151,10 @@
 </div>
 
 <div id="remoteBar">
-  <span>Room: <strong id="roomCodeLabel">------</strong></span>
+  <div class="room-info">
+    <span>Room: <strong id="roomCodeLabel">------</strong></span>
+    <button id="copyRoomBtn">📋 نسخ</button>
+  </div>
   <span id="onlineCount">1/4</span>
   <button id="leaveRoomBtn">خروج</button>
 </div>
@@ -184,6 +196,7 @@
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
   <div id="videoStatus">📡 متصل بالكاميرا</div>
+  <button id="closeVideoFullscreen" title="إغلاق">✕</button>
 </div>
 
 <div id="avatar-wrap">
@@ -248,7 +261,7 @@ const clearBtn = $('clearBtn'), statusEl = $('status');
 const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
 const translateModeBtn = $('translateModeBtn'), voiceSelect = $('voiceSelect');
 const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount'), leaveRoomBtn = $('leaveRoomBtn');
-const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo');
+const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen');
 const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
 const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuFile = $('menuFile');
 const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), fileUpload = $('fileUpload'), audioUpload = $('audioUpload');
@@ -328,16 +341,36 @@ function setModeUI(mode) {
     topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none';
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
     videoContainer.style.display = 'none'; avatarWrap.style.display = 'flex';
+    $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
     topHeader.style.display = 'none'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
-    mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'none';
+    mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'inline-block';
     avatarWrap.style.display = 'none';
+    $('extraControls').style.display = 'flex'; // إظهار أزرار الترجمة في الغرف
   }
 }
 
 $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; setModeUI('local'); resetStatus(); });
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
+
+// 📋 نسخ كود الغرفة
+$('copyRoomBtn').addEventListener('click', () => {
+  if (!currentRoomCode) return;
+  navigator.clipboard.writeText(currentRoomCode).then(() => {
+    setStatus('تم نسخ الكود!');
+    setTimeout(resetStatus, 2000);
+  }).catch(() => {
+    alert('كود الغرفة: ' + currentRoomCode);
+  });
+});
+
+// 📹 تكبير الكاميرا
+videoContainer.addEventListener('click', (e) => {
+  if (e.target === closeVideoFullscreen) return;
+  videoContainer.classList.toggle('fullscreen');
+});
+closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); videoContainer.classList.remove('fullscreen'); });
 
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
@@ -594,7 +627,6 @@ function connectWebSocket(code) {
     console.log('WS closed', ev.code, ev.reason);
     
     if (!hasJoinedOnce) { 
-      // لا تطرد المستخدم، بل اعرض له سبب الفشل في الشات
       addMsg(`⚠️ فشل الاتصال بالغرفة. كود الخطأ: ${ev.code}`, 'bot');
       setStatus('فشل الاتصال');
       return; 
@@ -658,7 +690,7 @@ leaveRoomBtn.addEventListener('click', () => {
   stopPing(); if (ws) ws.close();
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   if (pc) { pc.close(); pc = null; }
-  videoContainer.style.display = 'none'; remoteVideo.srcObject = null; localVideo.srcObject = null;
+  videoContainer.style.display = 'none'; videoContainer.classList.remove('fullscreen'); remoteVideo.srcObject = null; localVideo.srcObject = null;
   appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
   chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
 });
