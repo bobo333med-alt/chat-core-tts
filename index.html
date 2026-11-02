@@ -345,7 +345,7 @@ function setModeUI(mode) {
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
     mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'inline-block';
     avatarWrap.style.display = 'none';
-    $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none'; // إخفاء مايكات الشريط العلوي
+    $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
     $('extraControls').style.display = 'flex';
   }
 }
@@ -354,13 +354,10 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-// 🌍 تغيير اللغة أثناء الغرفة
 langA.addEventListener('change', () => {
   if (appMode === 'remote') {
     myLang = langA.value;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'change_lang', lang: myLang }));
-    }
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'change_lang', lang: myLang }));
     addMsg(`تم تغيير لغتك إلى ${langA.options[langA.selectedIndex].text}`, 'bot');
   }
 });
@@ -409,7 +406,8 @@ videoUpload.addEventListener('change', (e) => {
   if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
-  avatarVideo.src = currentAvatarObjectUrl; avatarVideo.pause();
+  avatarVideo.src = currentAvatarObjectUrl; 
+  avatarVideo.play().catch(()=>{}); // إصلاح: تشغيل الفيديو فوراً
   removeAvatarBtn.style.display = 'block';
 });
 removeAvatarBtn.addEventListener('click', (e) => {
@@ -545,6 +543,12 @@ if (SR) {
       ask(text, activeSpeaker === 'A' ? langB.value : langA.value, activeSpeaker);
     }
   };
+  // إصلاح: إضافة معالج الأخطاء لكي لا يعلق المايك
+  recognition.onerror = (e) => {
+    console.warn('Speech recognition error', e.error);
+    setStatus('Mic Error: ' + e.error);
+    unlockMics();
+  };
   recognition.onend = () => { isRecording = false; if (!isBotTalking && !isSending) unlockMics(); };
   const startMic = (speaker) => {
     if (isRecording) { recognition.stop(); return; }
@@ -589,7 +593,7 @@ $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
   if (!name) return alert('أدخل اسمك');
   myName = name; myLang = lang;
-  langA.value = lang; // مزامنة القائمة العلوية مع لغة الدخول
+  langA.value = lang; 
   
   const btn = $('createRoomBtn'); btn.textContent = '⏳ جارٍ الاتصال...'; btn.disabled = true;
   try {
