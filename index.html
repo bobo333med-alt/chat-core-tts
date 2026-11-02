@@ -26,12 +26,19 @@
   #lockBtn.locked { width: 34px; height: 34px; border-radius: 50%; background: #ef4444; color: white; font-size: 16px; box-shadow: 0 0 10px rgba(239,68,68,0.5); }
   .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
 
-  #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
-  #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; }
+  /* 🖼️ إصلاح الأفاتار ليكبر لشاشة كاملة */
+  #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
+  #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
-  
-  /* 📹 تنسيقات الكاميرا المباشرة */
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
+  #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
+  #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
+  #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
+  #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
+  #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+  #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
+
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; }
@@ -66,14 +73,17 @@
   .extra-controls button, .extra-controls select { padding: 5px 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; outline: none; }
   .extra-controls button.active { background: #eab308; color: #000; }
 
+  /* 🎵 إصلاح قائمة الموسيقى وأزرارها */
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
   
   #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; width: 200px; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
   #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
   .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+  .music-item:hover { background: #334155; } .music-item.active { background: #0ea5e9; color: #fff; font-weight: bold; } 
   .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
   .music-item.add-more { background: #22c55e; } .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; } .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
+  .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 
   #remoteBar { display: none; background: #1e293b; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
@@ -183,8 +193,8 @@
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
-  <button id="removeAvatarBtn" style="display:none; position:absolute; top:0; right:0; border-radius:50%; background:#000; color:#fff; border:none; cursor:pointer;">✕</button>
-  <button id="closeFullscreen" style="display:none;">✕</button>
+  <button id="removeAvatarBtn" title="Reset">✕</button>
+  <button id="closeFullscreen" title="Close">✕</button>
 </div>
 
 <div class="chat-container" id="chatContainer">
@@ -194,7 +204,6 @@
   </button>
 </div>
 
-<!-- إصلاح: إعادة إضافة حاوية معاينة الصور المفقودة -->
 <div id="imagePreviewContainer">
   <img id="imagePreview" src="" alt="Preview">
   <button id="cancelImageBtn">✕</button>
@@ -209,7 +218,6 @@
 </div>
 <div id="status" class="status-text">Ready</div>
 
-<!-- إصلاح: إعادة إضافة القوائم والمدخلات المخفية بالكامل -->
 <div id="actionMenu">
   <button class="action-btn" id="menuCamera">📸 Camera</button>
   <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
@@ -320,11 +328,11 @@ function setModeUI(mode) {
   appMode = mode;
   if (mode === 'local') {
     topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none';
-    mediaBtn.style.display = 'flex'; $('musicBtn').style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
     videoContainer.style.display = 'none'; avatarWrap.style.display = 'flex';
   } else if (mode === 'remote') {
     topHeader.style.display = 'none'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
-    mediaBtn.style.display = 'none'; $('musicBtn').style.display = 'none'; translateModeBtn.style.display = 'none';
+    mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'none';
     avatarWrap.style.display = 'none';
   }
 }
@@ -333,7 +341,14 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-// Local Mode UI events
+// 🖼️ إصلاح تكبير الأفاتار
+avatarWrap.addEventListener('click', (e) => {
+  if (isLocked) return;
+  if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
+  avatarWrap.classList.toggle('fullscreen');
+});
+closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
+
 lockBtn.addEventListener('click', () => {
   isLocked = !isLocked;
   lockBtn.className = isLocked ? 'locked' : 'unlocked';
@@ -351,7 +366,6 @@ translateModeBtn.addEventListener('click', () => {
 
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
 
-// Avatar
 uploadBtn.addEventListener('click', () => { videoUpload.value = ''; videoUpload.click(); });
 videoUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
@@ -367,7 +381,7 @@ removeAvatarBtn.addEventListener('click', (e) => {
   if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
 });
 
-// Menus
+// 🎵 إصلاح تشغيل قائمة الموسيقى وأزرارها
 mediaBtn.addEventListener('click', (e) => {
   e.stopPropagation(); musicMenu.style.display = 'none';
   if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none';
@@ -397,7 +411,6 @@ menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; 
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
 menuFile.addEventListener('click', () => { actionMenu.style.display = 'none'; fileUpload.value = ''; fileUpload.click(); });
 
-// Attachments
 async function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
   isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
@@ -427,7 +440,6 @@ cancelImageBtn.addEventListener('click', (e) => {
   imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.');
 });
 
-// Music
 audioUpload.addEventListener('change', (e) => {
   const files = e.target.files;
   for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
@@ -454,7 +466,9 @@ function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongInde
 bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
 
-// Local Logic (AI)
+// تشغيل قائمة الموسيقى عند فتح التطبيق لأول مرة
+renderPlaylist(); 
+
 function buildSystemPrompt(targetLang) {
   if (isTranslatorMode) return `Translate the user's input into ${langNameFor(targetLang)}. Output ONLY the translated text.`;
   return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
@@ -482,7 +496,6 @@ async function ask(text, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// Mic (Local)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
@@ -525,7 +538,6 @@ sendBtn.addEventListener('click', () => {
   }
 });
 
-// WebRTC
 async function startVideoCall() {
   if (localStream) return;
   try {
@@ -539,7 +551,6 @@ async function startVideoCall() {
   } catch (err) { console.error('Camera access denied', err); }
 }
 
-// Remote Mode Logic
 $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
   if (!name) return alert('أدخل اسمك');
@@ -635,7 +646,6 @@ leaveRoomBtn.addEventListener('click', () => {
   chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
 });
 
-// TTS
 function unlockMics() {
   activeSpeaker = null;
   micA.disabled = false; micB.disabled = false; remoteMicBtn.disabled = false;
