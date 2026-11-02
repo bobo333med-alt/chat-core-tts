@@ -95,12 +95,9 @@ class RoomManager:
             ]
             for code in to_delete:
                 del self.rooms[code]
-            if to_delete:
-                logger.info("Cleaned %d old rooms", len(to_delete))
 
 room_manager = RoomManager()
 
-# ---------- Lifespan (background cleanup) ----------
 @asynccontextmanager
 async def lifespan(app):
     async def cleaner():
@@ -114,7 +111,7 @@ async def lifespan(app):
     yield
     task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="4.0", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="5.0", lifespan=lifespan)
 
 # ---------- CORS ----------
 ALLOWED_ORIGINS = [
@@ -198,11 +195,9 @@ async def call_oxen(messages, models, temperature=0.7, max_tokens=2000):
                 model=model, messages=messages,
                 temperature=temperature, max_tokens=max_tokens,
             )
-            logger.info("✓ Oxen: %s", model)
             return r.choices[0].message.content
         except Exception as e:
             last_err = f"{model}: {str(e)[:160]}"
-            logger.warning("✗ Oxen %s → %s", model, last_err)
     raise Exception(last_err)
 
 async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
@@ -217,11 +212,9 @@ async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
                 model=model, messages=messages,
                 temperature=temperature, max_tokens=max_tokens,
             )
-            logger.info("✓ Groq: %s", model)
             return r.choices[0].message.content
         except Exception as e:
             last_err = f"{model}: {str(e)[:160]}"
-            logger.warning("✗ Groq %s → %s", model, last_err)
             if "429" in str(e):
                 await asyncio.sleep(0.6)
     raise Exception(last_err)
@@ -238,7 +231,12 @@ async def smart_chat(messages, is_vision, temperature, max_tokens):
         return await call_groq(messages, models, temperature, max_tokens)
     raise HTTPException(502, detail="لا يوجد مزوّد متاح")
 
-LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English"}
+# 🌍 اللغات الجديدة
+LANG_NAMES = {
+    "ar": "Arabic", "fr": "French", "en": "English", 
+    "de": "German", "tr": "Turkish", "it": "Italian", 
+    "zh": "Chinese", "ru": "Russian"
+}
 
 async def translate_for_room(text, source_lang, target_lang):
     if source_lang == target_lang or not text.strip():
@@ -252,34 +250,26 @@ async def translate_for_room(text, source_lang, target_lang):
     try:
         return (await smart_chat(messages, False, 0.0, 500)).strip()
     except Exception as e:
-        logger.warning("Translation failed: %s", e)
         return text
 
 # ---------- REST Endpoints ----------
 @app.get("/health")
 async def health():
     return {
-        "ok": True,
-        "provider": "oxen" if USE_OXEN else "groq",
-        "oxen_configured": bool(OXEN_KEY),
-        "groq_keys": len(GROQ_KEYS),
-        "tts": TTS_ENABLED,
+        "ok": True, "provider": "oxen" if USE_OXEN else "groq",
         "active_rooms": len(room_manager.rooms),
     }
 
 @app.post("/rooms/create")
 async def create_room_endpoint():
-    code = await room_manager.create_room()
-    return {"code": code}
+    return {"code": await room_manager.create_room()}
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
     if not req.messages:
         raise HTTPException(400, detail="messages فارغة")
-
     has_image = any(
-        isinstance(m.get("content"), list)
-        and any(isinstance(c, dict) and c.get("type") == "image_url" for c in m["content"])
+        isinstance(m.get("content"), list) and any(isinstance(c, dict) and c.get("type") == "image_url" for c in m["content"])
         for m in req.messages
     )
     if req.is_vision and not has_image:
@@ -296,51 +286,32 @@ async def chat_endpoint(req: ChatRequest):
 
     try:
         reply = await smart_chat(messages, req.is_vision, temperature, max_tokens)
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error("Chat error: %s", e)
-        raise HTTPException(502, detail="تعذّر الحصول على رد. أعد المحاولة.")
+        raise HTTPException(502, detail="تعذّر الحصول على رد.")
 
     if req.session_id and not req.is_translation:
-        last_user = ""
-        for m in reversed(messages):
-            if m.get("role") == "user":
-                c = m.get("content")
-                last_user = c if isinstance(c, str) else "[media]"
-                break
-        append_session(req.session_id, last_user, reply)
+        last_user = next((m.get("content") for m in reversed(messages) if m.get("role") == "user"), "")
+        append_session(req.session_id, last_user if isinstance(last_user, str) else "[media]", reply)
 
     return {"reply": reply}
 
 @app.post("/tts")
 async def tts_endpoint(req: TTSRequest):
-    if not TTS_ENABLED:
-        raise HTTPException(503, detail="TTS غير مفعّل على السيرفر")
-    if not USE_OXEN:
-        raise HTTPException(503, detail="TTS يتطلب Oxen مفعّلاً")
-    if req.lang not in ("en", "ar", "fr"):
-        raise HTTPException(400, detail="lang غير مدعوم")
-
+    if not TTS_ENABLED or not USE_OXEN:
+        raise HTTPException(503, detail="TTS غير مفعّل")
     voice = TTS_VOICES.get(req.voice, "Celeste")
     try:
         async with httpx.AsyncClient(timeout=60.0) as http:
             r = await http.post(
                 f"{OXEN_BASE}/audio/generate",
                 headers={"Authorization": f"Bearer {OXEN_KEY}"},
-                json={
-                    "model": OXEN_TTS_MODEL,
-                    "prompt": req.text[:4000],
-                    "voice": voice,
-                    "output_format": "mp3",
-                },
+                json={"model": OXEN_TTS_MODEL, "prompt": req.text[:4000], "voice": voice, "output_format": "mp3"},
             )
             if r.status_code != 200:
-                logger.error("TTS %s: %s", r.status_code, r.text[:200])
                 raise HTTPException(502, detail="فشل توليد الصوت")
             return Response(content=r.content, media_type="audio/mpeg")
-    except httpx.HTTPError as e:
-        raise HTTPException(502, detail=f"خطأ شبكة TTS: {type(e).__name__}")
+    except httpx.HTTPError:
+        raise HTTPException(502, detail="خطأ شبكة TTS")
 
 # ---------- WebSocket ----------
 @app.websocket("/ws/{room_code}")
@@ -351,12 +322,9 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
         return
 
     await websocket.accept()
-    joined = False
-    my_name = "User"
-    my_lang = "ar"
+    joined, my_name, my_lang = False, "User", "ar"
 
     try:
-        # First message must be join
         try:
             first = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
         except asyncio.TimeoutError:
@@ -364,67 +332,49 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
             return
 
         if first.get("type") != "join":
-            await websocket.send_json({"type": "error", "message": "Expected join"})
             await websocket.close()
             return
 
         my_name = (first.get("name") or "User")[:30]
         my_lang = first.get("lang", "ar")
-        if my_lang not in ("ar", "fr", "en"):
+        if my_lang not in LANG_NAMES:
             my_lang = "ar"
 
-        ok = await room_manager.join(room_code, websocket, my_name, my_lang)
-        if not ok:
+        if not await room_manager.join(room_code, websocket, my_name, my_lang):
             await websocket.send_json({"type": "error", "message": "Room not found or full"})
             await websocket.close()
             return
         joined = True
-        logger.info("WS joined: %s (%s) room=%s", my_name, my_lang, room_code)
 
-        # Send joined confirmation + history in joiner's lang
         users = await room_manager.get_users_list(room_code)
         history_raw = await room_manager.get_history(room_code)
         history_for_me = [
-            {
-                "from": h["from"],
-                "original": h["original"],
-                "from_lang": h["from_lang"],
-                "translated": h.get("translations", {}).get(my_lang, h["original"]),
-                "is_mine": h["from"] == my_name,
-            }
+            {"from": h["from"], "original": h["original"], "from_lang": h["from_lang"],
+             "translated": h.get("translations", {}).get(my_lang, h["original"]), "is_mine": h["from"] == my_name}
             for h in history_raw
         ]
-        await websocket.send_json({
-            "type": "joined",
-            "users": users,
-            "history": history_for_me,
-        })
+        
+        await websocket.send_json({"type": "joined", "users": users, "history": history_for_me})
+        await room_manager.broadcast(room_code, {"type": "user_joined", "name": my_name}, exclude=websocket)
 
-        await room_manager.broadcast(
-            room_code,
-            {"type": "user_joined", "name": my_name},
-            exclude=websocket,
-        )
-
-        # Message loop
         while True:
             try:
                 msg = await websocket.receive_json()
             except WebSocketDisconnect:
                 break
-            except Exception:
-                break
 
             mtype = msg.get("type")
 
             if mtype == "ping":
-                try:
-                    await websocket.send_json({"type": "pong"})
-                except Exception:
-                    break
+                await websocket.send_json({"type": "pong"})
                 continue
 
-            if mtype == "message":
+            # 📹 تمرير إشارات الكاميرا (WebRTC) بين المستخدمين
+            elif mtype in ["rtc-offer", "rtc-answer", "rtc-ice"]:
+                await room_manager.broadcast(room_code, msg, exclude=websocket)
+                continue
+
+            elif mtype == "message":
                 text = (msg.get("text") or "").strip()[:2000]
                 if not text:
                     continue
@@ -433,33 +383,19 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 unique_langs = set(u["lang"] for u in ws_users.values())
                 unique_langs.add(my_lang)
 
-                # Compute translations once per unique lang
                 translations = {}
                 for lc in unique_langs:
-                    if lc == my_lang:
-                        translations[lc] = text
-                    else:
-                        translations[lc] = await translate_for_room(text, my_lang, lc)
+                    translations[lc] = text if lc == my_lang else await translate_for_room(text, my_lang, lc)
 
-                # Save to history
                 await room_manager.add_history(room_code, {
-                    "from": my_name,
-                    "original": text,
-                    "from_lang": my_lang,
-                    "translations": translations,
+                    "from": my_name, "original": text, "from_lang": my_lang, "translations": translations,
                 })
 
-                # Send to each user
                 for ws, u in ws_users.items():
-                    translated = translations.get(u["lang"], text)
                     payload = {
-                        "type": "translated",
-                        "from_name": my_name,
-                        "from_lang": my_lang,
-                        "original": text,
-                        "translated": translated,
-                        "target_lang": u["lang"],
-                        "is_mine": (ws == websocket),
+                        "type": "translated", "from_name": my_name, "from_lang": my_lang,
+                        "original": text, "translated": translations.get(u["lang"], text),
+                        "target_lang": u["lang"], "is_mine": (ws == websocket),
                     }
                     try:
                         await ws.send_json(payload)
@@ -468,10 +404,7 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
 
     except WebSocketDisconnect:
         pass
-    except Exception as e:
-        logger.error("WS error: %s", e)
     finally:
         if joined:
             await room_manager.leave(room_code, websocket)
             await room_manager.broadcast(room_code, {"type": "user_left", "name": my_name})
-            logger.info("WS left: %s room=%s", my_name, room_code)
