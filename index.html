@@ -26,7 +26,6 @@
   #lockBtn.locked { width: 34px; height: 34px; border-radius: 50%; background: #ef4444; color: white; font-size: 16px; box-shadow: 0 0 10px rgba(239,68,68,0.5); }
   .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
 
-  /* 🖼️ إصلاح الأفاتار ليكبر لشاشة كاملة */
   #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
   #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -73,7 +72,6 @@
   .extra-controls button, .extra-controls select { padding: 5px 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 11px; cursor: pointer; outline: none; }
   .extra-controls button.active { background: #eab308; color: #000; }
 
-  /* 🎵 إصلاح قائمة الموسيقى وأزرارها */
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
   
@@ -341,7 +339,6 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-// 🖼️ إصلاح تكبير الأفاتار
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
   if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
@@ -381,7 +378,6 @@ removeAvatarBtn.addEventListener('click', (e) => {
   if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
 });
 
-// 🎵 إصلاح تشغيل قائمة الموسيقى وأزرارها
 mediaBtn.addEventListener('click', (e) => {
   e.stopPropagation(); musicMenu.style.display = 'none';
   if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none';
@@ -465,8 +461,6 @@ function renderPlaylist() {
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
 bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
-
-// تشغيل قائمة الموسيقى عند فتح التطبيق لأول مرة
 renderPlaylist(); 
 
 function buildSystemPrompt(targetLang) {
@@ -555,12 +549,13 @@ $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
   if (!name) return alert('أدخل اسمك');
   myName = name; myLang = lang;
-  const btn = $('createRoomBtn'); btn.textContent = '⏳ جارٍ الاتصال... (قد يستغرق دقيقة)'; btn.disabled = true;
+  const btn = $('createRoomBtn'); btn.textContent = '⏳ جارٍ الاتصال...'; btn.disabled = true;
   try {
     const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
     const data = await res.json();
+    if (!data.code) throw new Error('لم يتم استلام الكود');
     enterRemoteRoom(data.code);
-  } catch (e) { alert('فشل إنشاء الغرفة. السيرفر يستيقظ، انتظر قليلاً وحاول مجدداً.'); } 
+  } catch (e) { alert('فشل إنشاء الغرفة: ' + e.message); } 
   finally { btn.textContent = '➕ إنشاء غرفة'; btn.disabled = false; }
 });
 $('joinRoomBtn').addEventListener('click', () => {
@@ -581,11 +576,30 @@ function enterRemoteRoom(code) {
 function connectWebSocket(code) {
   if (ws) { try { ws.close(); } catch(e){} }
   ws = new WebSocket(WS_BASE + '/ws/' + code);
-  ws.onopen = () => { ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); startPing(); };
+  
+  ws.onopen = () => { 
+    ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); 
+    startPing(); 
+  };
+  
   ws.onmessage = handleWsMessage;
-  ws.onclose = () => {
+  
+  ws.onerror = (e) => {
+    console.error('WS Error', e);
+    addMsg('⚠️ حدث خطأ في الاتصال بالسيرفر (WebSocket). قد يكون بسبب الشبكة.', 'bot');
+  };
+
+  ws.onclose = (ev) => {
     stopPing();
-    if (!hasJoinedOnce) { addMsg('⚠️ فشل الانضمام. تحقق من الكود.', 'bot'); leaveRoomBtn.click(); return; }
+    console.log('WS closed', ev.code, ev.reason);
+    
+    if (!hasJoinedOnce) { 
+      // لا تطرد المستخدم، بل اعرض له سبب الفشل في الشات
+      addMsg(`⚠️ فشل الاتصال بالغرفة. كود الخطأ: ${ev.code}`, 'bot');
+      setStatus('فشل الاتصال');
+      return; 
+    }
+    
     if (shouldReconnect && appMode === 'remote') {
       setStatus(`انقطع الاتصال. جارٍ إعادة المحاولة...`);
       wsReconnectTimer = setTimeout(() => connectWebSocket(code), 3000);
@@ -628,6 +642,9 @@ function handleWsMessage(ev) {
       break;
     case 'rtc-ice':
       if (pc) pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => {});
+      break;
+    case 'error':
+      addMsg(`⚠️ ${data.message}`, 'bot');
       break;
   }
 }
