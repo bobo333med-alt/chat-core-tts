@@ -38,7 +38,6 @@
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
 
-  /* 📹 إصلاح شاشة الكاميرا لتملأ الشاشة بالكامل */
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; transition: all 0.3s; }
@@ -46,7 +45,7 @@
   #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   
   body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100%; z-index: 99999; margin: 0; border-radius: 0; }
-  body.video-maximized #remoteVideo { object-fit: cover; /* تم التعديل لملء الشاشة */ }
+  body.video-maximized #remoteVideo { object-fit: cover; }
   body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
   body.video-maximized #closeVideoFullscreen { display: flex; }
   body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
@@ -278,8 +277,7 @@ let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, cu
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
-let lastSentText = ""; 
-let wasRecordingBeforeTTS = false; // لحل مشكلة الصدى في الغرف
+let accumulatedText = ""; // لتجميع الكلام
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
@@ -557,56 +555,64 @@ async function ask(text, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// 🎤 إعداد المايكروفون بنظام (Hands-Free) مع منع التكرار والصدى
+// 🎤 إعداد المايكروفون الصارم (Push-to-Talk): يجمع الكلام ولا يرسله إلا عند الإيقاف
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
   recognition = new SR();
-  recognition.continuous = true; 
-  recognition.interimResults = true;
+  recognition.continuous = true; // يظل يستمع حتى نوقفه نحن
+  recognition.interimResults = false; // لا يرسل النتائج المؤقتة (لمنع التقطيع)
 
-  recognition.onresult = (e) => {
+  recognition.onresult = (event) => {
     let finalTranscript = '';
-    for (let i = e.resultIndex; i < e.results.length; ++i) {
-      if (e.results[i].isFinal) {
-        finalTranscript += e.results[i][0].transcript;
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript + ' ';
       }
     }
-
-    if (finalTranscript.trim()) {
-      const cleanText = finalTranscript.trim();
-      if (cleanText !== lastSentText && cleanText.length > 1) {
-        lastSentText = cleanText;
-        processMicText(cleanText);
-      }
+    if (finalTranscript) {
+      accumulatedText += finalTranscript;
     }
   };
 
   recognition.onerror = (e) => {
     console.warn('Speech recognition error', e.error);
     setStatus('Mic Error: ' + e.error);
-  };
-
-  recognition.onend = () => {
-    if (isRecording && !isBotTalking) {
-      setTimeout(() => {
-        try { if (isRecording) recognition.start(); } catch(e){}
-      }, 300);
-    } else if (!isRecording) {
+    if (isRecording) {
+      isRecording = false;
       setAvatarState(false);
       unlockMics();
     }
   };
 
+  recognition.onend = () => {
+    // إذا أغلق المتصفح المايك تلقائياً (بسبب السكوت الطويل)، نتحقق
+    if (isRecording) {
+      // إعادة التشغيل في الخلفية بهدوء (لأننا نستخدم Push-to-Talk)
+      try { recognition.start(); } catch(e){}
+    } else {
+      // إيقاف يدوي من المستخدم: أرسل النص الذي تم جمعه
+      setAvatarState(false);
+      unlockMics();
+      const textToSend = accumulatedText.trim();
+      accumulatedText = '';
+      if (textToSend.length > 0) {
+        processMicText(textToSend);
+      }
+    }
+  };
+
   const startMic = (speaker) => {
     if (isRecording) {
+      // إيقاف يدوي: سيتم إرسال النص في دالة onend
       isRecording = false;
       recognition.stop();
       return;
     }
     
+    // تشغيل
     stopAudio(); 
-    lastSentText = ""; 
+    accumulatedText = '';
     isRecording = true; 
     activeSpeaker = speaker;
     recognition.lang = localeFor(speaker === 'A' ? langA.value : langB.value);
@@ -800,16 +806,7 @@ function stopAudio() {
 }
 
 async function speak(text, lang) {
-  if (isLocked) return; 
-  
-  // 🛑 إيقاف المايك مؤقتاً لمنع الصدى (حلقة التكلم الذاتي)
-  wasRecordingBeforeTTS = isRecording;
-  if (isRecording) {
-    isRecording = false;
-    try { recognition.stop(); } catch(e){}
-  }
-
-  stopAudio(); isBotTalking = true;
+  if (isLocked) return; stopAudio(); isBotTalking = true;
   const myId = ++currentSpeechId; setStatus('Speaking...');
   setAvatarState(true);
   
@@ -818,39 +815,16 @@ async function speak(text, lang) {
     if (res.ok) {
       const blob = await res.blob(); if (myId !== currentSpeechId) return;
       currentAudio = new Audio(URL.createObjectURL(blob));
-      currentAudio.onended = () => { 
-        isBotTalking = false; setAvatarState(false); unlockMics(); 
-        // 🔄 إعادة تشغيل المايك بعد انتهاء الصوت إذا كان يعمل سابقاً
-        if (wasRecordingBeforeTTS) {
-           isRecording = true;
-           if (activeSpeaker === 'A') micA.classList.add('recording');
-           if (activeSpeaker === 'B') micB.classList.add('recording');
-           if (activeSpeaker === 'R') remoteMicBtn.classList.add('recording');
-           try { recognition.start(); } catch(e){}
-        }
-      };
+      currentAudio.onended = () => { isBotTalking = false; setAvatarState(false); unlockMics(); };
       await currentAudio.play(); return;
     }
   } catch (e) { console.warn('Server TTS failed'); }
-  
   speakBrowser(text, lang, myId);
 }
 
 function speakBrowser(text, lang, myId) {
   const u = new SpeechSynthesisUtterance(text); u.lang = localeFor(lang);
-  u.onend = () => { 
-    if (myId === currentSpeechId) { 
-      isBotTalking = false; setAvatarState(false); unlockMics(); 
-      // 🔄 إعادة تشغيل المايك بعد انتهاء الصوت إذا كان يعمل سابقاً
-      if (wasRecordingBeforeTTS) {
-         isRecording = true;
-         if (activeSpeaker === 'A') micA.classList.add('recording');
-         if (activeSpeaker === 'B') micB.classList.add('recording');
-         if (activeSpeaker === 'R') remoteMicBtn.classList.add('recording');
-         try { recognition.start(); } catch(e){}
-      }
-    } 
-  };
+  u.onend = () => { if (myId === currentSpeechId) { isBotTalking = false; setAvatarState(false); unlockMics(); } };
   speechSynthesis.speak(u);
 }
 </script>
