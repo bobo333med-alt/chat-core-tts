@@ -230,13 +230,13 @@
 <div id="actionMenu">
   <button class="action-btn" id="menuCamera">📸 Camera</button>
   <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
-  <button class="action-btn" id="menuFile">📄 File</button>
+  <button class="action-btn" id="menuVideo">🎬 Video</button>
 </div>
 <input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
 <input type="file" id="galleryUpload" accept="image/*" style="display: none;">
-<input type="file" id="fileUpload" accept=".txt" style="display: none;">
+<input type="file" id="videoUpload" accept="video/*,audio/*" style="display: none;">
 <input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
-<input type="file" id="videoUpload" accept="video/*" style="display: none;">
+<input type="file" id="videoAvatarUpload" accept="video/*" style="display: none;">
 <audio id="bgAudio"></audio>
 <div id="musicMenu"><h4>🎵 Playlist</h4><div id="musicList"></div></div>
 
@@ -246,6 +246,7 @@
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const TTS_URL = "https://vibe-core-0m1r.onrender.com/tts";
 const ROOM_CREATE_URL = "https://vibe-core-0m1r.onrender.com/rooms/create";
+const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
 const WS_BASE = SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://').replace('/chat', '');
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
@@ -261,10 +262,10 @@ const translateModeBtn = $('translateModeBtn'), voiceSelect = $('voiceSelect');
 const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount'), leaveRoomBtn = $('leaveRoomBtn');
 const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen');
 const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
-const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuFile = $('menuFile');
-const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), fileUpload = $('fileUpload'), audioUpload = $('audioUpload');
+const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuVideo = $('menuVideo');
+const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
-const lockBtn = $('lockBtn'), uploadBtn = $('uploadBtn'), videoUpload = $('videoUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
+const lockBtn = $('lockBtn'), uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
 
 const uiElements = [$('extraControls'), $('avatar-wrap'), $('chatContainer'), $('inputRow'), $('status'), $('topBar'), imagePreviewContainer];
 
@@ -400,14 +401,14 @@ translateModeBtn.addEventListener('click', () => {
 
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
 
-uploadBtn.addEventListener('click', () => { videoUpload.value = ''; videoUpload.click(); });
-videoUpload.addEventListener('change', (e) => {
+uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
+videoAvatarUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
   if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
   avatarVideo.src = currentAvatarObjectUrl; 
-  avatarVideo.play().catch(()=>{}); // إصلاح: تشغيل الفيديو فوراً
+  avatarVideo.play().catch(()=>{});
   removeAvatarBtn.style.display = 'block';
 });
 removeAvatarBtn.addEventListener('click', (e) => {
@@ -443,7 +444,46 @@ document.addEventListener('click', (e) => {
 
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
-menuFile.addEventListener('click', () => { actionMenu.style.display = 'none'; fileUpload.value = ''; fileUpload.click(); });
+menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
+
+// 🎬 رفع وترجمة الفيديو
+videoUpload.addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  
+  if (file.size > 25 * 1024 * 1024) {
+    return alert('حجم الملف كبير جداً! يجب أن يكون أقل من 25 ميجابايت.');
+  }
+
+  const targetLang = appMode === 'remote' ? myLang : langB.value;
+  addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
+  setStatus('⏳ جاري استخراج النص وترجمته... قد يستغرق دقيقة');
+  setBusy(true);
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('target_lang', targetLang);
+
+  try {
+    const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Server error');
+    }
+    const data = await res.json();
+    
+    addMsg(data.original, 'user-b', 'AUTO');
+    addMsg(data.translated, 'bot', targetLang);
+    speak(data.translated, targetLang);
+    setStatus('✅ تمت الترجمة بنجاح!');
+  } catch (err) {
+    console.error(err);
+    addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot');
+    setStatus('Error');
+  } finally {
+    setBusy(false);
+    e.target.value = ''; // تصفير الحقل
+  }
+});
 
 async function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
@@ -459,16 +499,6 @@ async function handleImage(e) {
 }
 galleryUpload.addEventListener('change', handleImage);
 cameraUpload.addEventListener('change', handleImage);
-fileUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    attachedImageBase64 = null; attachedFileText = ev.target.result;
-    imagePreview.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" fill="%23fff"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
-    imagePreviewContainer.style.display = 'flex'; setStatus('File attached.');
-  };
-  reader.readAsText(file);
-});
 cancelImageBtn.addEventListener('click', (e) => {
   e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null;
   imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.');
@@ -543,7 +573,6 @@ if (SR) {
       ask(text, activeSpeaker === 'A' ? langB.value : langA.value, activeSpeaker);
     }
   };
-  // إصلاح: إضافة معالج الأخطاء لكي لا يعلق المايك
   recognition.onerror = (e) => {
     console.warn('Speech recognition error', e.error);
     setStatus('Mic Error: ' + e.error);
