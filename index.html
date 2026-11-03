@@ -98,12 +98,12 @@
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
   
-  /* شريط الأزرار السفلي (Mise en page) - سطر واحد وتكبير الأزرار */
+  /* شريط الأزرار السفلي (Mise en page) - سطر واحد */
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; }
   .extra-controls button.active { background: #eab308; color: #000; }
   
-  /* زر الرجوع (Back) الأحمر الهادئ */
+  /* زر الرجوع (Back) */
   .btn-back { background: #e57373 !important; color: white !important; }
 
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -217,7 +217,6 @@
   </div>
 </div>
 
-<!-- شريط الأزرار السفلي (سطر واحد) -->
 <div class="extra-controls" id="extraControls">
     <button id="translateModeBtn" class="active">Translator Mode ON</button>
     <select id="voiceSelect">
@@ -361,7 +360,9 @@ function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
-function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
+
+// 🎯 تم إصلاح لغة المايك الأزرق بتغيير ar-TN إلى ar-SA لدعم التعرف على الصوت في الهواتف
+function localeFor(code) { return { 'ar': 'ar-SA', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
 
 function cleanTextForTTS(text) {
   if (!text) return "";
@@ -409,12 +410,10 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-// 🟥 زر الرجوع (Back): يعيدك للصفحة الرئيسية
 backBtn.addEventListener('click', () => {
   if (appMode === 'remote') {
-    leaveRoomBtn.click(); // استخدام دالة الخروج من الغرفة الموجودة
+    leaveRoomBtn.click(); 
   } else {
-    // تصفير وضع Face to Face
     chatEl.innerHTML = ''; chatHistory = []; stopAudio();
     appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex';
     $('landingOverlay').style.display = 'flex';
@@ -885,7 +884,7 @@ function speakBrowser(text, lang, myId) {
   u.onend = () => { 
     if (myId === currentSpeechId) { 
       isBotTalking = false; setAvatarState(false); unlockMics(); 
-    }
+    } 
   };
   speechSynthesis.speak(u);
 }
