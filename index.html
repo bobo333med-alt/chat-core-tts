@@ -54,10 +54,10 @@
     opacity: 0.9; 
   }
 
-  /* 📹 تنسيقات الكاميرا وتكبيرها */
+  /* 📹 الكاميرا */
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; pointer-events: none; }
+  #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; pointer-events: auto; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; pointer-events: none; }
   #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; outline: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; pointer-events: auto; }
   
@@ -88,7 +88,25 @@
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   #musicBtn { background: #ffffff; color: #000000; order: 1; font-size: 16px; }
   #mediaBtn { background: #ffffff; color: #f97316; order: 2; font-size: 11px; font-weight: bold; }
-  #remoteMicBtn { background: #6366f1; color: #fff; order: 2; font-size: 16px; display: none; }
+  
+  /* 🌟 زر المايك الجميل في الغرف */
+  #remoteMicBtn { 
+    background: #10b981; 
+    color: #fff; 
+    order: 2; 
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+    display: none; 
+    transition: all 0.3s ease;
+  }
+  #remoteMicBtn.recording {
+    background: #ef4444 !important;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+    animation: pulse 1s infinite;
+  }
+  
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
   
@@ -115,13 +133,10 @@
   .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 
-  /* شريط الغرفة */
   #remoteBar { display: none; background: #1e293b; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   #remoteBar .room-info { display: flex; align-items: center; gap: 8px; }
   #remoteBar strong { color: #fbbf24; letter-spacing: 2px; font-size: 14px; }
   #copyRoomBtn { background: #6366f1; color: #fff; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold; }
-  
-  /* الزر الأحمر (Lock/Unlock) */
   #remoteLockBtn { background: #ef4444; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; outline: none; }
 
   .overlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; }
@@ -260,8 +275,12 @@
 <div class="row" id="inputRow">
   <button class="btn" id="musicBtn" title="Music">🎵</button>
   <button class="btn" id="mediaBtn" title="Media">media</button>
-  <button class="btn" id="remoteMicBtn" title="Talk">🎤</button>
   
+  <!-- زر المايك الجميل الجديد (يظهر فقط في الغرف) -->
+  <button class="btn" id="remoteMicBtn" title="Talk">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+  </button>
+
   <div style="flex: 1; position: relative; display: flex; align-items: center; order: 3;">
     <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" />
     <button id="stopAudioBtn" title="Stop Audio">
@@ -408,7 +427,6 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-// 🔒 زر القفل في الغرفة
 remoteLockBtn.addEventListener('click', () => {
   if (!isLocked) {
     isLocked = true;
@@ -433,10 +451,8 @@ remoteLockBtn.addEventListener('click', () => {
   }
 });
 
-// 🟥 زر الرجوع (Back): يعيدك للصفحة الرئيسية أو يخرجك من الغرفة
 backBtn.addEventListener('click', () => {
   if (appMode === 'remote') {
-    // الخروج من الغرفة
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
     stopPing(); if (ws) ws.close();
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -445,7 +461,6 @@ backBtn.addEventListener('click', () => {
     appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
     chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
     
-    // إزالة القفل إذا كان مفعل
     if (isLocked) {
         isLocked = false;
         remoteLockBtn.textContent = 'Lock';
@@ -456,21 +471,23 @@ backBtn.addEventListener('click', () => {
         $('videoContainer').classList.remove('locked-ui');
     }
   } else {
-    // الخروج من وضع Face-to-Face
     chatEl.innerHTML = ''; chatHistory = []; stopAudio();
     appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex';
     $('landingOverlay').style.display = 'flex';
   }
 });
 
-// 📹 تكبير الكاميرا
+// 📹 تكبير الكاميرا (مع منع تكبير الكاميرا الصغيرة)
 videoContainer.addEventListener('click', (e) => {
   if (e.target === closeVideoFullscreen) return;
   document.body.classList.toggle('video-maximized');
 });
+
+localVideo.addEventListener('click', (e) => {
+  e.stopPropagation(); // منع تكبير وجه المستخدم
+});
+
 closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
-remoteVideo.addEventListener('click', () => { document.body.classList.toggle('video-maximized'); });
-localVideo.addEventListener('click', () => { document.body.classList.toggle('video-maximized'); });
 
 langA.addEventListener('change', () => {
   if (appMode === 'remote') {
@@ -709,7 +726,7 @@ if (SR) {
       setStatus('Listening (Friend)...');
     } else {
       recognition.lang = localeFor(myLang);
-      remoteMicBtn.classList.add('recording');
+      remoteMicBtn.classList.add('recording'); // تغيير اللون للأحمر
       setStatus('Listening...');
     }
     try { recognition.start(); } catch (e) {}
@@ -862,7 +879,7 @@ function unlockMics() {
   activeSpeaker = null;
   isRecording = false;
   micA.disabled = false; micB.disabled = false; remoteMicBtn.disabled = false;
-  micA.classList.remove('recording'); micB.classList.remove('recording'); remoteMicBtn.classList.remove('recording');
+  micA.classList.remove('recording'); micB.classList.remove('recording'); remoteMicBtn.classList.remove('recording'); // إعادة الزر للأخضر
   if (!isBotTalking) resetStatus();
 }
 
