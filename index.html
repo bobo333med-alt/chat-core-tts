@@ -13,7 +13,6 @@
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
   .user-section { display: flex; align-items: center; gap: 4px; }
   
-  /* تصغير قوائم اللغات */
   .lang-select { padding: 1px 2px; border-radius: 4px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 8px; font-family: Tahoma; outline: none; width: 55px; text-align: center; }
   
   .mic-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
@@ -22,6 +21,8 @@
   .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 12px rgba(239,68,68,0.8); }
   .mic-btn:disabled { background: #475569 !important; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
+
+  .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
 
   #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
   #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
@@ -35,7 +36,6 @@
   
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; outline: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   
-  /* النقطة السوداء الصافية بدون علامة */
   #removeAvatarBtn { 
     display: none; 
     position: absolute; 
@@ -54,13 +54,14 @@
     opacity: 0.9; 
   }
 
-  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; }
-  #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
-  #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; transition: all 0.3s; }
-  #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; }
-  #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; outline: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
+  /* 📹 تنسيقات الكاميرا وتكبيرها */
+  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
+  #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; pointer-events: none; }
+  #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; pointer-events: none; }
+  #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; outline: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; pointer-events: auto; }
   
-  body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100%; z-index: 99999; margin: 0; border-radius: 0; }
+  body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100vw; z-index: 99999; margin: 0; border-radius: 0; }
   body.video-maximized #remoteVideo { object-fit: cover; }
   body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
   body.video-maximized #closeVideoFullscreen { display: flex; }
@@ -74,7 +75,6 @@
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
   
-  /* سلة المهملات (Clear Chat) */
   #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
   #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
 
@@ -92,18 +92,15 @@
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
   
-  /* زر إيقاف الصوت (نفس ألوان وحجم سلة المهملات) */
   #stopAudioBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; outline: none; }
   #stopAudioBtn svg { fill: #2d3748; width: 14px; height: 14px; }
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
   
-  /* شريط الأزرار السفلي (Mise en page) - سطر واحد */
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; }
   .extra-controls button.active { background: #eab308; color: #000; }
   
-  /* زر الرجوع (Back) */
   .btn-back { background: #e57373 !important; color: white !important; }
 
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -118,11 +115,14 @@
   .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
 
+  /* شريط الغرفة */
   #remoteBar { display: none; background: #1e293b; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   #remoteBar .room-info { display: flex; align-items: center; gap: 8px; }
   #remoteBar strong { color: #fbbf24; letter-spacing: 2px; font-size: 14px; }
   #copyRoomBtn { background: #6366f1; color: #fff; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold; }
-  #leaveRoomBtn { background: #ef4444; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+  
+  /* الزر الأحمر (Lock/Unlock) */
+  #remoteLockBtn { background: #ef4444; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; outline: none; }
 
   .overlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; }
   .overlay h1 { font-size: 28px; color: #0ea5e9; margin-bottom: 10px; }
@@ -184,10 +184,10 @@
 <div id="remoteBar">
   <div class="room-info">
     <span>Room: <strong id="roomCodeLabel">------</strong></span>
-    <button id="copyRoomBtn">📋 نسخ</button>
+    <button id="copyRoomBtn">📋 Copy</button>
   </div>
   <span id="onlineCount">1/4</span>
-  <button id="leaveRoomBtn">خروج</button>
+  <button id="remoteLockBtn">Lock</button>
 </div>
 
 <div class="top-header" id="topHeader">
@@ -262,7 +262,6 @@
   <button class="btn" id="mediaBtn" title="Media">media</button>
   <button class="btn" id="remoteMicBtn" title="Talk">🎤</button>
   
-  <!-- حاوية مربع الكتابة وزر الإيقاف -->
   <div style="flex: 1; position: relative; display: flex; align-items: center; order: 3;">
     <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" />
     <button id="stopAudioBtn" title="Stop Audio">
@@ -306,7 +305,7 @@ const langA = $('langA'), langB = $('langB');
 const clearBtn = $('clearBtn'), statusEl = $('status');
 const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
 const translateModeBtn = $('translateModeBtn'), voiceSelect = $('voiceSelect'), backBtn = $('backBtn');
-const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount'), leaveRoomBtn = $('leaveRoomBtn');
+const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount'), remoteLockBtn = $('remoteLockBtn');
 const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen');
 const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
 const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuVideo = $('menuVideo');
@@ -320,6 +319,7 @@ let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, cu
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
+let isLocked = false;
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
@@ -360,8 +360,6 @@ function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
-
-// 🎯 تم إصلاح لغة المايك الأزرق بتغيير ar-TN إلى ar-SA لدعم التعرف على الصوت في الهواتف
 function localeFor(code) { return { 'ar': 'ar-SA', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
 
 function cleanTextForTTS(text) {
@@ -410,15 +408,69 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
+// 🔒 زر القفل في الغرفة
+remoteLockBtn.addEventListener('click', () => {
+  if (!isLocked) {
+    isLocked = true;
+    remoteLockBtn.textContent = 'Unlock';
+    $('chatContainer').classList.add('locked-ui');
+    $('inputRow').classList.add('locked-ui');
+    $('topBar').classList.add('locked-ui');
+    $('extraControls').classList.add('locked-ui');
+    $('videoContainer').classList.add('locked-ui');
+    stopAudio();
+    if (isRecording) recognition.stop();
+    setStatus('App is locked 🔒');
+  } else {
+    isLocked = false;
+    remoteLockBtn.textContent = 'Lock';
+    $('chatContainer').classList.remove('locked-ui');
+    $('inputRow').classList.remove('locked-ui');
+    $('topBar').classList.remove('locked-ui');
+    $('extraControls').classList.remove('locked-ui');
+    $('videoContainer').classList.remove('locked-ui');
+    resetStatus();
+  }
+});
+
+// 🟥 زر الرجوع (Back): يعيدك للصفحة الرئيسية أو يخرجك من الغرفة
 backBtn.addEventListener('click', () => {
   if (appMode === 'remote') {
-    leaveRoomBtn.click(); 
+    // الخروج من الغرفة
+    shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+    stopPing(); if (ws) ws.close();
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (pc) { pc.close(); pc = null; }
+    videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
+    appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
+    chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
+    
+    // إزالة القفل إذا كان مفعل
+    if (isLocked) {
+        isLocked = false;
+        remoteLockBtn.textContent = 'Lock';
+        $('chatContainer').classList.remove('locked-ui');
+        $('inputRow').classList.remove('locked-ui');
+        $('topBar').classList.remove('locked-ui');
+        $('extraControls').classList.remove('locked-ui');
+        $('videoContainer').classList.remove('locked-ui');
+    }
   } else {
+    // الخروج من وضع Face-to-Face
     chatEl.innerHTML = ''; chatHistory = []; stopAudio();
     appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex';
     $('landingOverlay').style.display = 'flex';
   }
 });
+
+// 📹 تكبير الكاميرا
+videoContainer.addEventListener('click', (e) => {
+  if (e.target === closeVideoFullscreen) return;
+  document.body.classList.toggle('video-maximized');
+});
+closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
+remoteVideo.addEventListener('click', () => { document.body.classList.toggle('video-maximized'); });
+localVideo.addEventListener('click', () => { document.body.classList.toggle('video-maximized'); });
 
 langA.addEventListener('change', () => {
   if (appMode === 'remote') {
@@ -431,18 +483,13 @@ langA.addEventListener('change', () => {
 $('copyRoomBtn').addEventListener('click', () => {
   if (!currentRoomCode) return;
   navigator.clipboard.writeText(currentRoomCode).then(() => {
-    setStatus('تم نسخ الكود!');
+    setStatus('Code copied!');
     setTimeout(resetStatus, 2000);
-  }).catch(() => alert('كود الغرفة: ' + currentRoomCode));
+  }).catch(() => alert('Room Code: ' + currentRoomCode));
 });
-
-videoContainer.addEventListener('click', (e) => {
-  if (e.target === closeVideoFullscreen) return;
-  document.body.classList.toggle('video-maximized');
-});
-closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
 
 avatarWrap.addEventListener('click', (e) => {
+  if (isLocked) return;
   if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
   avatarWrap.classList.toggle('fullscreen');
 });
@@ -591,7 +638,7 @@ function buildSystemPrompt(targetLang, sourceLang) {
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
-  if (isSending) return;
+  if (isSending || isLocked) return;
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
@@ -644,6 +691,7 @@ if (SR) {
   };
 
   const startMic = (speaker) => {
+    if (isLocked) return;
     unlockAudio();
     if (isRecording) { recognition.stop(); return; }
     stopAudio(); activeSpeaker = speaker;
@@ -673,6 +721,7 @@ if (SR) {
 }
 
 sendBtn.addEventListener('click', () => {
+  if (isLocked) return;
   const t = inputEl.value.trim();
   if (appMode === 'remote') {
     if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
@@ -802,16 +851,6 @@ function sendRemoteMessage(text) { if (ws && ws.readyState === WebSocket.OPEN) w
 function startPing() { stopPing(); pingInterval = setInterval(() => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:'ping'})); }, 30000); }
 function stopPing() { if (pingInterval) clearInterval(pingInterval); }
 
-leaveRoomBtn.addEventListener('click', () => {
-  shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-  stopPing(); if (ws) ws.close();
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  if (pc) { pc.close(); pc = null; }
-  videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
-  appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
-  chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
-});
-
 function setAvatarState(playing) {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') {
     if (playing) avatarVideo.play().catch(()=>{});
@@ -836,6 +875,8 @@ function stopAudio() {
 }
 
 async function speak(text, lang) {
+  if (isLocked) return; 
+  
   if (isRecording) {
     try { recognition.stop(); } catch(e){}
   }
