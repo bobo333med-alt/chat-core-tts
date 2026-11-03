@@ -1,10 +1,3 @@
-تفضل، لقد قمت بإصلاح مشكلة الفيديو المباشر (الشاشة السوداء) جذرياً. 
-
-المشكلة كانت بسبب حماية شبكات الهواتف (4G) التي تمنع الاتصال المباشر بين الجهازين. لقد أضفت **خوادم TURN (وسيطة)** لتخترق هذه الحماية وتنقل الصورة، بالإضافة إلى **نظام انتظار (Queue)** لضمان عدم ضياع أي إشارة اتصال، مع الحفاظ على كل ميزاتك السابقة (المايك الأخضر/الأحمر، القفل، النسخ، التكبير).
-
-انسخ الكود الكامل التالي وضعه في `index.html` (استبدل القديم):
-
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -61,7 +54,6 @@
     opacity: 0.9; 
   }
 
-  /* 📹 الكاميرا */
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; pointer-events: auto; }
@@ -344,7 +336,7 @@ let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', my
 let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
 let isLocked = false;
-let iceCandidatesQueue = []; // طابور لحفظ إشارات الاتصال
+let iceCandidatesQueue = []; 
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
@@ -463,7 +455,7 @@ backBtn.addEventListener('click', () => {
     stopPing(); if (ws) ws.close();
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (pc) { pc.close(); pc = null; }
-    iceCandidatesQueue = []; // تصفير طابور الإشارات
+    iceCandidatesQueue = [];
     videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
     appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
     chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
@@ -484,14 +476,13 @@ backBtn.addEventListener('click', () => {
   }
 });
 
-// 📹 تكبير الكاميرا (مع منع تكبير الكاميرا الصغيرة)
 videoContainer.addEventListener('click', (e) => {
   if (e.target === closeVideoFullscreen) return;
   document.body.classList.toggle('video-maximized');
 });
 
 localVideo.addEventListener('click', (e) => {
-  e.stopPropagation(); // منع تكبير وجه المستخدم
+  e.stopPropagation(); 
 });
 
 closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
@@ -733,7 +724,7 @@ if (SR) {
       setStatus('Listening (Friend)...');
     } else {
       recognition.lang = localeFor(myLang);
-      remoteMicBtn.classList.add('recording'); // تغيير اللون للأحمر
+      remoteMicBtn.classList.add('recording'); 
       setStatus('Listening...');
     }
     try { recognition.start(); } catch (e) {}
@@ -754,7 +745,6 @@ sendBtn.addEventListener('click', () => {
   }
 });
 
-// 📹 إصلاح WebRTC: إضافة TURN servers وطابور ICE
 async function startVideoCall() {
   if (!localStream) {
     try {
@@ -768,25 +758,15 @@ async function startVideoCall() {
   }
 
   if (!pc) {
-    // خوادم TURN لاختراق شبكات 4G
     const iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
-      { 
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      },
-      { 
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      }
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
     ];
 
     pc = new RTCPeerConnection({ iceServers: iceServers });
-    
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
     
     pc.ontrack = (event) => { 
@@ -890,7 +870,6 @@ function handleWsMessage(ev) {
       startVideoCall().then(async () => {
         if (!pc) return;
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-        // معالجة إشارات ICE المخزنة مؤقتاً
         while (iceCandidatesQueue.length > 0) {
           await pc.addIceCandidate(new RTCIceCandidate(iceCandidatesQueue.shift())).catch(e => {});
         }
@@ -902,7 +881,6 @@ function handleWsMessage(ev) {
     case 'rtc-answer':
       if (pc) {
         pc.setRemoteDescription(new RTCSessionDescription(data.answer)).then(() => {
-            // معالجة إشارات ICE المخزنة مؤقتاً
             while (iceCandidatesQueue.length > 0) {
               pc.addIceCandidate(new RTCIceCandidate(iceCandidatesQueue.shift())).catch(e => {});
             }
@@ -937,7 +915,7 @@ function unlockMics() {
   activeSpeaker = null;
   isRecording = false;
   micA.disabled = false; micB.disabled = false; remoteMicBtn.disabled = false;
-  micA.classList.remove('recording'); micB.classList.remove('recording'); remoteMicBtn.classList.remove('recording'); // إعادة الزر للأخضر
+  micA.classList.remove('recording'); micB.classList.remove('recording'); remoteMicBtn.classList.remove('recording'); 
   if (!isBotTalking) resetStatus();
 }
 
@@ -1007,4 +985,3 @@ function speakBrowser(text, lang, myId) {
 </script>
 </body>
 </html>
-```
