@@ -319,6 +319,19 @@ function fetchWithTimeout(url, options, timeoutMs) {
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU' }[code] || 'en-US'; }
 
+// 🧹 دالة تنظيف النص من الرموز والإيموجي قبل قراءته بالصوت
+function cleanTextForTTS(text) {
+  if (!text) return "";
+  return text
+    // حذف الإيموجي والرموز التعبيرية
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '')
+    // حذف الرموز البرمجية والعلامات
+    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ')
+    // تحويل المسافات المتعددة إلى مسافة واحدة
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -529,7 +542,6 @@ renderPlaylist();
 
 function buildSystemPrompt(targetLang, sourceLang) {
   if (isTranslatorMode) {
-    // تعليمات صارمة جداً للترجمة الحرفية
     return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT reply in the source language. If the text is already in the target language, output it exactly as is.`;
   }
   return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
@@ -557,12 +569,11 @@ async function ask(text, sourceLang, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// 🎤 إعداد المايكروفون (النظام المستقر القديم: اضغط وتكلم، وسيغلق ويرسل تلقائياً عند السكوت)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
   recognition = new SR();
-  recognition.continuous = false; // يعود للنظام المستقر
+  recognition.continuous = false; 
   recognition.interimResults = false; 
 
   recognition.onresult = (e) => {
@@ -785,9 +796,15 @@ function stopAudio() {
 async function speak(text, lang) {
   if (isLocked) return; 
   
-  // 🛑 إيقاف المايك مؤقتاً لمنع الصدى
   if (isRecording) {
     try { recognition.stop(); } catch(e){}
+  }
+
+  // 🧹 تنظيف النص من الرموز والإيموجي قبل إرساله لمحرك الصوت
+  const cleanText = cleanTextForTTS(text);
+  if (!cleanText) {
+      unlockMics();
+      return;
   }
 
   stopAudio(); isBotTalking = true;
@@ -795,7 +812,7 @@ async function speak(text, lang) {
   setAvatarState(true);
   
   try {
-    const res = await fetch(TTS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang, voice: voiceSelect.value, session_id: SESSION_ID }) });
+    const res = await fetch(TTS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: cleanText, lang, voice: voiceSelect.value, session_id: SESSION_ID }) });
     if (res.ok) {
       const blob = await res.blob(); if (myId !== currentSpeechId) return;
       currentAudio = new Audio(URL.createObjectURL(blob));
@@ -806,7 +823,7 @@ async function speak(text, lang) {
     }
   } catch (e) { console.warn('Server TTS failed'); }
   
-  speakBrowser(text, lang, myId);
+  speakBrowser(cleanText, lang, myId);
 }
 
 function speakBrowser(text, lang, myId) {
