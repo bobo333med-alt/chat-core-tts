@@ -38,25 +38,17 @@
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
 
-  /* 📹 إصلاح شاشة الكاميرا الكبيرة */
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; transition: all 0.3s; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; }
   #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   
-  /* وضع الكاميرا المكبرة */
   body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100%; z-index: 99999; margin: 0; border-radius: 0; }
   body.video-maximized #remoteVideo { object-fit: contain; }
   body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
   body.video-maximized #closeVideoFullscreen { display: flex; }
-  
-  body.video-maximized #topHeader,
-  body.video-maximized #extraControls,
-  body.video-maximized #chatContainer,
-  body.video-maximized #inputRow,
-  body.video-maximized #status,
-  body.video-maximized #remoteBar { display: none !important; }
+  body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
 
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
@@ -285,7 +277,7 @@ let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, cu
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
-let accumulatedText = ""; // لتجميع الكلام المستمر
+let lastSentText = ""; // لمنع التكرار
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
@@ -418,7 +410,6 @@ videoAvatarUpload.addEventListener('change', (e) => {
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
   avatarVideo.src = currentAvatarObjectUrl; 
-  // تشغيل الفيديو فقط إذا كان هناك صوت يعمل
   if (isBotTalking || isRecording) avatarVideo.play().catch(()=>{});
   removeAvatarBtn.style.display = 'block';
 });
@@ -564,53 +555,57 @@ async function ask(text, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// 🎤 إعداد المايكروفون بنظام Push-to-Talk والاستماع المستمر
+// 🎤 إعداد المايكروفون بنظام (Hands-Free) مع منع التكرار
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
   recognition = new SR();
-  recognition.continuous = true; // يظل يستمع حتى نوقفه يدوياً
-  recognition.interimResults = true; // يعرض الكلام فوراً
+  recognition.continuous = true; 
+  recognition.interimResults = true;
 
   recognition.onresult = (e) => {
+    let interimTranscript = '';
     let finalTranscript = '';
+
     for (let i = e.resultIndex; i < e.results.length; ++i) {
       if (e.results[i].isFinal) {
-        finalTranscript += e.results[i][0].transcript + ' ';
+        finalTranscript += e.results[i][0].transcript;
+      } else {
+        interimTranscript += e.results[i][0].transcript;
       }
     }
-    if (finalTranscript) {
-      accumulatedText += finalTranscript;
+
+    // إذا انتهت الجملة، أرسلها فوراً
+    if (finalTranscript.trim()) {
+      const cleanText = finalTranscript.trim();
+      // فلتر لمنع تكرار نفس الجملة
+      if (cleanText !== lastSentText && cleanText.length > 1) {
+        lastSentText = cleanText;
+        processMicText(cleanText);
+      }
     }
-    setStatus('Listening... (Tap mic to stop)');
   };
 
   recognition.onerror = (e) => {
     console.warn('Speech recognition error', e.error);
     setStatus('Mic Error: ' + e.error);
-    isRecording = false;
-    setAvatarState(false);
-    unlockMics();
   };
 
   recognition.onend = () => {
     if (isRecording) {
-      // المتصفح أغلقه تلقائياً، نعيد تشغيله فوراً (يمنع صوت الطن المتكرر)
-      try { recognition.start(); } catch(e){}
+      // إعادة التشغيل التلقائي (Hands-Free) بعد ثانية صغيرة
+      setTimeout(() => {
+        try { recognition.start(); } catch(e){}
+      }, 300);
     } else {
-      // إيقاف يدوي من المستخدم
       setAvatarState(false);
       unlockMics();
-      if (accumulatedText.trim()) {
-        processMicText(accumulatedText.trim());
-        accumulatedText = '';
-      }
     }
   };
 
   const startMic = (speaker) => {
     if (isRecording) {
-      // إيقاف
+      // إيقاف يدوي
       isRecording = false;
       recognition.stop();
       return;
@@ -618,7 +613,7 @@ if (SR) {
     
     // تشغيل
     stopAudio(); 
-    accumulatedText = '';
+    lastSentText = ""; // تصفير الفلتر
     isRecording = true; 
     activeSpeaker = speaker;
     recognition.lang = localeFor(speaker === 'A' ? langA.value : langB.value);
@@ -720,14 +715,11 @@ function connectWebSocket(code) {
 
   ws.onclose = (ev) => {
     stopPing();
-    console.log('WS closed', ev.code, ev.reason);
-    
     if (!hasJoinedOnce) { 
       addMsg(`⚠️ فشل الاتصال بالغرفة. كود الخطأ: ${ev.code}`, 'bot');
       setStatus('فشل الاتصال');
       return; 
     }
-    
     if (shouldReconnect && appMode === 'remote') {
       setStatus(`انقطع الاتصال. جارٍ إعادة المحاولة...`);
       wsReconnectTimer = setTimeout(() => connectWebSocket(code), 3000);
