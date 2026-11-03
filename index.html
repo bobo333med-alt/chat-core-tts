@@ -9,7 +9,6 @@
   html, body { height: 100%; overflow: hidden; }
   body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
   
-  /* تعديل الشريط العلوي بعد إزالة زر القفل */
   .top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
   .user-section { display: flex; align-items: center; gap: 4px; }
@@ -23,8 +22,6 @@
   .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 12px rgba(239,68,68,0.8); }
   .mic-btn:disabled { background: #475569 !important; opacity: 0.5; animation: none; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
-
-  .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
 
   #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
   #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
@@ -101,14 +98,13 @@
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
   
-  /* شريط الأزرار السفلي (Mise en page) - سطر واحد */
-  .extra-controls { display: flex; gap: 3px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 2px; }
-  .extra-controls button, .extra-controls select { padding: 4px 6px; border-radius: 12px; border: none; background: #475569; color: #fff; font-size: 9px; cursor: pointer; outline: none; white-space: nowrap; }
+  /* شريط الأزرار السفلي (Mise en page) - سطر واحد وتكبير الأزرار */
+  .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; }
+  .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; }
   .extra-controls button.active { background: #eab308; color: #000; }
   
-  /* زر القفل الجديد */
-  .btn-lock { background: #e57373 !important; color: white !important; font-weight: bold; }
-  .btn-lock.locked { background: #d32f2f !important; }
+  /* زر الرجوع (Back) الأحمر الهادئ */
+  .btn-back { background: #e57373 !important; color: white !important; }
 
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
@@ -223,8 +219,7 @@
 
 <!-- شريط الأزرار السفلي (سطر واحد) -->
 <div class="extra-controls" id="extraControls">
-    <button id="lockBtn" class="btn-lock">Lock</button>
-    <button id="translateModeBtn" class="active">Translator ON</button>
+    <button id="translateModeBtn" class="active">Translator Mode ON</button>
     <select id="voiceSelect">
       <option value="man">👨 Men</option>
       <option value="woman">👩 Woman</option>
@@ -232,6 +227,7 @@
       <option value="child">🧒 Child</option>
     </select>
     <button id="uploadBtn">📁 Avatar</button>
+    <button id="backBtn" class="btn-back">Back</button>
 </div>
 
 <div id="videoContainer">
@@ -310,22 +306,17 @@ const micA = $('micA'), micB = $('micB'), remoteMicBtn = $('remoteMicBtn');
 const langA = $('langA'), langB = $('langB');
 const clearBtn = $('clearBtn'), statusEl = $('status');
 const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
-const translateModeBtn = $('translateModeBtn'), voiceSelect = $('voiceSelect');
+const translateModeBtn = $('translateModeBtn'), voiceSelect = $('voiceSelect'), backBtn = $('backBtn');
 const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount'), leaveRoomBtn = $('leaveRoomBtn');
 const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen');
 const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
 const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuVideo = $('menuVideo');
 const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
-const lockBtn = $('lockBtn'), uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
-
-// استبعاد زر القفل من الحماية لكي نستطيع فتحه
-const uiElements = [$('extraControls'), $('avatar-wrap'), $('chatContainer'), $('inputRow'), $('status'), $('topBar'), imagePreviewContainer];
-// يجب أن لا نضع extraControls كاملاً في القفل لأن زر القفل داخله، سنقوم بتعطيل زر الترجمة والأفاتار فقط
-const uiToLock = [$('avatar-wrap'), $('chatContainer'), $('inputRow'), $('status'), $('topBar'), imagePreviewContainer, translateModeBtn, voiceSelect, uploadBtn, mediaBtn, musicBtn, micA, micB, remoteMicBtn];
+const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
 
 let appMode = 'none';
-let chatHistory = [], isTranslatorMode = true, activeSpeaker = null, isRecording = false, isSending = false, isCompressing = false, isLocked = false;
+let chatHistory = [], isTranslatorMode = true, activeSpeaker = null, isRecording = false, isSending = false, isCompressing = false;
 let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
@@ -418,6 +409,18 @@ $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.displa
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
+// 🟥 زر الرجوع (Back): يعيدك للصفحة الرئيسية
+backBtn.addEventListener('click', () => {
+  if (appMode === 'remote') {
+    leaveRoomBtn.click(); // استخدام دالة الخروج من الغرفة الموجودة
+  } else {
+    // تصفير وضع Face to Face
+    chatEl.innerHTML = ''; chatHistory = []; stopAudio();
+    appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex';
+    $('landingOverlay').style.display = 'flex';
+  }
+});
+
 langA.addEventListener('change', () => {
   if (appMode === 'remote') {
     myLang = langA.value;
@@ -441,34 +444,15 @@ videoContainer.addEventListener('click', (e) => {
 closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
 
 avatarWrap.addEventListener('click', (e) => {
-  if (isLocked) return;
   if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
   avatarWrap.classList.toggle('fullscreen');
 });
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
 
-// زر القفل الجديد
-lockBtn.addEventListener('click', () => {
-  isLocked = !isLocked;
-  if (isLocked) {
-    lockBtn.textContent = 'Unlock';
-    lockBtn.classList.add('locked');
-    uiToLock.forEach(el => { if(el) el.classList.add('locked-ui'); });
-    stopAudio();
-    if (isRecording && recognition) recognition.stop();
-    setStatus('App is locked 🔒');
-  } else {
-    lockBtn.textContent = 'Lock';
-    lockBtn.classList.remove('locked');
-    uiToLock.forEach(el => { if(el) el.classList.remove('locked-ui'); });
-    resetStatus();
-  }
-});
-
 translateModeBtn.addEventListener('click', () => {
   isTranslatorMode = !isTranslatorMode;
   translateModeBtn.classList.toggle('active', isTranslatorMode);
-  translateModeBtn.textContent = isTranslatorMode ? 'Translator ON' : 'Chat Mode ON';
+  translateModeBtn.textContent = isTranslatorMode ? 'Translator Mode ON' : 'Chat Mode ON';
   resetStatus();
 });
 
@@ -608,7 +592,7 @@ function buildSystemPrompt(targetLang, sourceLang) {
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
-  if (isSending || isLocked) return;
+  if (isSending) return;
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
@@ -661,7 +645,6 @@ if (SR) {
   };
 
   const startMic = (speaker) => {
-    if (isLocked) return;
     unlockAudio();
     if (isRecording) { recognition.stop(); return; }
     stopAudio(); activeSpeaker = speaker;
@@ -854,8 +837,6 @@ function stopAudio() {
 }
 
 async function speak(text, lang) {
-  if (isLocked) return; 
-  
   if (isRecording) {
     try { recognition.stop(); } catch(e){}
   }
@@ -904,7 +885,7 @@ function speakBrowser(text, lang, myId) {
   u.onend = () => { 
     if (myId === currentSpeechId) { 
       isBotTalking = false; setAvatarState(false); unlockMics(); 
-    } 
+    }
   };
   speechSynthesis.speak(u);
 }
