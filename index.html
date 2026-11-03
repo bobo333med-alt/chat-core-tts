@@ -277,7 +277,6 @@ let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, cu
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
-let accumulatedText = ""; // لتجميع الكلام
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
@@ -528,15 +527,18 @@ bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongI
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
 renderPlaylist(); 
 
-function buildSystemPrompt(targetLang) {
-  if (isTranslatorMode) return `Translate the user's input into ${langNameFor(targetLang)}. Output ONLY the translated text.`;
+function buildSystemPrompt(targetLang, sourceLang) {
+  if (isTranslatorMode) {
+    // تعليمات صارمة جداً للترجمة الحرفية
+    return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT reply in the source language. If the text is already in the target language, output it exactly as is.`;
+  }
   return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
 }
 
-async function ask(text, targetLang, speaker) {
+async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending || isLocked) return;
   setBusy(true); setStatus('Processing...');
-  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang) }];
+  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
   if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
   let userContent = attachedImageBase64 ? [{ type: "text", text: finalText || "Analyze this image." }, { type: "image_url", image_url: { url: attachedImageBase64 } }] : finalText;
@@ -555,75 +557,60 @@ async function ask(text, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// 🎤 إعداد المايكروفون الصارم (Push-to-Talk): يجمع الكلام ولا يرسله إلا عند الإيقاف
+// 🎤 إعداد المايكروفون (النظام المستقر القديم: اضغط وتكلم، وسيغلق ويرسل تلقائياً عند السكوت)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
   recognition = new SR();
-  recognition.continuous = true; // يظل يستمع حتى نوقفه نحن
-  recognition.interimResults = false; // لا يرسل النتائج المؤقتة (لمنع التقطيع)
+  recognition.continuous = false; // يعود للنظام المستقر
+  recognition.interimResults = false; 
 
-  recognition.onresult = (event) => {
-    let finalTranscript = '';
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript + ' ';
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    if (text && text.trim()) {
+      const isA = activeSpeaker === 'A';
+      if (appMode === 'remote') {
+        addMsg(`You: ${text}`, 'user-a', myLang);
+        sendRemoteMessage(text);
+      } else {
+        addMsg(text, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
+        ask(text, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
       }
-    }
-    if (finalTranscript) {
-      accumulatedText += finalTranscript;
     }
   };
 
   recognition.onerror = (e) => {
-    console.warn('Speech recognition error', e.error);
     setStatus('Mic Error: ' + e.error);
-    if (isRecording) {
-      isRecording = false;
-      setAvatarState(false);
-      unlockMics();
-    }
+    unlockMics();
   };
 
   recognition.onend = () => {
-    // إذا أغلق المتصفح المايك تلقائياً (بسبب السكوت الطويل)، نتحقق
-    if (isRecording) {
-      // إعادة التشغيل في الخلفية بهدوء (لأننا نستخدم Push-to-Talk)
-      try { recognition.start(); } catch(e){}
-    } else {
-      // إيقاف يدوي من المستخدم: أرسل النص الذي تم جمعه
-      setAvatarState(false);
-      unlockMics();
-      const textToSend = accumulatedText.trim();
-      accumulatedText = '';
-      if (textToSend.length > 0) {
-        processMicText(textToSend);
-      }
-    }
+    isRecording = false; 
+    if (!isBotTalking && !isSending) unlockMics();
   };
 
   const startMic = (speaker) => {
-    if (isRecording) {
-      // إيقاف يدوي: سيتم إرسال النص في دالة onend
-      isRecording = false;
-      recognition.stop();
-      return;
-    }
-    
-    // تشغيل
-    stopAudio(); 
-    accumulatedText = '';
-    isRecording = true; 
-    activeSpeaker = speaker;
-    recognition.lang = localeFor(speaker === 'A' ? langA.value : langB.value);
+    if (isLocked) return;
+    unlockAudio();
+    if (isRecording) { recognition.stop(); return; }
+    stopAudio(); activeSpeaker = speaker;
     
     setAvatarState(true);
-    setStatus('Listening... (Tap mic to stop)');
+    isRecording = true;
     
-    if (speaker === 'A') { micA.classList.add('recording'); }
-    else if (speaker === 'B') { micB.classList.add('recording'); }
-    else if (speaker === 'R') { remoteMicBtn.classList.add('recording'); }
-
+    if (speaker === 'A') {
+      recognition.lang = localeFor(langA.value);
+      micA.classList.add('recording'); micB.disabled = true;
+      setStatus('Listening (You)...');
+    } else if (speaker === 'B') {
+      recognition.lang = localeFor(langB.value);
+      micB.classList.add('recording'); micA.disabled = true;
+      setStatus('Listening (Friend)...');
+    } else {
+      recognition.lang = localeFor(myLang);
+      remoteMicBtn.classList.add('recording');
+      setStatus('Listening...');
+    }
     try { recognition.start(); } catch (e) {}
   };
   
@@ -632,22 +619,12 @@ if (SR) {
   remoteMicBtn.addEventListener('click', () => startMic('R'));
 }
 
-function processMicText(text) {
-  if (appMode === 'remote') {
-    addMsg(`You: ${text}`, 'user-a', myLang); 
-    sendRemoteMessage(text); 
-  } else {
-    addMsg(text, activeSpeaker === 'A' ? 'user-a' : 'user-b', activeSpeaker === 'A' ? langA.value : langB.value);
-    ask(text, activeSpeaker === 'A' ? langB.value : langA.value, activeSpeaker);
-  }
-}
-
 sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim();
   if (appMode === 'remote') {
     if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
   } else {
-    if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langB.value, 'A'); inputEl.value = ''; }
+    if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
   }
 });
 
@@ -806,7 +783,14 @@ function stopAudio() {
 }
 
 async function speak(text, lang) {
-  if (isLocked) return; stopAudio(); isBotTalking = true;
+  if (isLocked) return; 
+  
+  // 🛑 إيقاف المايك مؤقتاً لمنع الصدى
+  if (isRecording) {
+    try { recognition.stop(); } catch(e){}
+  }
+
+  stopAudio(); isBotTalking = true;
   const myId = ++currentSpeechId; setStatus('Speaking...');
   setAvatarState(true);
   
@@ -815,16 +799,23 @@ async function speak(text, lang) {
     if (res.ok) {
       const blob = await res.blob(); if (myId !== currentSpeechId) return;
       currentAudio = new Audio(URL.createObjectURL(blob));
-      currentAudio.onended = () => { isBotTalking = false; setAvatarState(false); unlockMics(); };
+      currentAudio.onended = () => { 
+        isBotTalking = false; setAvatarState(false); unlockMics(); 
+      };
       await currentAudio.play(); return;
     }
   } catch (e) { console.warn('Server TTS failed'); }
+  
   speakBrowser(text, lang, myId);
 }
 
 function speakBrowser(text, lang, myId) {
   const u = new SpeechSynthesisUtterance(text); u.lang = localeFor(lang);
-  u.onend = () => { if (myId === currentSpeechId) { isBotTalking = false; setAvatarState(false); unlockMics(); } };
+  u.onend = () => { 
+    if (myId === currentSpeechId) { 
+      isBotTalking = false; setAvatarState(false); unlockMics(); 
+    } 
+  };
   speechSynthesis.speak(u);
 }
 </script>
