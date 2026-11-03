@@ -38,15 +38,25 @@
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
   #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; background: #000000; border: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
 
-  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; }
+  /* 📹 إصلاح شاشة الكاميرا الكبيرة */
+  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
-  #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; }
+  #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; transition: all 0.3s; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; }
-  #videoContainer.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100%; z-index: 9999; margin: 0; border-radius: 0; }
-  #videoContainer.fullscreen #remoteVideo { object-fit: contain; }
-  #videoContainer.fullscreen #localVideo { width: 120px; height: 160px; bottom: 20px; right: 20px; }
   #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
-  #videoContainer.fullscreen #closeVideoFullscreen { display: flex; }
+  
+  /* وضع الكاميرا المكبرة */
+  body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100%; z-index: 99999; margin: 0; border-radius: 0; }
+  body.video-maximized #remoteVideo { object-fit: contain; }
+  body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
+  body.video-maximized #closeVideoFullscreen { display: flex; }
+  
+  body.video-maximized #topHeader,
+  body.video-maximized #extraControls,
+  body.video-maximized #chatContainer,
+  body.video-maximized #inputRow,
+  body.video-maximized #status,
+  body.video-maximized #remoteBar { display: none !important; }
 
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
@@ -275,6 +285,7 @@ let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, cu
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
+let accumulatedText = ""; // لتجميع الكلام المستمر
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
@@ -283,7 +294,6 @@ resetStatus();
 function setBusy(busy) {
   isSending = busy;
   sendBtn.disabled = busy || isCompressing;
-  micA.disabled = busy; micB.disabled = busy; remoteMicBtn.disabled = busy;
 }
 
 function escapeHtml(s) {
@@ -373,9 +383,9 @@ $('copyRoomBtn').addEventListener('click', () => {
 
 videoContainer.addEventListener('click', (e) => {
   if (e.target === closeVideoFullscreen) return;
-  videoContainer.classList.toggle('fullscreen');
+  document.body.classList.toggle('video-maximized');
 });
-closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); videoContainer.classList.remove('fullscreen'); });
+closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
 
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
@@ -408,7 +418,8 @@ videoAvatarUpload.addEventListener('change', (e) => {
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
   avatarVideo.src = currentAvatarObjectUrl; 
-  avatarVideo.play().catch(()=>{});
+  // تشغيل الفيديو فقط إذا كان هناك صوت يعمل
+  if (isBotTalking || isRecording) avatarVideo.play().catch(()=>{});
   removeAvatarBtn.style.display = 'block';
 });
 removeAvatarBtn.addEventListener('click', (e) => {
@@ -446,7 +457,6 @@ menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; 
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
 menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
 
-// 🎬 رفع وترجمة الفيديو
 videoUpload.addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
   
@@ -456,7 +466,7 @@ videoUpload.addEventListener('change', async (e) => {
 
   const targetLang = appMode === 'remote' ? myLang : langB.value;
   addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
-  setStatus('⏳ جاري استخراج النص وترجمته... قد يستغرق دقيقة');
+  setStatus('⏳ جاري استخراج النص وترجمته...');
   setBusy(true);
 
   const formData = new FormData();
@@ -465,10 +475,7 @@ videoUpload.addEventListener('change', async (e) => {
 
   try {
     const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || 'Server error');
-    }
+    if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     
     addMsg(data.original, 'user-b', 'AUTO');
@@ -476,12 +483,11 @@ videoUpload.addEventListener('change', async (e) => {
     speak(data.translated, targetLang);
     setStatus('✅ تمت الترجمة بنجاح!');
   } catch (err) {
-    console.error(err);
     addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot');
     setStatus('Error');
   } finally {
     setBusy(false);
-    e.target.value = ''; // تصفير الحقل
+    e.target.value = '';
   }
 });
 
@@ -558,42 +564,88 @@ async function ask(text, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
+// 🎤 إعداد المايكروفون بنظام Push-to-Talk والاستماع المستمر
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
   recognition = new SR();
-  recognition.continuous = false; recognition.interimResults = false;
-  recognition.onresult = e => {
-    const text = e.results[0][0].transcript;
-    if (!text.trim()) return unlockMics();
-    if (appMode === 'remote') {
-      addMsg(`You: ${text}`, 'user-a', myLang); sendRemoteMessage(text); setTimeout(unlockMics, 400);
-    } else {
-      addMsg(text, activeSpeaker === 'A' ? 'user-a' : 'user-b', activeSpeaker === 'A' ? langA.value : langB.value);
-      ask(text, activeSpeaker === 'A' ? langB.value : langA.value, activeSpeaker);
+  recognition.continuous = true; // يظل يستمع حتى نوقفه يدوياً
+  recognition.interimResults = true; // يعرض الكلام فوراً
+
+  recognition.onresult = (e) => {
+    let finalTranscript = '';
+    for (let i = e.resultIndex; i < e.results.length; ++i) {
+      if (e.results[i].isFinal) {
+        finalTranscript += e.results[i][0].transcript + ' ';
+      }
     }
+    if (finalTranscript) {
+      accumulatedText += finalTranscript;
+    }
+    setStatus('Listening... (Tap mic to stop)');
   };
+
   recognition.onerror = (e) => {
     console.warn('Speech recognition error', e.error);
     setStatus('Mic Error: ' + e.error);
+    isRecording = false;
+    setAvatarState(false);
     unlockMics();
   };
-  recognition.onend = () => { isRecording = false; if (!isBotTalking && !isSending) unlockMics(); };
+
+  recognition.onend = () => {
+    if (isRecording) {
+      // المتصفح أغلقه تلقائياً، نعيد تشغيله فوراً (يمنع صوت الطن المتكرر)
+      try { recognition.start(); } catch(e){}
+    } else {
+      // إيقاف يدوي من المستخدم
+      setAvatarState(false);
+      unlockMics();
+      if (accumulatedText.trim()) {
+        processMicText(accumulatedText.trim());
+        accumulatedText = '';
+      }
+    }
+  };
+
   const startMic = (speaker) => {
-    if (isRecording) { recognition.stop(); return; }
-    stopAudio(); activeSpeaker = speaker;
+    if (isRecording) {
+      // إيقاف
+      isRecording = false;
+      recognition.stop();
+      return;
+    }
+    
+    // تشغيل
+    stopAudio(); 
+    accumulatedText = '';
+    isRecording = true; 
+    activeSpeaker = speaker;
     recognition.lang = localeFor(speaker === 'A' ? langA.value : langB.value);
-    (speaker === 'A' ? micA : micB).classList.add('recording'); setStatus('Listening...');
+    
+    setAvatarState(true);
+    setStatus('Listening... (Tap mic to stop)');
+    
+    if (speaker === 'A') { micA.classList.add('recording'); }
+    else if (speaker === 'B') { micB.classList.add('recording'); }
+    else if (speaker === 'R') { remoteMicBtn.classList.add('recording'); }
+
     try { recognition.start(); } catch (e) {}
   };
+  
   micA.addEventListener('click', () => startMic('A'));
   micB.addEventListener('click', () => startMic('B'));
-  remoteMicBtn.addEventListener('click', () => {
-    if (isRecording) { recognition.stop(); return; }
-    stopAudio(); recognition.lang = localeFor(myLang);
-    remoteMicBtn.classList.add('recording'); setStatus('Listening...');
-    try { recognition.start(); } catch (e) {}
-  });
+  remoteMicBtn.addEventListener('click', () => startMic('R'));
+}
+
+function processMicText(text) {
+  if (appMode === 'remote') {
+    addMsg(`You: ${text}`, 'user-a', myLang); 
+    sendRemoteMessage(text); 
+  } else {
+    addMsg(text, activeSpeaker === 'A' ? 'user-a' : 'user-b', activeSpeaker === 'A' ? langA.value : langB.value);
+    ask(text, activeSpeaker === 'A' ? langB.value : langA.value, activeSpeaker);
+  }
 }
 
 sendBtn.addEventListener('click', () => {
@@ -663,7 +715,7 @@ function connectWebSocket(code) {
   
   ws.onerror = (e) => {
     console.error('WS Error', e);
-    addMsg('⚠️ حدث خطأ في الاتصال بالسيرفر (WebSocket). قد يكون بسبب الشبكة.', 'bot');
+    addMsg('⚠️ حدث خطأ في الاتصال بالسيرفر (WebSocket).', 'bot');
   };
 
   ws.onclose = (ev) => {
@@ -734,40 +786,54 @@ leaveRoomBtn.addEventListener('click', () => {
   stopPing(); if (ws) ws.close();
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   if (pc) { pc.close(); pc = null; }
-  videoContainer.style.display = 'none'; videoContainer.classList.remove('fullscreen'); remoteVideo.srcObject = null; localVideo.srcObject = null;
+  videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
   appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
   chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
 });
 
+function setAvatarState(playing) {
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') {
+    if (playing) avatarVideo.play().catch(()=>{});
+    else avatarVideo.pause();
+  }
+}
+
 function unlockMics() {
   activeSpeaker = null;
+  isRecording = false;
   micA.disabled = false; micB.disabled = false; remoteMicBtn.disabled = false;
   micA.classList.remove('recording'); micB.classList.remove('recording'); remoteMicBtn.classList.remove('recording');
   if (!isBotTalking) resetStatus();
 }
+
 function stopAudio() {
   currentSpeechId++;
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   isBotTalking = false;
+  setAvatarState(false);
 }
+
 async function speak(text, lang) {
   if (isLocked) return; stopAudio(); isBotTalking = true;
   const myId = ++currentSpeechId; setStatus('Speaking...');
+  setAvatarState(true);
+  
   try {
     const res = await fetch(TTS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang, voice: voiceSelect.value, session_id: SESSION_ID }) });
     if (res.ok) {
       const blob = await res.blob(); if (myId !== currentSpeechId) return;
       currentAudio = new Audio(URL.createObjectURL(blob));
-      currentAudio.onended = () => { isBotTalking = false; unlockMics(); };
+      currentAudio.onended = () => { isBotTalking = false; setAvatarState(false); unlockMics(); };
       await currentAudio.play(); return;
     }
   } catch (e) { console.warn('Server TTS failed'); }
   speakBrowser(text, lang, myId);
 }
+
 function speakBrowser(text, lang, myId) {
   const u = new SpeechSynthesisUtterance(text); u.lang = localeFor(lang);
-  u.onend = () => { if (myId === currentSpeechId) { isBotTalking = false; unlockMics(); } };
+  u.onend = () => { if (myId === currentSpeechId) { isBotTalking = false; setAvatarState(false); unlockMics(); } };
   speechSynthesis.speak(u);
 }
 </script>
