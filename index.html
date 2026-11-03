@@ -38,9 +38,26 @@
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
   
-  /* إزالة الخط الرهيف من النقطة السوداء */
   #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; outline: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
-  #removeAvatarBtn { display: none; position: absolute; top: 5px; right: 5px; width: 14px; height: 14px; border-radius: 50%; background: #000000; border: none; outline: none; box-shadow: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.8; }
+  
+  /* النقطة السوداء: إزاحة 3.5px للخارج بدون أي خطوط */
+  #removeAvatarBtn { 
+    display: none; 
+    position: absolute; 
+    top: -3.5px; 
+    right: -3.5px; 
+    width: 14px; 
+    height: 14px; 
+    border-radius: 50%; 
+    background: #000000; 
+    border: none; 
+    outline: none; 
+    box-shadow: none; 
+    cursor: pointer; 
+    z-index: 10; 
+    padding: 0; 
+    opacity: 0.9; 
+  }
 
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; }
@@ -80,7 +97,7 @@
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
   
-  /* زر إيقاف الصوت الجديد (نفس ألوان وحجم سلة المهملات) */
+  /* زر إيقاف الصوت (نفس ألوان وحجم سلة المهملات) */
   #stopAudioBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; outline: none; }
   #stopAudioBtn svg { fill: #2d3748; width: 14px; height: 14px; }
 
@@ -205,10 +222,10 @@
 <div class="extra-controls" id="extraControls">
     <button id="translateModeBtn" class="active">Translator Mode ON</button>
     <select id="voiceSelect">
-      <option value="man">👴 رجل (شيخ)</option>
-      <option value="woman">👩 امرأة</option>
-      <option value="girl">👧 بنت صغيرة</option>
-      <option value="child">🧒 طفل صغير</option>
+      <option value="man">👨 Men</option>
+      <option value="woman">👩 Woman</option>
+      <option value="girl">👧 Girl</option>
+      <option value="child">🧒 Child</option>
     </select>
     <button id="uploadBtn">📁 Avatar</button>
 </div>
@@ -348,7 +365,6 @@ function fetchWithTimeout(url, options, timeoutMs) {
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
 
-// 🧹 دالة تنظيف النص من الرموز والإيموجي
 function cleanTextForTTS(text) {
   if (!text) return "";
   return text
@@ -853,19 +869,18 @@ function speakBrowser(text, lang, myId) {
   const u = new SpeechSynthesisUtterance(text); 
   u.lang = localeFor(lang);
   
-  // 🎭 تخصيص الأصوات (رجل، امرأة، بنت، طفل)
   const voiceType = voiceSelect.value;
   if (voiceType === 'man') {
-    u.pitch = 0.3;  // صوت عميق (شيخ)
-    u.rate = 0.85;  // بطيء قليلاً
+    u.pitch = 0.3;  
+    u.rate = 0.85;  
   } else if (voiceType === 'woman') {
-    u.pitch = 1.0;  // طبيعي
+    u.pitch = 1.0;  
     u.rate = 1.0;
   } else if (voiceType === 'girl') {
-    u.pitch = 1.5;  // صوت بنت صغيرة (مرتفع)
+    u.pitch = 1.5;  
     u.rate = 1.05;
   } else if (voiceType === 'child') {
-    u.pitch = 1.9;  // صوت طفل (مرتفع جداً)
+    u.pitch = 1.9;  
     u.rate = 1.15;
   }
 
