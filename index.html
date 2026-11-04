@@ -409,12 +409,17 @@ function setModeUI(mode) {
   if (mode === 'local') {
     topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none';
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
+    uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
     videoContainer.style.display = 'none'; avatarWrap.style.display = 'flex';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
     $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
-    mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'inline-block';
+    mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; 
+    // إخفاء الأزرار التي طلب المستخدم إخفاءها في الغرف فقط
+    translateModeBtn.style.display = 'none';
+    uploadBtn.style.display = 'none';
+    voiceSelect.style.display = 'inline-block'; 
     avatarWrap.style.display = 'none';
     $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
     $('extraControls').style.display = 'flex';
@@ -761,10 +766,10 @@ async function startVideoCall(isCaller = false) {
   if (!pc) {
     const iceServers = [
       { urls: 'stun:stun.relay.metered.ca:80' },
-      { urls: 'turn:global.relay.metered.ca:80', username: '1fc149c22051b566abcaac4d', credential: 'UmRaNG3Z6HHFUvFd' },
-      { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: '1fc149c22051b566abcaac4d', credential: 'UmRaNG3Z6HHFUvFd' },
-      { urls: 'turn:global.relay.metered.ca:443', username: '1fc149c22051b566abcaac4d', credential: 'UmRaNG3Z6HHFUvFd' },
-      { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: '1fc149c22051b566abcaac4d', credential: 'UmRaNG3Z6HHFUvFd' }
+      { urls: 'turn:global.relay.metered.ca:80', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
+      { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
+      { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
+      { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
     ];
 
     pc = new RTCPeerConnection({ iceServers: iceServers });
@@ -867,13 +872,11 @@ function handleWsMessage(ev) {
       hasJoinedOnce = true; onlineCount.textContent = `${data.users.length}/4`;
       addMsg(`✅ انضممت للغرفة ${currentRoomCode}`, 'bot');
       if (data.users.length > 1) {
-        // أنا المنضم حديثاً، لذلك أنا من يطلب الاتصال
         startVideoCall(true);
       }
       break;
     case 'user_joined':
       addMsg(`👤 ${data.name} joined`, 'bot');
-      // شخص آخر انضم، أنا أنتظر منه طلب الاتصال
       startVideoCall(false);
       break;
     case 'translated':
