@@ -227,7 +227,8 @@ async def smart_chat(messages, is_vision, temperature, max_tokens):
 LANG_NAMES = {
     "ar": "Arabic", "fr": "French", "en": "English", 
     "de": "German", "tr": "Turkish", "it": "Italian", 
-    "zh": "Chinese", "ru": "Russian"
+    "zh": "Chinese", "ru": "Russian", "es": "Spanish", 
+    "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"
 }
 
 async def translate_for_room(text, source_lang, target_lang):
@@ -296,12 +297,10 @@ async def tts_endpoint(req: TTSRequest):
     except httpx.HTTPError:
         raise HTTPException(502, detail="خطأ شبكة TTS")
 
-# 🎬 نقطة النهاية الجديدة لترجمة الفيديو والصوت
 @app.post("/transcribe")
 async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar")):
-    if not GROQ_KEYS: raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص من الفيديو")
+    if not GROQ_KEYS: raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
     
-    # حفظ الملف مؤقتاً
     suffix = os.path.splitext(file.filename)[1] or ".mp4"
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
@@ -309,7 +308,6 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
         with open(temp_file.name, "wb") as f:
             f.write(contents)
         
-        # استخدام Groq Whisper لاستخراج النص
         key = next_groq_key()
         client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
         with open(temp_file.name, "rb") as audio_file:
@@ -323,9 +321,7 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
         if not original_text:
             return {"original": "لم يتم التعرف على أي كلام.", "translated": "لم يتم التعرف على أي كلام."}
             
-        # ترجمة النص المستخرج
         translated_text = await translate_for_room(original_text, "auto", target_lang)
-        
         return {"original": original_text, "translated": translated_text}
     except Exception as e:
         logger.error(f"Transcribe error: {e}")
@@ -395,6 +391,27 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
             elif mtype in ["rtc-offer", "rtc-answer", "rtc-ice"]:
                 await room_manager.broadcast(room_code, msg, exclude=websocket)
                 continue
+            
+            # 🖼️ ميزة إرسال الصور (Chat Media)
+            elif mtype == "chat_media":
+                media_type = msg.get("media_type")
+                media_data = msg.get("data")
+                if media_data:
+                    ws_users = await room_manager.get_ws_users(room_code)
+                    for ws_client in ws_users:
+                        if ws_client != websocket:
+                            try:
+                                await ws_client.send_json({
+                                    "type": "chat_media",
+                                    "media_type": media_type,
+                                    "data": media_data,
+                                    "from_name": my_name,
+                                    "from_lang": my_lang
+                                })
+                            except Exception:
+                                pass
+                continue
+
             elif mtype == "message":
                 text = (msg.get("text") or "").strip()[:2000]
                 if not text: continue
