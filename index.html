@@ -13,7 +13,6 @@
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
   .user-section { display: flex; align-items: center; gap: 4px; }
   
-  /* تعديل عرض قائمة اللغات ليكون واضحاً */
   .lang-select { padding: 1px 2px; border-radius: 4px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 9px; font-family: Tahoma; outline: none; width: 75px !important; text-align: center; }
   
   .mic-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
@@ -67,7 +66,6 @@
   body.video-maximized #closeVideoFullscreen { display: flex; }
   body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
 
-  /* زر المايك العائم في وضع الشاشة الكاملة */
   #floatingMicBtn {
     position: fixed;
     bottom: 30px;
@@ -140,12 +138,16 @@
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; }
   
-  /* تعديل طول زر الشخصيات ليكون واضحاً */
   #voiceSelect { padding-top: 12px !important; padding-bottom: 12px !important; }
 
   .extra-controls button.active { background: #eab308; color: #000; }
   
   .btn-back { background: #e57373 !important; color: white !important; }
+
+  /* تنسيقات خاصة بوضع الغرف لتوزيع الأزرار */
+  body.remote-mode #extraControls { justify-content: space-between; padding: 0 10px; }
+  body.remote-mode #voiceSelect { width: 48% !important; max-width: 200px; height: 38px !important; text-align: center; }
+  body.remote-mode #backBtn { width: 48% !important; max-width: 200px; height: 32px !important; display: flex; align-items: center; justify-content: center; }
 
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
@@ -439,6 +441,7 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
 function setModeUI(mode) {
   appMode = mode;
   if (mode === 'local') {
+    document.body.classList.remove('remote-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none';
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
     uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
@@ -446,6 +449,7 @@ function setModeUI(mode) {
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
     $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
+    document.body.classList.add('remote-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
     mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; 
     translateModeBtn.style.display = 'none';
