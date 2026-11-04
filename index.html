@@ -13,7 +13,8 @@
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
   .user-section { display: flex; align-items: center; gap: 4px; }
   
-  .lang-select { padding: 1px 2px; border-radius: 4px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 8px; font-family: Tahoma; outline: none; width: 55px; text-align: center; }
+  /* تعديل عرض قائمة اللغات */
+  .lang-select { padding: 1px 2px; border-radius: 4px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 8px; font-family: Tahoma; outline: none; width: 62px; text-align: center; }
   
   .mic-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
   .mic-btn.blue { background: #6366f1; box-shadow: 0 0 8px rgba(99,102,241,0.5); }
@@ -115,6 +116,10 @@
   
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; }
+  
+  /* تعديل طول زر الشخصيات (voiceSelect) */
+  #voiceSelect { padding-top: 9px; padding-bottom: 9px; }
+
   .extra-controls button.active { background: #eab308; color: #000; }
   
   .btn-back { background: #e57373 !important; color: white !important; }
@@ -416,7 +421,6 @@ function setModeUI(mode) {
   } else if (mode === 'remote') {
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
     mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; 
-    // إخفاء الأزرار التي طلب المستخدم إخفاءها في الغرف فقط
     translateModeBtn.style.display = 'none';
     uploadBtn.style.display = 'none';
     voiceSelect.style.display = 'inline-block'; 
