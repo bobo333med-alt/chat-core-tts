@@ -135,16 +135,17 @@
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
   
+  /* الحجم الطبيعي لأزرار Face-to-Face */
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; align-items: center; }
-  .extra-controls button, .extra-controls select { padding: 0 10px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
-  #voiceSelect { height: 28px; }
+  .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
   
   .extra-controls button.active { background: #eab308; color: #000; }
   
   .btn-back { background: #e57373 !important; color: white !important; }
 
+  /* تنسيقات خاصة بوضع الغرف لتوزيع الأزرار */
   body.remote-mode #extraControls { justify-content: space-between; padding: 0 10px; }
-  body.remote-mode #voiceSelect { width: 48% !important; max-width: 200px; height: 32px !important; text-align: center; }
+  body.remote-mode #voiceSelect { width: 48% !important; max-width: 200px; height: 38px !important; text-align: center; }
   body.remote-mode #backBtn { width: 48% !important; max-width: 200px; height: 32px !important; display: flex; align-items: center; justify-content: center; }
 
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -383,7 +384,6 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// تم تعديل هذه الدالة لتقبل الصور
 function addMsg(text, className, lang, imageBase64 = null) {
   const div = document.createElement('div');
   div.className = 'msg ' + className;
@@ -658,7 +658,6 @@ videoUpload.addEventListener('change', async (e) => {
   }
 });
 
-// تعديل دالة استقبال الصور لدعم إرسالها في الغرف
 async function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
   isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
@@ -667,18 +666,16 @@ async function handleImage(e) {
     const compressed = await compressImage(ev.target.result);
     
     if (appMode === 'remote') {
-        // إرسال الصورة للغرفة
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ 
                 type: 'chat_media', 
                 media_type: 'image', 
                 data: compressed 
             }));
-            addMsg('', 'user-a', myLang, compressed); // عرضها فوراً في الشات المحلي
+            addMsg('', 'user-a', myLang, compressed); 
         }
         isCompressing = false; sendBtn.disabled = isSending; setStatus('');
     } else {
-        // الوضع المحلي (Face-to-Face)
         attachedFileText = null;
         attachedImageBase64 = compressed;
         imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
