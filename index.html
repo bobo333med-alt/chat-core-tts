@@ -1039,68 +1039,46 @@ async function speak(text, lang) {
   const myId = ++currentSpeechId; setStatus('Speaking...');
   setAvatarState(true);
   
-  // استخدام محرك المتصفح مباشرة لضمان قراءة النصوص المختلطة
+  try {
+    const res = await fetch(TTS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: cleanText, lang, voice: voiceSelect.value, session_id: SESSION_ID }) });
+    if (res.ok) {
+      const blob = await res.blob(); if (myId !== currentSpeechId) return;
+      currentAudio = new Audio(URL.createObjectURL(blob));
+      currentAudio.onended = () => { 
+        isBotTalking = false; setAvatarState(false); unlockMics(); 
+      };
+      await currentAudio.play(); return;
+    }
+  } catch (e) { console.warn('Server TTS failed'); }
+  
   speakBrowser(cleanText, lang, myId);
 }
 
 function speakBrowser(text, lang, myId) {
-  if ('speechSynthesis' in window) {
-      speechSynthesis.cancel(); // إلغاء أي كلام سابق لضمان عدم التداخل
-  }
-
-  const sentences = text.match(/[^.!?؟،؛\n]+[.!?؟،؛]*/g) || [text];
-  let chunks = [];
+  const u = new SpeechSynthesisUtterance(text); 
+  u.lang = localeFor(lang);
   
-  sentences.forEach(s => {
-    s = s.trim();
-    if (!s) return;
-    
-    // كشف اللغة تلقائياً لكل جملة
-    const hasArabic = /[\u0600-\u06FF]/.test(s);
-    const hasLatin = /[a-zA-Z]/.test(s);
-    let sLang = lang;
-    
-    if (hasLatin && !hasArabic) {
-        sLang = 'fr'; // استخدام الفرنسية للنصوص اللاتينية
-    } else if (hasArabic) {
-        sLang = 'ar'; // استخدام العربية للنصوص العربية
-    }
-    
-    chunks.push({ text: s, lang: sLang });
-  });
-
-  let index = 0;
-  function playChunk() {
-    if (index >= chunks.length || myId !== currentSpeechId || isLocked) {
-      if (myId === currentSpeechId) { isBotTalking = false; unlockMics(); }
-      return;
-    }
-    
-    const chunk = chunks[index];
-    index++;
-    
-    const u = new SpeechSynthesisUtterance(chunk.text); 
-    u.lang = localeFor(chunk.lang);
-    
-    const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
-    let bestVoice = voices.find(v => v.lang.toLowerCase().startsWith(chunk.lang));
-    if (bestVoice) {
-        u.voice = bestVoice;
-        u.lang = bestVoice.lang;
-    }
-    
-    const voiceType = voiceSelect.value;
-    // نبرات صوتية آمنة وواضحة
-    if (voiceType === 'man') { u.pitch = 0.5; u.rate = 0.9; } 
-    else if (voiceType === 'woman') { u.pitch = 1.0; u.rate = 1.0; } 
-    else if (voiceType === 'girl') { u.pitch = 1.3; u.rate = 1.05; } 
-    else if (voiceType === 'child') { u.pitch = 1.5; u.rate = 1.1; }
-
-    u.onend = () => { if (myId === currentSpeechId) setTimeout(playChunk, 150); };
-    u.onerror = (e) => { console.error(e); if (myId === currentSpeechId) setTimeout(playChunk, 150); };
-    speechSynthesis.speak(u);
+  const voiceType = voiceSelect.value;
+  if (voiceType === 'man') {
+    u.pitch = 0.3;  
+    u.rate = 0.85;  
+  } else if (voiceType === 'woman') {
+    u.pitch = 1.0;  
+    u.rate = 1.0;
+  } else if (voiceType === 'girl') {
+    u.pitch = 1.5;  
+    u.rate = 1.05;
+  } else if (voiceType === 'child') {
+    u.pitch = 1.9;  
+    u.rate = 1.15;
   }
-  setTimeout(playChunk, 100);
+
+  u.onend = () => { 
+    if (myId === currentSpeechId) { 
+      isBotTalking = false; setAvatarState(false); unlockMics(); 
+    } 
+  };
+  speechSynthesis.speak(u);
 }
 </script>
 </body>
