@@ -32,15 +32,35 @@
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
   #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
-  #avatar-wrap.fullscreen #removeAvatarBtn { top: 20px; right: 20px; width: 18px; height: 18px; }
-  
-  #closeFullscreen { display: none; position: fixed; top: 80px; right: 20px; background: rgba(0,0,0,0.6); border: none; outline: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; }
-  
+
+  /* أزرار الإغلاق الجديدة (دائرة حمراء ونقطة بيضاء) */
+  #closeFullscreen, #closeVideoFullscreen { 
+    display: none; 
+    position: fixed; 
+    background: #e57373; /* أحمر هادئ */
+    border: none; 
+    outline: none; 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    z-index: 10000; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .inner-white-dot {
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border-radius: 50%;
+  }
+  #closeFullscreen { top: 80px; right: 20px; }
+  #closeVideoFullscreen { top: 20px; right: 20px; }
+
+  /* النقطة السوداء (تم نقلها للشريط السفلي) */
   #removeAvatarBtn { 
     display: none; 
-    position: absolute; 
-    top: -1px; 
-    right: -1px; 
     width: 14px; 
     height: 14px; 
     border-radius: 50%; 
@@ -49,16 +69,15 @@
     outline: none; 
     box-shadow: none; 
     cursor: pointer; 
-    z-index: 10; 
     padding: 0; 
-    opacity: 0.9; 
+    margin-left: 4px;
+    margin-right: 4px;
   }
 
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; pointer-events: auto; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; pointer-events: none; }
-  #closeVideoFullscreen { display: none; position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: none; outline: none; color: #fff; font-size: 24px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; pointer-events: auto; }
   
   body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100vw; z-index: 99999; margin: 0; border-radius: 0; }
   body.video-maximized #remoteVideo { object-fit: cover; }
@@ -291,7 +310,10 @@
       <option value="girl">👧 Girl</option>
       <option value="child">🧒 Child</option>
     </select>
-    <button id="uploadBtn">📁 Avatar</button>
+    <div style="display:flex; align-items:center;">
+        <button id="uploadBtn">📁 Avatar</button>
+        <button id="removeAvatarBtn" title="Reset Avatar"></button>
+    </div>
     <button id="backBtn" class="btn-back">Back</button>
 </div>
 
@@ -299,7 +321,7 @@
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
   <div id="videoStatus">📡 متصل بالكاميرا</div>
-  <button id="closeVideoFullscreen" title="إغلاق">✕</button>
+  <button id="closeVideoFullscreen" title="إغلاق"><div class="inner-white-dot"></div></button>
 </div>
 
 <div id="avatar-wrap">
@@ -307,8 +329,7 @@
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
-  <button id="removeAvatarBtn" title="Reset"></button>
-  <button id="closeFullscreen" title="Close">✕</button>
+  <button id="closeFullscreen" title="Close"><div class="inner-white-dot"></div></button>
 </div>
 
 <div class="chat-container" id="chatContainer">
@@ -465,7 +486,6 @@ function addMsg(text, className, lang, imageBase64 = null) {
   if (text) {
       div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
       
-      // إضافة ميزة تكرار الصوت عند الضغط على الرسالة
       div.addEventListener('click', () => {
           if (isLocked || isSending || appMode === 'remote') return;
           div.style.opacity = '0.5';
@@ -598,7 +618,7 @@ backBtn.addEventListener('click', () => {
 });
 
 videoContainer.addEventListener('click', (e) => {
-  if (e.target === closeVideoFullscreen) return;
+  if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target)) return;
   document.body.classList.toggle('video-maximized');
 });
 
@@ -626,7 +646,7 @@ $('copyRoomBtn').addEventListener('click', () => {
 
 avatarWrap.addEventListener('click', (e) => {
   if (isLocked) return;
-  if (e.target === closeFullscreen || e.target === removeAvatarBtn) return;
+  if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return;
   avatarWrap.classList.toggle('fullscreen');
 });
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
@@ -641,7 +661,6 @@ translateModeBtn.addEventListener('click', () => {
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
 stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isRecording) { isRecording = false; recognition.stop(); } });
 
-// زر إيقاف/تشغيل الكاميرا
 toggleCamBtn.addEventListener('click', () => {
     if (localStream) {
         const videoTrack = localStream.getVideoTracks()[0];
