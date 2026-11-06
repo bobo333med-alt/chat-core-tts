@@ -1047,6 +1047,7 @@ async function speak(text, lang) {
       currentAudio.onended = () => { 
         isBotTalking = false; setAvatarState(false); unlockMics(); 
       };
+      currentAudio.onerror = () => { speakBrowser(cleanText, lang, myId); };
       await currentAudio.play(); return;
     }
   } catch (e) { console.warn('Server TTS failed'); }
@@ -1055,25 +1056,17 @@ async function speak(text, lang) {
 }
 
 function speakBrowser(text, lang, myId) {
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text); 
   u.lang = localeFor(lang);
   
-  const voiceType = voiceSelect.value;
-  if (voiceType === 'man') {
-    u.pitch = 0.3;  
-    u.rate = 0.85;  
-  } else if (voiceType === 'woman') {
-    u.pitch = 1.0;  
-    u.rate = 1.0;
-  } else if (voiceType === 'girl') {
-    u.pitch = 1.5;  
-    u.rate = 1.05;
-  } else if (voiceType === 'child') {
-    u.pitch = 1.9;  
-    u.rate = 1.15;
-  }
-
+  // لا نستخدم نبرات معقدة لتجنب صمت الأندرويد
   u.onend = () => { 
+    if (myId === currentSpeechId) { 
+      isBotTalking = false; setAvatarState(false); unlockMics(); 
+    } 
+  };
+  u.onerror = () => { 
     if (myId === currentSpeechId) { 
       isBotTalking = false; setAvatarState(false); unlockMics(); 
     } 
