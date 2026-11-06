@@ -32,12 +32,32 @@
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
   #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
+  
+  /* النقطة السوداء: تم إرجاعها بجانب الأفاتار في المنتصف الأيمن */
+  #removeAvatarBtn { 
+    display: none; 
+    position: absolute; 
+    top: 50%;
+    right: -15px; /* تحريكها للخارج حسب الخط الأحمر */
+    transform: translateY(-50%);
+    width: 14px; 
+    height: 14px; 
+    border-radius: 50%; 
+    background: #000000; 
+    border: none; 
+    outline: none; 
+    box-shadow: none; 
+    cursor: pointer; 
+    z-index: 10; 
+    padding: 0; 
+    opacity: 0.9; 
+  }
 
   /* أزرار الإغلاق الجديدة (دائرة حمراء ونقطة بيضاء) */
   #closeFullscreen, #closeVideoFullscreen { 
     display: none; 
     position: fixed; 
-    background: #e57373; /* أحمر هادئ */
+    background: #e57373;
     border: none; 
     outline: none; 
     width: 50px; 
@@ -57,22 +77,6 @@
   }
   #closeFullscreen { top: 80px; right: 20px; }
   #closeVideoFullscreen { top: 20px; right: 20px; }
-
-  /* النقطة السوداء (تم نقلها للشريط السفلي) */
-  #removeAvatarBtn { 
-    display: none; 
-    width: 14px; 
-    height: 14px; 
-    border-radius: 50%; 
-    background: #000000; 
-    border: none; 
-    outline: none; 
-    box-shadow: none; 
-    cursor: pointer; 
-    padding: 0; 
-    margin-left: 4px;
-    margin-right: 4px;
-  }
 
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
@@ -310,10 +314,7 @@
       <option value="girl">👧 Girl</option>
       <option value="child">🧒 Child</option>
     </select>
-    <div style="display:flex; align-items:center;">
-        <button id="uploadBtn">📁 Avatar</button>
-        <button id="removeAvatarBtn" title="Reset Avatar"></button>
-    </div>
+    <button id="uploadBtn">📁 Avatar</button>
     <button id="backBtn" class="btn-back">Back</button>
 </div>
 
@@ -329,6 +330,7 @@
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
+  <button id="removeAvatarBtn" title="Reset Avatar"></button>
   <button id="closeFullscreen" title="Close"><div class="inner-white-dot"></div></button>
 </div>
 
