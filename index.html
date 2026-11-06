@@ -131,6 +131,23 @@
     animation: pulse 1s infinite;
   }
   
+  #toggleCamBtn {
+    background: #475569;
+    color: #fff;
+    order: 2;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  #toggleCamBtn.off {
+    background: #ef4444;
+  }
+
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
   
@@ -199,7 +216,7 @@
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
 </div>
 
-<!-- شاشة الغرف (نصوص انجليزية) -->
+<!-- شاشة الغرف (نصوص ديناميكية) -->
 <div class="overlay" id="remoteJoinOverlay" style="display:none;">
   <h2>💬 Remote Mode</h2>
   <div class="join-form">
@@ -220,7 +237,7 @@
     </select>
     <button id="createRoomBtn">➕ Create Room</button>
     
-    <div style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
+    <div id="orText" style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
     
     <div id="joinRow">
       <input type="text" id="joinCodeInput" placeholder="Room Code" maxlength="6">
@@ -310,6 +327,10 @@
   <button class="btn" id="musicBtn" title="Music">🎵</button>
   <button class="btn" id="mediaBtn" title="Media">media</button>
   
+  <button class="btn" id="toggleCamBtn" title="Toggle Camera">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>
+  </button>
+
   <button class="btn" id="remoteMicBtn" title="Talk">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
   </button>
@@ -352,7 +373,7 @@ const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() 
 
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn'), stopAudioBtn = $('stopAudioBtn');
-const micA = $('micA'), micB = $('micB'), remoteMicBtn = $('remoteMicBtn'), floatingMicBtn = $('floatingMicBtn');
+const micA = $('micA'), micB = $('micB'), remoteMicBtn = $('remoteMicBtn'), floatingMicBtn = $('floatingMicBtn'), toggleCamBtn = $('toggleCamBtn');
 const langA = $('langA'), langB = $('langB');
 const clearBtn = $('clearBtn'), statusEl = $('status');
 const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
@@ -373,6 +394,34 @@ let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
 let isLocked = false;
 let iceCandidatesQueue = []; 
+let isCameraOn = true;
+
+// --- ترجمة الواجهة الديناميكية ---
+const UI_TEXT = {
+    'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', or: 'أو', code: 'كود الغرفة', join: 'انضمام', back: '← رجوع' },
+    'fr': { name: 'Votre Nom', create: '➕ Créer un salon', or: 'Ou', code: 'Code du salon', join: 'Rejoindre', back: '← Retour' },
+    'en': { name: 'Your Name', create: '➕ Create Room', or: 'Or', code: 'Room Code', join: 'Join', back: '← Back' },
+    'de': { name: 'Dein Name', create: '➕ Raum erstellen', or: 'Oder', code: 'Raumcode', join: 'Beitreten', back: '← Zurück' },
+    'tr': { name: 'Adınız', create: '➕ Oda Oluştur', or: 'Veya', code: 'Oda Kodu', join: 'Katıl', back: '← Geri' },
+    'it': { name: 'Il tuo nome', create: '➕ Crea Stanza', or: 'O', code: 'Codice Stanza', join: 'Unisciti', back: '← Indietro' },
+    'es': { name: 'Tu Nombre', create: '➕ Crear Sala', or: 'O', code: 'Código de Sala', join: 'Unirse', back: '← Atrás' },
+    'pt': { name: 'Seu Nome', create: '➕ Criar Sala', or: 'Ou', code: 'Código da Sala', join: 'Entrar', back: '← Voltar' },
+    'nl': { name: 'Jouw Naam', create: '➕ Kamer Maken', or: 'Of', code: 'Kamercode', join: 'Deelnemen', back: '← Terug' },
+    'no': { name: 'Ditt Navn', create: '➕ Lag Rom', or: 'Eller', code: 'Romkode', join: 'Bli med', back: '← Tilbake' },
+    'zh': { name: '你的名字', create: '➕ 创建房间', or: '或', code: '房间代码', join: '加入', back: '← 返回' },
+    'ru': { name: 'Ваше имя', create: '➕ Создать комнату', or: 'Или', code: 'Код комнаты', join: 'Войти', back: '← Назад' }
+};
+
+$('playerLang').addEventListener('change', (e) => {
+    const lang = e.target.value;
+    const t = UI_TEXT[lang] || UI_TEXT['en'];
+    $('playerName').placeholder = t.name;
+    $('createRoomBtn').textContent = t.create;
+    $('orText').textContent = t.or;
+    $('joinCodeInput').placeholder = t.code;
+    $('joinRoomBtn').textContent = t.join;
+    $('backToLandingBtn').textContent = t.back;
+});
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
@@ -387,7 +436,6 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// تم التعديل هنا: تصغير الصور وإضافة زر تكرار الصوت
 function addMsg(text, className, lang, imageBase64 = null) {
   const div = document.createElement('div');
   div.className = 'msg ' + className;
@@ -401,13 +449,12 @@ function addMsg(text, className, lang, imageBase64 = null) {
   if (imageBase64) {
       const img = document.createElement('img');
       img.src = imageBase64;
-      img.style.maxWidth = '150px'; // تصغير حجم الصورة
+      img.style.maxWidth = '150px';
       img.style.borderRadius = '8px';
       img.style.display = 'block';
       img.style.marginTop = '5px';
       img.style.border = '2px solid #475569';
       img.style.cursor = 'pointer';
-      // فتح الصورة بحجم كامل عند الضغط عليها (اختياري)
       img.onclick = (e) => {
           e.stopPropagation();
           window.open(imageBase64, '_blank');
@@ -421,10 +468,8 @@ function addMsg(text, className, lang, imageBase64 = null) {
       // إضافة ميزة تكرار الصوت عند الضغط على الرسالة
       div.addEventListener('click', () => {
           if (isLocked || isSending || appMode === 'remote') return;
-          // تأثير وميض
           div.style.opacity = '0.5';
           setTimeout(() => div.style.opacity = '1', 200);
-          // تكرار الصوت
           speak(text, lang || langA.value);
       });
   }
@@ -477,7 +522,7 @@ function setModeUI(mode) {
   appMode = mode;
   if (mode === 'local') {
     document.body.classList.remove('remote-mode');
-    topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none';
+    topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none'; toggleCamBtn.style.display = 'none';
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
     uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
     videoContainer.style.display = 'none'; avatarWrap.style.display = 'flex';
@@ -485,7 +530,7 @@ function setModeUI(mode) {
     $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
     document.body.classList.add('remote-mode');
-    topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
+    topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
     mediaBtn.style.display = 'flex'; 
     musicBtn.style.display = 'none'; 
     translateModeBtn.style.display = 'none';
@@ -595,6 +640,21 @@ translateModeBtn.addEventListener('click', () => {
 
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
 stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isRecording) { isRecording = false; recognition.stop(); } });
+
+// زر إيقاف/تشغيل الكاميرا
+toggleCamBtn.addEventListener('click', () => {
+    if (localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+            isCameraOn = !isCameraOn;
+            videoTrack.enabled = isCameraOn;
+            toggleCamBtn.classList.toggle('off', !isCameraOn);
+            toggleCamBtn.innerHTML = isCameraOn 
+                ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
+                : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
+        }
+    }
+});
 
 uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
 videoAvatarUpload.addEventListener('change', (e) => {
@@ -847,6 +907,8 @@ async function startVideoCall(isCaller = false) {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       localVideo.srcObject = localStream;
       videoContainer.style.display = 'block';
+      isCameraOn = true;
+      toggleCamBtn.classList.remove('off');
     } catch (err) { 
       console.error('Camera access denied', err); 
       addMsg('⚠️ تعذر الوصول إلى الكاميرا. يرجى السماح بالوصول.', 'bot');
@@ -907,7 +969,7 @@ $('createRoomBtn').addEventListener('click', async () => {
     if (!data.code) throw new Error('لم يتم استلام الكود');
     enterRemoteRoom(data.code);
   } catch (e) { alert('Failed to create room: ' + e.message); } 
-  finally { btn.textContent = '➕ Create Room'; btn.disabled = false; }
+  finally { btn.textContent = UI_TEXT[lang].create; btn.disabled = false; }
 });
 $('joinRoomBtn').addEventListener('click', () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value, code = $('joinCodeInput').value.trim().toUpperCase();
