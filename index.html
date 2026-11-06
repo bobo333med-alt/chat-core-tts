@@ -90,10 +90,14 @@
 
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
-  .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; }
+  .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; }
+  .msg:active { opacity: 0.7; }
+  
   .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } 
   .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
-  .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px;}
+  .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px; cursor: default; }
+  .bot:active { opacity: 1; }
+  
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
   
   #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
@@ -195,10 +199,11 @@
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
 </div>
 
+<!-- شاشة الغرف (نصوص انجليزية) -->
 <div class="overlay" id="remoteJoinOverlay" style="display:none;">
   <h2>💬 Remote Mode</h2>
   <div class="join-form">
-    <input type="text" id="playerName" placeholder="اسمك" maxlength="30">
+    <input type="text" id="playerName" placeholder="Your Name" maxlength="30">
     <select id="playerLang">
       <option value="ar">🇹🇳 العربية</option>
       <option value="fr">🇫🇷 Français</option>
@@ -213,15 +218,15 @@
       <option value="nl">🇳🇱 Nederlands</option>
       <option value="no">🇳🇴 Norsk</option>
     </select>
-    <button id="createRoomBtn">➕ إنشاء غرفة</button>
+    <button id="createRoomBtn">➕ Create Room</button>
     
-    <div style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">أو</div>
+    <div style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
     
     <div id="joinRow">
-      <input type="text" id="joinCodeInput" placeholder="الكود" maxlength="6">
-      <button id="joinRoomBtn">انضمام</button>
+      <input type="text" id="joinCodeInput" placeholder="Room Code" maxlength="6">
+      <button id="joinRoomBtn">Join</button>
     </div>
-    <button id="backToLandingBtn">← رجوع</button>
+    <button id="backToLandingBtn">← Back</button>
   </div>
 </div>
 
@@ -382,6 +387,7 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// تم التعديل هنا: تصغير الصور وإضافة زر تكرار الصوت
 function addMsg(text, className, lang, imageBase64 = null) {
   const div = document.createElement('div');
   div.className = 'msg ' + className;
@@ -395,15 +401,32 @@ function addMsg(text, className, lang, imageBase64 = null) {
   if (imageBase64) {
       const img = document.createElement('img');
       img.src = imageBase64;
-      img.style.maxWidth = '100%';
+      img.style.maxWidth = '150px'; // تصغير حجم الصورة
       img.style.borderRadius = '8px';
       img.style.display = 'block';
       img.style.marginTop = '5px';
+      img.style.border = '2px solid #475569';
+      img.style.cursor = 'pointer';
+      // فتح الصورة بحجم كامل عند الضغط عليها (اختياري)
+      img.onclick = (e) => {
+          e.stopPropagation();
+          window.open(imageBase64, '_blank');
+      };
       div.appendChild(img);
   }
   
   if (text) {
       div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
+      
+      // إضافة ميزة تكرار الصوت عند الضغط على الرسالة
+      div.addEventListener('click', () => {
+          if (isLocked || isSending || appMode === 'remote') return;
+          // تأثير وميض
+          div.style.opacity = '0.5';
+          setTimeout(() => div.style.opacity = '1', 200);
+          // تكرار الصوت
+          speak(text, lang || langA.value);
+      });
   }
   
   chatEl.appendChild(div);
@@ -873,23 +896,23 @@ async function startVideoCall(isCaller = false) {
 
 $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
-  if (!name) return alert('أدخل اسمك');
+  if (!name) return alert('Please enter your name');
   myName = name; myLang = lang;
   langA.value = lang; 
   
-  const btn = $('createRoomBtn'); btn.textContent = '⏳ جارٍ الاتصال...'; btn.disabled = true;
+  const btn = $('createRoomBtn'); btn.textContent = '⏳ Connecting...'; btn.disabled = true;
   try {
     const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
     const data = await res.json();
     if (!data.code) throw new Error('لم يتم استلام الكود');
     enterRemoteRoom(data.code);
-  } catch (e) { alert('فشل إنشاء الغرفة: ' + e.message); } 
-  finally { btn.textContent = '➕ إنشاء غرفة'; btn.disabled = false; }
+  } catch (e) { alert('Failed to create room: ' + e.message); } 
+  finally { btn.textContent = '➕ Create Room'; btn.disabled = false; }
 });
 $('joinRoomBtn').addEventListener('click', () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value, code = $('joinCodeInput').value.trim().toUpperCase();
-  if (!name) return alert('أدخل اسمك');
-  if (code.length !== 6) return alert('كود غير صحيح');
+  if (!name) return alert('Please enter your name');
+  if (code.length !== 6) return alert('Invalid code');
   myName = name; myLang = lang; 
   langA.value = lang;
   enterRemoteRoom(code);
@@ -916,18 +939,18 @@ function connectWebSocket(code) {
   
   ws.onerror = (e) => {
     console.error('WS Error', e);
-    addMsg('⚠️ حدث خطأ في الاتصال بالسيرفر (WebSocket).', 'bot');
+    addMsg('⚠️ WebSocket Error.', 'bot');
   };
 
   ws.onclose = (ev) => {
     stopPing();
     if (!hasJoinedOnce) { 
-      addMsg(`⚠️ فشل الاتصال بالغرفة. كود الخطأ: ${ev.code}`, 'bot');
-      setStatus('فشل الاتصال');
+      addMsg(`⚠️ Failed to join. Error code: ${ev.code}`, 'bot');
+      setStatus('Connection failed');
       return; 
     }
     if (shouldReconnect && appMode === 'remote') {
-      setStatus(`انقطع الاتصال. جارٍ إعادة المحاولة...`);
+      setStatus(`Disconnected. Retrying...`);
       wsReconnectTimer = setTimeout(() => connectWebSocket(code), 3000);
     }
   };
@@ -938,7 +961,7 @@ function handleWsMessage(ev) {
   switch (data.type) {
     case 'joined':
       hasJoinedOnce = true; onlineCount.textContent = `${data.users.length}/4`;
-      addMsg(`✅ انضممت للغرفة ${currentRoomCode}`, 'bot');
+      addMsg(`✅ Joined room ${currentRoomCode}`, 'bot');
       if (data.users.length > 1) {
         startVideoCall(true);
       }
@@ -1060,7 +1083,12 @@ function speakBrowser(text, lang, myId) {
   const u = new SpeechSynthesisUtterance(text); 
   u.lang = localeFor(lang);
   
-  // لا نستخدم نبرات معقدة لتجنب صمت الأندرويد
+  const voiceType = voiceSelect.value;
+  if (voiceType === 'man') { u.pitch = 0.5; u.rate = 0.9; } 
+  else if (voiceType === 'woman') { u.pitch = 1.0; u.rate = 1.0; } 
+  else if (voiceType === 'girl') { u.pitch = 1.3; u.rate = 1.05; } 
+  else if (voiceType === 'child') { u.pitch = 1.5; u.rate = 1.1; }
+
   u.onend = () => { 
     if (myId === currentSpeechId) { 
       isBotTalking = false; setAvatarState(false); unlockMics(); 
