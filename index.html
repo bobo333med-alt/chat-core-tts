@@ -135,7 +135,6 @@
 
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
   
-  /* الحجم الطبيعي لأزرار Face-to-Face */
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; align-items: center; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
   
@@ -143,7 +142,6 @@
   
   .btn-back { background: #e57373 !important; color: white !important; }
 
-  /* تنسيقات خاصة بوضع الغرف لتوزيع الأزرار */
   body.remote-mode #extraControls { justify-content: space-between; padding: 0 10px; }
   body.remote-mode #voiceSelect { width: 48% !important; max-width: 200px; height: 38px !important; text-align: center; }
   body.remote-mode #backBtn { width: 48% !important; max-width: 200px; height: 32px !important; display: flex; align-items: center; justify-content: center; }
@@ -427,11 +425,12 @@ function fetchWithTimeout(url, options, timeoutMs) {
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-SA', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
 
+// تنظيف النص من الرموز التي تربك محرك الصوت (مثل النجوم والتنصيص)
 function cleanTextForTTS(text) {
   if (!text) return "";
   return text
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '')
-    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ')
+    .replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ') 
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -720,9 +719,9 @@ renderPlaylist();
 
 function buildSystemPrompt(targetLang, sourceLang) {
   if (isTranslatorMode) {
-    return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT reply in the source language.`;
+    return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT use markdown like ** or __. DO NOT reply in the source language.`;
   }
-  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
+  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}. DO NOT use markdown or bold text like **.`;
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
@@ -1056,31 +1055,60 @@ async function speak(text, lang) {
   speakBrowser(cleanText, lang, myId);
 }
 
+// ✨ إصلاح جذري: قراءة الجمل بلغتها الصحيحة
 function speakBrowser(text, lang, myId) {
-  const u = new SpeechSynthesisUtterance(text); 
-  u.lang = localeFor(lang);
+  const sentences = text.match(/[^.!?؟،؛\n]+[.!?؟،؛]*/g) || [text];
+  let chunks = [];
   
-  const voiceType = voiceSelect.value;
-  if (voiceType === 'man') {
-    u.pitch = 0.3;  
-    u.rate = 0.85;  
-  } else if (voiceType === 'woman') {
-    u.pitch = 1.0;  
-    u.rate = 1.0;
-  } else if (voiceType === 'girl') {
-    u.pitch = 1.5;  
-    u.rate = 1.05;
-  } else if (voiceType === 'child') {
-    u.pitch = 1.9;  
-    u.rate = 1.15;
-  }
+  sentences.forEach(s => {
+    s = s.trim();
+    if (!s) return;
+    
+    // كشف اللغة تلقائياً لكل جملة
+    const hasArabic = /[\u0600-\u06FF]/.test(s);
+    const hasLatin = /[a-zA-Z]/.test(s);
+    let sLang = lang;
+    
+    if (hasLatin && !hasArabic) {
+        sLang = 'fr'; // استخدام الفرنسية للنصوص اللاتينية
+    } else if (hasArabic) {
+        sLang = 'ar'; // استخدام العربية للنصوص العربية
+    }
+    
+    chunks.push({ text: s, lang: sLang });
+  });
 
-  u.onend = () => { 
-    if (myId === currentSpeechId) { 
-      isBotTalking = false; setAvatarState(false); unlockMics(); 
-    } 
-  };
-  speechSynthesis.speak(u);
+  let index = 0;
+  function playChunk() {
+    if (index >= chunks.length || myId !== currentSpeechId || isLocked) {
+      if (myId === currentSpeechId) { isBotTalking = false; unlockMics(); }
+      return;
+    }
+    
+    const chunk = chunks[index];
+    index++;
+    
+    const u = new SpeechSynthesisUtterance(chunk.text); 
+    u.lang = localeFor(chunk.lang);
+    
+    const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+    let bestVoice = voices.find(v => v.lang.toLowerCase().startsWith(chunk.lang));
+    if (bestVoice) {
+        u.voice = bestVoice;
+        u.lang = bestVoice.lang;
+    }
+    
+    const voiceType = voiceSelect.value;
+    if (voiceType === 'man') { u.pitch = 0.3; u.rate = 0.85; } 
+    else if (voiceType === 'woman') { u.pitch = 1.0; u.rate = 1.0; } 
+    else if (voiceType === 'girl') { u.pitch = 1.5; u.rate = 1.05; } 
+    else if (voiceType === 'child') { u.pitch = 1.9; u.rate = 1.15; }
+
+    u.onend = () => { if (myId === currentSpeechId) setTimeout(playChunk, 150); };
+    u.onerror = () => { if (myId === currentSpeechId) setTimeout(playChunk, 150); };
+    speechSynthesis.speak(u);
+  }
+  setTimeout(playChunk, 100);
 }
 </script>
 </body>
