@@ -666,7 +666,7 @@ function setModeUI(mode) {
     document.body.classList.add('remote-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
     mediaBtn.style.display = 'flex'; 
-    musicBtn.style.display = 'none'; /* إخفاء الموسيقى */
+    musicBtn.style.display = 'none'; 
     voiceSelect.style.display = 'inline-block'; 
     $('extraControls').style.display = 'flex';
   } else if (mode === 'meeting') {
@@ -674,7 +674,7 @@ function setModeUI(mode) {
     document.body.classList.add('meeting-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
     mediaBtn.style.display = 'flex'; 
-    musicBtn.style.display = 'none'; /* إخفاء الموسيقى */
+    musicBtn.style.display = 'none'; 
     meetingGridContainer.style.display = 'block'; 
     voiceSelect.style.display = 'inline-block'; 
     $('extraControls').style.display = 'flex';
@@ -699,7 +699,11 @@ remoteLockBtn.addEventListener('click', () => {
     if (appMode === 'remote') $('videoContainer').classList.add('locked-ui');
     if (appMode === 'meeting') $('meetingGridContainer').classList.add('locked-ui');
     stopAudio();
-    if (isRecording) recognition.stop();
+    if (isRecording) {
+        isRecording = false;
+        recognition.stop();
+        unlockMics();
+    }
     setStatus('App is locked 🔒');
   } else {
     isLocked = false;
@@ -787,7 +791,14 @@ translateModeBtn.addEventListener('click', () => {
 });
 
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
-stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isRecording) { isRecording = false; recognition.stop(); } });
+stopAudioBtn.addEventListener('click', () => { 
+    stopAudio(); 
+    if (isRecording) { 
+        isRecording = false; 
+        recognition.stop(); 
+        unlockMics();
+    } 
+});
 
 toggleCamBtn.addEventListener('click', async () => {
     isCameraOn = !isCameraOn;
@@ -1169,6 +1180,8 @@ async function speak(text, lang) {
   
   if (isRecording) {
     try { recognition.stop(); } catch(e){}
+    isRecording = false; // To prevent auto restart
+    unlockMics();
   }
 
   const cleanText = cleanTextForTTS(text);
@@ -1273,59 +1286,117 @@ async function startVideoCall(isCaller = false) {
   }
 }
 
+// --- Speech Recognition (Open Mic & Continuous) ---
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
+let silenceTimer = null;
+let finalTranscriptBuffer = "";
+
 if (SR) {
   recognition = new SR();
-  recognition.continuous = false; 
-  recognition.interimResults = false; 
+  recognition.continuous = true; 
+  recognition.interimResults = true; 
 
-  recognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    if (text && text.trim()) {
-      const isA = activeSpeaker === 'A';
-      if (appMode === 'remote' || appMode === 'meeting') {
+  const processVoice = (text) => {
+    if (!text || !text.trim()) return;
+    const isA = activeSpeaker === 'A';
+    if (appMode === 'remote' || appMode === 'meeting') {
         addMsg(`You: ${text}`, 'user-a', myLang);
         sendRemoteMessage(text);
-      } else {
+    } else {
         addMsg(text, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
         ask(text, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
-      }
     }
   };
 
+  recognition.onresult = (e) => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; ++i) {
+      if (e.results[i].isFinal) {
+        finalTranscriptBuffer += e.results[i][0].transcript + " ";
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    
+    // Update status UI with current speech
+    setStatus(`🎤 Listening... ${finalTranscriptBuffer}${interim}`.slice(-40));
+
+    // Debounce: Wait for silence before sending
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      if (finalTranscriptBuffer.trim()) {
+        processVoice(finalTranscriptBuffer.trim());
+        finalTranscriptBuffer = "";
+        resetStatus();
+      }
+    }, 2000); // 2 seconds of silence triggers the send
+  };
+
   recognition.onerror = (e) => {
+    if (e.error === 'no-speech') {
+      // Ignore, auto-restart in onend
+      return;
+    }
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        isRecording = false;
+        unlockMics();
+        setStatus('Mic permission denied.');
+        return;
+    }
     setStatus('Mic Error: ' + e.error);
-    unlockMics();
   };
 
   recognition.onend = () => {
-    isRecording = false; 
-    if (!isBotTalking && !isSending) unlockMics();
+    if (isRecording) {
+        // Automatically restart if the browser killed it while we're supposed to be recording
+        try { recognition.start(); } catch(e) {} 
+    } else {
+        unlockMics();
+    }
   };
 
   const startMic = (speaker) => {
     if (isLocked) return;
     unlockAudio();
-    if (isRecording) { recognition.stop(); return; }
-    stopAudio(); activeSpeaker = speaker;
     
+    if (isRecording && activeSpeaker === speaker) {
+        // Toggle OFF manually
+        isRecording = false;
+        clearTimeout(silenceTimer);
+        recognition.stop();
+        if (finalTranscriptBuffer.trim()) {
+            processVoice(finalTranscriptBuffer.trim());
+            finalTranscriptBuffer = "";
+        }
+        unlockMics();
+        return;
+    }
+
+    // Toggle ON
+    if (isRecording) {
+        recognition.stop();
+    }
+    
+    stopAudio(); 
+    activeSpeaker = speaker;
     setAvatarState(true);
     isRecording = true;
+    finalTranscriptBuffer = "";
     
     if (speaker === 'A') {
       recognition.lang = localeFor(langA.value);
       micA.classList.add('recording'); micB.disabled = true;
-      setStatus('Listening (You)...');
+      setStatus('🎤 Listening (You)...');
     } else if (speaker === 'B') {
       recognition.lang = localeFor(langB.value);
       micB.classList.add('recording'); micA.disabled = true;
-      setStatus('Listening (Friend)...');
+      setStatus('🎤 Listening (Friend)...');
     } else {
       recognition.lang = localeFor(myLang);
       if (remoteMicBtn) remoteMicBtn.classList.add('recording'); 
       if (floatingMicBtn) floatingMicBtn.classList.add('recording');
-      setStatus('Listening...');
+      setStatus('🎤 Listening...');
     }
     try { recognition.start(); } catch (e) {}
   };
