@@ -130,7 +130,7 @@
     color: #fff;
     z-index: 2;
   }
-  body.meeting-mode .chat-container { max-height: 35vh; } /* Smaller chat in meeting mode */
+  body.meeting-mode .chat-container { max-height: 35vh; }
 
   #floatingMicBtn {
     position: fixed;
@@ -178,7 +178,9 @@
   
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   #musicBtn { background: #ffffff; color: #000000; order: 1; font-size: 16px; }
-  #mediaBtn { background: #ffffff; color: #f97316; order: 2; font-size: 11px; font-weight: bold; }
+  
+  /* تعديل زر Media ليكون صغير الحجم وأزرق مع علامة + */
+  #mediaBtn { background: #1d4ed8; color: #ffffff; order: 2; font-size: 20px; width: 32px; height: 32px; padding-bottom: 2px; font-weight: normal; }
   
   #remoteMicBtn { 
     background: #10b981; 
@@ -257,7 +259,9 @@
   .overlay .mode-btn { padding: 15px 30px; font-size: 16px; border-radius: 12px; border: none; color: #fff; cursor: pointer; width: 260px; font-weight: bold; }
   #btnLocal { background: #6366f1; }
   #btnRemote { background: #10b981; }
-  #btnMeeting { background: #8b5cf6; }
+  
+  /* تعديل زر Meeting Room ليكون أزرق مع علامة + */
+  #btnMeeting { background: #1d4ed8; }
   
   .join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .join-form input, .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
@@ -281,7 +285,8 @@
   <p style="color:#94a3b8; font-size:13px; margin-bottom:10px;">اختر وضع التشغيل</p>
   <button class="mode-btn" id="btnLocal">🌐 Face-to-Face</button>
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
-  <button class="mode-btn" id="btnMeeting">👥 Meeting Room</button>
+  <!-- زر Meeting Room الجديد -->
+  <button class="mode-btn" id="btnMeeting">+ Meeting Room</button>
 </div>
 
 <!-- شاشة الغرف (نصوص ديناميكية) -->
@@ -317,7 +322,7 @@
 
 <!-- شاشة الاجتماعات (Meeting Room) -->
 <div class="overlay" id="meetingJoinOverlay" style="display:none;">
-  <h2>👥 Meeting Room</h2>
+  <h2>+ Meeting Room</h2>
   <div class="join-form">
     <input type="text" id="meetPlayerName" placeholder="Your Name" maxlength="30">
     <select id="meetPlayerLang">
@@ -431,7 +436,8 @@
 
 <div class="row" id="inputRow">
   <button class="btn" id="musicBtn" title="Music">🎵</button>
-  <button class="btn" id="mediaBtn" title="Media">media</button>
+  <!-- زر Media الجديد -->
+  <button class="btn" id="mediaBtn" title="Media">+</button>
   
   <button class="btn" id="toggleCamBtn" title="Toggle Camera">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>
@@ -526,7 +532,6 @@ $('playerLang').addEventListener('change', (e) => {
     $('backToLandingBtn').textContent = t.back;
 });
 
-// Meeting Form Language update (Simple english fallback)
 const updateMeetForm = () => {
     const lang = $('meetPlayerLang').value;
     const t = UI_TEXT[lang] || UI_TEXT['en'];
@@ -636,7 +641,6 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
 function setModeUI(mode) {
   appMode = mode;
   
-  // Hide everything initially
   topHeader.style.display = 'none'; 
   remoteBar.style.display = 'none'; 
   remoteMicBtn.style.display = 'none'; 
@@ -721,7 +725,7 @@ backBtn.addEventListener('click', () => {
     if (livekitRoom) { livekitRoom.disconnect(); livekitRoom = null; }
     iceCandidatesQueue = [];
     videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
-    videoGrid.innerHTML = ''; // Clear meeting videos
+    videoGrid.innerHTML = ''; 
     appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
     chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
     
@@ -789,18 +793,15 @@ toggleCamBtn.addEventListener('click', () => {
         ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
         : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
     
-    // Apply to P2P
     if (localStream) {
         const videoTrack = localStream.getVideoTracks()[0];
         if (videoTrack) videoTrack.enabled = isCameraOn;
     }
-    // Apply to LiveKit
     if (livekitRoom) {
         livekitRoom.localParticipant.setCameraEnabled(isCameraOn);
     }
 });
 
-// LiveKit Track Handlers
 function handleTrackSubscribed(track, publication, participant) {
     if (track.kind === 'video' || track.kind === 'audio') {
         let boxId = 'participant-' + participant.identity;
@@ -823,7 +824,6 @@ function handleTrackSubscribed(track, publication, participant) {
             const videoEl = track.attach();
             videoEl.autoplay = true;
             videoEl.playsInline = true;
-            // Remove old video if exists
             const oldVideo = box.querySelector('video');
             if (oldVideo) oldVideo.remove();
             box.insertBefore(videoEl, box.firstChild);
@@ -862,7 +862,6 @@ async function connectLiveKit(roomCode, participantName) {
         livekitRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
         livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
         
-        // Add local video
         livekitRoom.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
              if (publication.track.kind === 'video') {
                  let box = document.createElement('div');
@@ -875,15 +874,13 @@ async function connectLiveKit(roomCode, participantName) {
                  const videoEl = publication.track.attach();
                  videoEl.autoplay = true;
                  videoEl.playsInline = true;
-                 videoEl.muted = true; // Mute self
+                 videoEl.muted = true; 
                  box.insertBefore(videoEl, box.firstChild);
                  videoGrid.appendChild(box);
              }
         });
 
         await livekitRoom.connect(LIVEKIT_WS_URL, token);
-        
-        // Enable camera and mic
         await livekitRoom.localParticipant.enableCameraAndMicrophone();
         
         setStatus("✅ Connected to Meeting");
@@ -895,11 +892,10 @@ async function connectLiveKit(roomCode, participantName) {
     }
 }
 
-// Meeting Form Handlers
 $('createMeetingBtn').addEventListener('click', async () => {
     const name = $('meetPlayerName').value.trim();
     if (!name) return alert("Enter your name");
-    const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase(); // MTGXXXXXX
+    const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
     
     myName = name; myLang = $('meetPlayerLang').value;
     langA.value = myLang;
@@ -909,8 +905,8 @@ $('createMeetingBtn').addEventListener('click', async () => {
     roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting";
     chatEl.innerHTML = '';
     
-    connectWebSocket(code); // Connect to WS for text translation
-    connectLiveKit(code, name); // Connect to LiveKit for media
+    connectWebSocket(code); 
+    connectLiveKit(code, name); 
 });
 
 $('joinMeetingBtn').addEventListener('click', () => {
@@ -933,7 +929,6 @@ $('joinMeetingBtn').addEventListener('click', () => {
 
 leaveMeetingBtn.addEventListener('click', () => { backBtn.click(); });
 
-// Existing Remote Mode Handlers
 $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
   if (!name) return alert('Please enter your name');
@@ -1005,13 +1000,13 @@ function handleWsMessage(ev) {
       if (appMode === 'meeting') onlineCount.textContent = `${data.users.length} online`;
       addMsg(`✅ Joined room ${currentRoomCode}`, 'bot');
       if (appMode === 'remote' && data.users.length > 1) {
-        startVideoCall(true); // P2P video
+        startVideoCall(true); 
       }
       break;
     case 'user_joined':
       addMsg(`👤 ${data.name} joined`, 'bot');
       if (appMode === 'meeting') {
-          onlineCount.textContent = `${Object.keys(room_manager.users).length} online`; // approximate
+          onlineCount.textContent = `${data.users.length} online`; 
       } else if (appMode === 'remote') {
           startVideoCall(false);
       }
@@ -1028,7 +1023,7 @@ function handleWsMessage(ev) {
       }
       break;
     case 'rtc-offer':
-      if (appMode === 'meeting') break; // Handled by LiveKit
+      if (appMode === 'meeting') break;
       startVideoCall(false).then(async () => {
         if (!pc) return;
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -1206,7 +1201,6 @@ async function startVideoCall(isCaller = false) {
   }
 }
 
-// Speech Recognition
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
@@ -1270,7 +1264,6 @@ if (SR) {
   if (floatingMicBtn) floatingMicBtn.addEventListener('click', () => startMic('R'));
 }
 
-// Text Input Handling
 sendBtn.addEventListener('click', () => {
   if (isLocked) return;
   const t = inputEl.value.trim();
@@ -1281,7 +1274,6 @@ sendBtn.addEventListener('click', () => {
   }
 });
 
-// AI Ask (Local Mode only)
 function buildSystemPrompt(targetLang, sourceLang) {
   if (isTranslatorMode) {
     return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT use markdown like ** or __. DO NOT reply in the source language.`;
@@ -1311,7 +1303,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// Avatar & Media Handlers (Same as before)
 uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
 videoAvatarUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
@@ -1428,7 +1419,6 @@ cancelImageBtn.addEventListener('click', (e) => {
   imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.');
 });
 
-// Music Player
 audioUpload.addEventListener('change', (e) => {
   const files = e.target.files;
   for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
