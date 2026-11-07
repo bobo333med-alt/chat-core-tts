@@ -14,10 +14,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
+from livekit import api
 
 # ---------- Logging ----------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("chat-core")
+
+# ---------- LiveKit Config ----------
+LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://chat-core-ozzy0gzk.livekit.cloud")
+LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
+LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
 
 # ---------- Room Manager ----------
 class RoomManager:
@@ -40,8 +46,10 @@ class RoomManager:
     async def join(self, code, ws, name, lang):
         async with self.lock:
             if code not in self.rooms:
-                return False
-            if len(self.rooms[code]["users"]) >= 4:
+                # Auto-create for meeting if not exists
+                self.rooms[code] = {"created_at": time.time(), "users": {}, "history": []}
+                
+            if len(self.rooms[code]["users"]) >= 50: # Increased limit for meetings
                 return False
             self.rooms[code]["users"][ws] = {"name": name, "lang": lang}
             return True
@@ -117,7 +125,7 @@ async def lifespan(app):
     yield
     task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="6.0", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="7.0", lifespan=lifespan)
 
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
@@ -174,6 +182,10 @@ class TTSRequest(BaseModel):
     lang: str = "ar"
     voice: str = "woman"
     session_id: Optional[str] = None
+
+class MeetingTokenRequest(BaseModel):
+    room_name: str
+    participant_name: str
 
 _groq_idx = {"i": 0}
 def next_groq_key():
@@ -251,6 +263,18 @@ async def health():
 @app.post("/rooms/create")
 async def create_room_endpoint():
     return {"code": await room_manager.create_room()}
+
+@app.post("/get-token")
+async def get_token_endpoint(req: MeetingTokenRequest):
+    if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
+        raise HTTPException(500, detail="LiveKit keys not configured")
+    
+    token = api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET) \
+        .with_identity(req.participant_name) \
+        .with_name(req.participant_name) \
+        .with_grants(api.VideoGrants(room_join=True, room=req.room_name))
+    
+    return {"token": token.to_jwt()}
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
@@ -332,9 +356,11 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
 @app.websocket("/ws/{room_code}")
 async def ws_endpoint(websocket: WebSocket, room_code: str):
     room_code = room_code.upper().strip()
-    if not re.match(r'^[A-Z0-9]{6}$', room_code):
-        await websocket.close(code=4000)
-        return
+    if not re.match(r'^[A-Z0-9]{6}$', room_code) and not room_code.startswith("MTG"):
+        # Allow standard 6-char codes or "MTG" prefix
+        if len(room_code) < 3:
+            await websocket.close(code=4000)
+            return
 
     await websocket.accept()
     joined, my_name, my_lang = False, "User", "ar"
@@ -389,10 +415,10 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                     await room_manager.update_user_lang(room_code, websocket, my_lang)
                 continue
             elif mtype in ["rtc-offer", "rtc-answer", "rtc-ice"]:
-                await room_manager.broadcast(room_code, msg, exclude=websocket)
+                # Only broadcast RTC signals if it's NOT a meeting room (LiveKit handles media)
+                if not room_code.startswith("MTG"):
+                    await room_manager.broadcast(room_code, msg, exclude=websocket)
                 continue
-            
-            # 🖼️ ميزة إرسال الصور (Chat Media)
             elif mtype == "chat_media":
                 media_type = msg.get("media_type")
                 media_data = msg.get("data")
@@ -411,7 +437,6 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                             except Exception:
                                 pass
                 continue
-
             elif mtype == "message":
                 text = (msg.get("text") or "").strip()[:2000]
                 if not text: continue
