@@ -54,7 +54,7 @@
     opacity: 0.9; 
   }
 
-  #closeFullscreen, #closeVideoFullscreen, #leaveMeetingBtn { 
+  #closeFullscreen, #closeVideoFullscreen { 
     display: none; 
     position: fixed; 
     background: #e57373;
@@ -72,10 +72,6 @@
   .inner-white-dot { width: 14px; height: 14px; background: #ffffff; border-radius: 50%; }
   #closeFullscreen { top: 80px; right: 20px; }
   #closeVideoFullscreen { top: 20px; right: 20px; }
-  
-  /* إرجاع زر الخروج (الدائرة الحمراء) كما كان في السابق */
-  #leaveMeetingBtn { top: 70px; left: 20px; background: #ef4444; }
-  body.meeting-mode #leaveMeetingBtn { display: flex; }
 
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
@@ -412,7 +408,6 @@
 <!-- LiveKit Meeting Container -->
 <div id="meetingGridContainer">
   <div id="videoGrid"></div>
-  <button id="leaveMeetingBtn" title="Leave Meeting"><div class="inner-white-dot"></div></button>
 </div>
 
 <div id="avatar-wrap">
@@ -499,7 +494,7 @@ const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('me
 const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
-const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid'), leaveMeetingBtn = $('leaveMeetingBtn');
+const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid');
 
 let appMode = 'none';
 let chatHistory = [], isTranslatorMode = true, activeSpeaker = null, isRecording = false, isSending = false, isCompressing = false;
@@ -659,7 +654,9 @@ function setModeUI(mode) {
   if (mode === 'local') {
     document.body.classList.remove('remote-mode', 'meeting-mode');
     topHeader.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
+    mediaBtn.style.display = 'flex'; 
+    musicBtn.style.display = 'flex'; 
+    translateModeBtn.style.display = 'inline-block';
     uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
     avatarWrap.style.display = 'flex';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
@@ -668,14 +665,16 @@ function setModeUI(mode) {
     document.body.classList.remove('meeting-mode');
     document.body.classList.add('remote-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
+    mediaBtn.style.display = 'flex'; 
+    musicBtn.style.display = 'none'; /* إخفاء الموسيقى */
     voiceSelect.style.display = 'inline-block'; 
     $('extraControls').style.display = 'flex';
   } else if (mode === 'meeting') {
     document.body.classList.remove('remote-mode');
     document.body.classList.add('meeting-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
+    mediaBtn.style.display = 'flex'; 
+    musicBtn.style.display = 'none'; /* إخفاء الموسيقى */
     meetingGridContainer.style.display = 'block'; 
     voiceSelect.style.display = 'inline-block'; 
     $('extraControls').style.display = 'flex';
@@ -1001,8 +1000,6 @@ $('joinMeetingBtn').addEventListener('click', () => {
     connectWebSocket(code);
     connectLiveKit(code, name);
 });
-
-leaveMeetingBtn.addEventListener('click', () => { backBtn.click(); });
 
 $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
