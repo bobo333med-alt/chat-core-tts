@@ -480,6 +480,17 @@ function cleanTextForTTS(text) {
     .trim();
 }
 
+// تنظيف الهلوة والكلمات المكررة
+function removeRepeatedWords(text) {
+  if (!text) return "";
+  let cleaned = text;
+  // إزالة الكلمات المتكررة بدون فواصل "hello hello"
+  cleaned = cleaned.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
+  // إزالة الكلمات المتكررة مع الفواصل "fruits, fruits, fruits"
+  cleaned = cleaned.replace(/\b(\w+)[,.]?\s+\1\b/gi, '$1');
+  return cleaned.trim();
+}
+
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -613,7 +624,14 @@ toggleCamBtn.addEventListener('click', async () => {
         ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
         : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
     if (localStream) { const videoTrack = localStream.getVideoTracks()[0]; if (videoTrack) videoTrack.enabled = isCameraOn; }
-    if (livekitRoom) { try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); } }
+    if (livekitRoom) { 
+        try { 
+            await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); 
+        } catch (e) { 
+            console.warn(e); 
+            if (isCameraOn) addMsg("⚠️ تعذر تشغيل الكاميرا. قد تكون مستخدمة من تطبيق آخر.", "bot");
+        } 
+    }
 });
 
 function handleTrackSubscribed(track, publication, participant) {
@@ -659,8 +677,18 @@ async function connectLiveKit(roomCode, participantName) {
         
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ Connected to Meeting");
-            try { await livekitRoom.localParticipant.setCameraEnabled(true); await livekitRoom.localParticipant.setMicrophoneEnabled(true); } 
-            catch (err) { console.warn("Camera/Mic permission denied.", err); addMsg("⚠️ يرجى السماح بالوصول للكاميرا والمايك.", 'bot'); }
+            try { 
+                // استخدام getUserMedia كخطوة أولى لضمان طلب صلاحية الكاميرا من المتصفح
+                const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                testStream.getTracks().forEach(t => t.stop());
+                
+                await livekitRoom.localParticipant.setCameraEnabled(true); 
+                await livekitRoom.localParticipant.setMicrophoneEnabled(true); 
+            } 
+            catch (err) { 
+                console.warn("Camera/Mic permission denied.", err); 
+                addMsg("⚠️ الكاميرا لا تعمل. يرجى التأكد من السماح بالوصول أو إغلاق التطبيقات الأخرى التي تستخدم الكاميرا.", 'bot'); 
+            }
             try { await livekitRoom.startAudio(); } catch(e) {}
         });
 
@@ -945,7 +973,8 @@ if (SR) {
   recognition.interimResults = true; 
 
   const processVoice = (text) => {
-    const clean = text.trim();
+    // استخدام دالة التنظيف لمنع الهلوة
+    const clean = removeRepeatedWords(text).trim();
     if (!clean) return;
 
     const now = Date.now();
@@ -1058,7 +1087,7 @@ sendBtn.addEventListener('click', () => {
 
 function buildSystemPrompt(targetLang, sourceLang) {
   if (isTranslatorMode) {
-    return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. If the user repeats the same word or phrase consecutively (e.g., "hello hello"), translate it naturally as if spoken once. Output ONLY the translated text. DO NOT add conversational words, explanations, or quotes.`;
+    return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. If the input contains repeated words or stuttering (e.g., "fruits fruits fruits" or "hello hello"), ignore the repetition and translate the meaning only once. Output ONLY the translated text. DO NOT add conversational words, explanations, or quotes.`;
   }
   return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}. DO NOT use markdown or bold text like **.`;
 }
