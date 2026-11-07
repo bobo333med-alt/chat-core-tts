@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl"> 
+<html lang="ar" dir="rtl" id="htmlRoot"> 
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,17 +14,22 @@
   body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
   
   /* Auth Screen Styles */
-  #authOverlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; }
-  .auth-box { background: #1e293b; padding: 30px; border-radius: 15px; width: 100%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; }
+  #authOverlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; }
+  .auth-lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 5px; }
+  .lang-btn { background: #334155; border: 1px solid #475569; color: #fff; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
+  .lang-btn.active { background: #0ea5e9; border-color: #0ea5e9; }
+  
+  .auth-box { background: #1e293b; padding: 30px; border-radius: 15px; width: 100%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; margin: auto; }
   .auth-box h2 { color: #0ea5e9; margin-bottom: 20px; font-size: 24px; }
   .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; outline: none; font-size: 14px; }
-  .auth-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #10b981; color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; }
+  .auth-input:focus { border-color: #0ea5e9; }
+  .auth-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #10b981; color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 14px;}
   .auth-btn:hover { background: #059669; }
   .auth-btn.outline { background: transparent; border: 1px solid #6366f1; color: #6366f1; }
   .auth-btn.outline:hover { background: #6366f1; color: #fff; }
-  .social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #334155; color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; }
+  .social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #334155; color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 14px; }
   .social-btn:hover { background: #475569; }
-  #authError { color: #ef4444; font-size: 12px; margin-bottom: 10px; min-height: 18px; }
+  #authError { color: #ef4444; font-size: 12px; margin-bottom: 10px; min-height: 18px; word-wrap: break-word; }
   .divider { display: flex; align-items: center; margin: 15px 0; color: #64748b; font-size: 12px; }
   .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid #334155; margin: 0 10px; }
 
@@ -34,7 +39,7 @@
   #userProfile span { font-size: 12px; color: #fff; font-weight: bold; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #logoutBtn { background: #ef4444; border: none; color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 10px; cursor: pointer; }
 
-  /* Existing Styles (Trimmed for brevity but intact in functionality) */
+  /* Existing Styles */
   .top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
   .user-section { display: flex; align-items: center; gap: 4px; }
@@ -144,21 +149,28 @@
 
 <!-- Auth Screen Overlay -->
 <div id="authOverlay">
+  <div class="auth-lang-switch">
+    <button class="lang-btn active" onclick="changeAuthLang('ar')">AR</button>
+    <button class="lang-btn" onclick="changeAuthLang('fr')">FR</button>
+    <button class="lang-btn" onclick="changeAuthLang('en')">EN</button>
+  </div>
+  
   <div class="auth-box">
     <h1 style="color:#0ea5e9; margin-bottom:10px;">🌐 Chat-Core</h1>
     <h2 id="authTitle">تسجيل الدخول</h2>
     <div id="authError"></div>
+    
     <input type="email" id="authEmail" class="auth-input" placeholder="البريد الإلكتروني">
     <input type="password" id="authPassword" class="auth-input" placeholder="كلمة المرور">
     
     <button id="authSubmitBtn" class="auth-btn" onclick="handleEmailAuth()">دخول</button>
     <button id="authToggleBtn" class="auth-btn outline" onclick="toggleAuthMode()">إنشاء حساب جديد</button>
     
-    <div class="divider">أو</div>
+    <div class="divider" id="authDivider">أو</div>
     
-    <button class="social-btn" onclick="loginWithGoogle()">🌐 تسجيل الدخول بواسطة Google</button>
-    <button class="social-btn" onclick="loginWithGithub()">🐙 تسجيل الدخول بواسطة GitHub</button>
-    <button class="social-btn" onclick="loginWithTwitter()">🐦 تسجيل الدخول بواسطة X</button>
+    <button class="social-btn" onclick="loginWithGoogle()" id="btnAuthGoogle">🌐 Google</button>
+    <button class="social-btn" onclick="loginWithGithub()" id="btnAuthGithub">🐙 GitHub</button>
+    <button class="social-btn" onclick="loginWithTwitter()" id="btnAuthTwitter">🐦 X</button>
   </div>
 </div>
 
@@ -344,18 +356,67 @@ const firebaseConfig = {
   measurementId: "G-DHB0S6TW96"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
 let isLoginMode = true;
 let currentUser = null;
+let currentAuthLang = 'ar';
+
+const AUTH_TRANS = {
+    'ar': {
+        loginTitle: 'تسجيل الدخول', registerTitle: 'إنشاء حساب جديد',
+        email: 'البريد الإلكتروني', pass: 'كلمة المرور',
+        btnLogin: 'دخول', btnRegister: 'تسجيل',
+        toggleToReg: 'إنشاء حساب جديد', toggleToLogin: 'لديك حساب بالفعل؟ سجل دخولك',
+        or: 'أو', google: 'تسجيل الدخول بواسطة Google', github: 'تسجيل الدخول بواسطة GitHub', twitter: 'تسجيل الدخول بواسطة X'
+    },
+    'fr': {
+        loginTitle: 'Connexion', registerTitle: 'Créer un compte',
+        email: 'Adresse e-mail', pass: 'Mot de passe',
+        btnLogin: 'Se connecter', btnRegister: "S'inscrire",
+        toggleToReg: 'Créer un compte', toggleToLogin: 'Déjà un compte ? Connectez-vous',
+        or: 'Ou', google: 'Continuer avec Google', github: 'Continuer avec GitHub', twitter: 'Continuer avec X'
+    },
+    'en': {
+        loginTitle: 'Login', registerTitle: 'Create Account',
+        email: 'Email Address', pass: 'Password',
+        btnLogin: 'Login', btnRegister: 'Register',
+        toggleToReg: 'Create Account', toggleToLogin: 'Already have an account? Login',
+        or: 'Or', google: 'Continue with Google', github: 'Continue with GitHub', twitter: 'Continue with X'
+    }
+};
+
+function changeAuthLang(lang) {
+    currentAuthLang = lang;
+    localStorage.setItem('authLang', lang);
+    
+    // Update UI direction
+    const htmlRoot = document.getElementById('htmlRoot');
+    htmlRoot.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    htmlRoot.setAttribute('lang', lang);
+    
+    // Update active button
+    document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+    // Find the button that matches the lang (case insensitive logic for text)
+    Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase()).classList.add('active');
+
+    // Update texts
+    const t = AUTH_TRANS[lang];
+    document.getElementById('authTitle').textContent = isLoginMode ? t.loginTitle : t.registerTitle;
+    document.getElementById('authEmail').placeholder = t.email;
+    document.getElementById('authPassword').placeholder = t.pass;
+    document.getElementById('authSubmitBtn').textContent = isLoginMode ? t.btnLogin : t.btnRegister;
+    document.getElementById('authToggleBtn').textContent = isLoginMode ? t.toggleToReg : t.toggleToLogin;
+    document.getElementById('authDivider').textContent = t.or;
+    document.getElementById('btnAuthGoogle').textContent = '🌐 ' + t.google;
+    document.getElementById('btnAuthGithub').textContent = '🐙 ' + t.github;
+    document.getElementById('btnAuthTwitter').textContent = '🐦 ' + t.twitter;
+}
 
 function toggleAuthMode() {
     isLoginMode = !isLoginMode;
-    document.getElementById('authTitle').textContent = isLoginMode ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
-    document.getElementById('authSubmitBtn').textContent = isLoginMode ? 'دخول' : 'تسجيل';
-    document.getElementById('authToggleBtn').textContent = isLoginMode ? 'إنشاء حساب جديد' : 'لديك حساب بالفعل؟ سجل دخولك';
+    changeAuthLang(currentAuthLang); // Just refresh texts based on mode
     document.getElementById('authError').textContent = '';
 }
 
@@ -366,7 +427,7 @@ function showAuthError(msg) {
 function handleEmailAuth() {
     const email = document.getElementById('authEmail').value;
     const password = document.getElementById('authPassword').value;
-    if(!email || !password) return showAuthError("يرجى إدخال البريد وكلمة المرور");
+    if(!email || !password) return showAuthError("Please fill all fields");
     
     showAuthError("");
     document.getElementById('authSubmitBtn').textContent = "...";
@@ -374,34 +435,45 @@ function handleEmailAuth() {
     if(isLoginMode) {
         auth.signInWithEmailAndPassword(email, password).catch(err => {
             showAuthError(err.message);
-            document.getElementById('authSubmitBtn').textContent = 'دخول';
+            changeAuthLang(currentAuthLang); // reset btn text
         });
     } else {
         auth.createUserWithEmailAndPassword(email, password).catch(err => {
             showAuthError(err.message);
-            document.getElementById('authSubmitBtn').textContent = 'تسجيل';
+            changeAuthLang(currentAuthLang); // reset btn text
         });
     }
 }
 
+// Use Redirect instead of Popup for better mobile compatibility
 function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(err => showAuthError(err.message));
+    auth.signInWithRedirect(provider).catch(err => showAuthError(err.message));
 }
 
 function loginWithGithub() {
     const provider = new firebase.auth.GithubAuthProvider();
-    auth.signInWithPopup(provider).catch(err => showAuthError("تأكد من إعداد GitHub في Firebase Console: " + err.message));
+    auth.signInWithRedirect(provider).catch(err => showAuthError(err.message));
 }
 
 function loginWithTwitter() {
     const provider = new firebase.auth.TwitterAuthProvider();
-    auth.signInWithPopup(provider).catch(err => showAuthError("تأكد من إعداد X/Twitter في Firebase Console: " + err.message));
+    auth.signInWithRedirect(provider).catch(err => showAuthError(err.message));
 }
 
 function logoutUser() {
     auth.signOut().then(() => { location.reload(); });
 }
+
+// Check for redirect result on load
+auth.getRedirectResult().then((result) => {
+    if (result.credential) {
+        // User signed in successfully via redirect
+        console.log("Logged in via redirect");
+    }
+}).catch((error) => {
+    showAuthError(error.message);
+});
 
 // Auth State Listener
 auth.onAuthStateChanged(user => {
@@ -415,15 +487,10 @@ auth.onAuthStateChanged(user => {
         landingOverlay.style.display = 'flex';
         userProfile.style.display = 'flex';
         
-        // Set user info in widget
         document.getElementById('userName').textContent = user.displayName || user.email.split('@')[0];
-        if (user.photoURL) {
-            document.getElementById('userAvatar').src = user.photoURL;
-        } else {
-            document.getElementById('userAvatar').src = "https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg";
-        }
+        if (user.photoURL) { document.getElementById('userAvatar').src = user.photoURL; } 
+        else { document.getElementById('userAvatar').src = "https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg"; }
         
-        // Auto-fill name in inputs
         document.getElementById('playerName').value = user.displayName || user.email.split('@')[0];
         document.getElementById('meetPlayerName').value = user.displayName || user.email.split('@')[0];
         
@@ -434,6 +501,11 @@ auth.onAuthStateChanged(user => {
         userProfile.style.display = 'none';
     }
 });
+
+// Initialize Auth Language on load
+const savedLang = localStorage.getItem('authLang') || 'ar';
+changeAuthLang(savedLang);
+
 
 // ==========================================
 // App Logic (Same as before)
@@ -483,7 +555,6 @@ let isProcessingAudio = false;
 let lastSentText = "";
 let lastSentTime = 0;
 
-// UI Elements show/hide logic
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 
 function showAppUI() {
@@ -491,7 +562,6 @@ function showAppUI() {
         const el = document.getElementById(id);
         if(el) el.style.display = (id === 'inputRow' || id === 'chatContainer' || id === 'topHeader' || id === 'extraControls' || id === 'avatar-wrap') ? 'flex' : 'block';
     });
-    // Fix specific flex displays
     document.getElementById('inputRow').style.display = 'flex';
     document.getElementById('topHeader').style.display = 'flex';
     document.getElementById('extraControls').style.display = 'flex';
@@ -499,7 +569,6 @@ function showAppUI() {
     document.getElementById('chatContainer').style.display = 'flex';
 }
 
-// --- ترجمة الواجهة الديناميكية ---
 const UI_TEXT = {
     'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', createMeet: '➕ إنشاء اجتماع', or: 'أو', code: 'كود الغرفة', codeMeet: 'كود الاجتماع', join: 'انضمام', back: '← رجوع' },
     'fr': { name: 'Votre Nom', create: '➕ Créer un salon', createMeet: '➕ Créer une réunion', or: 'Ou', code: 'Code du salon', codeMeet: 'Code de réunion', join: 'Rejoindre', back: '← Retour' },
@@ -534,7 +603,6 @@ function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCod
 resetStatus();
 
 function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
-
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function addMsg(text, className, lang, imageBase64 = null) {
