@@ -265,7 +265,6 @@
   .join-form input:focus { border-color: #0ea5e9; }
   .join-form button { padding: 12px; border-radius: 8px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 14px; }
   
-  /* توحيد ألوان أزرار Meeting Room مع Remote Mode */
   #createRoomBtn, #createMeetingBtn { background: #10b981; }
   #joinRoomBtn, #joinMeetingBtn { background: #6366f1; }
   #joinRow { display: flex; gap: 8px; }
@@ -287,7 +286,6 @@
   <button class="mode-btn" id="btnMeeting"><span class="plus-icon">+</span> Meeting Room</button>
 </div>
 
-<!-- شاشة الغرف (نصوص ديناميكية) -->
 <div class="overlay" id="remoteJoinOverlay" style="display:none;">
   <h2>💬 Remote Mode</h2>
   <div class="join-form">
@@ -318,7 +316,6 @@
   </div>
 </div>
 
-<!-- شاشة الاجتماعات (Meeting Room) -->
 <div class="overlay" id="meetingJoinOverlay" style="display:none;">
   <h2><span style="font-size:24px; font-weight:bold;">+</span> Meeting Room</h2>
   <div class="join-form">
@@ -397,7 +394,6 @@
     <button id="backBtn" class="btn-back">Back</button>
 </div>
 
-<!-- P2P Video Container (For Remote Mode) -->
 <div id="videoContainer">
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
@@ -405,7 +401,6 @@
   <button id="closeVideoFullscreen" title="إغلاق"><div class="inner-white-dot"></div></button>
 </div>
 
-<!-- LiveKit Meeting Container -->
 <div id="meetingGridContainer">
   <div id="videoGrid"></div>
 </div>
@@ -477,7 +472,6 @@ const TOKEN_URL = "https://vibe-core-0m1r.onrender.com/get-token";
 const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
 const WS_BASE = SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://').replace('/chat', '');
 const REQUEST_TIMEOUT_MS = 90000;
-const HISTORY_LIMIT = 12;
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
 const $ = id => document.getElementById(id);
@@ -497,7 +491,7 @@ const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), re
 const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid');
 
 let appMode = 'none';
-let chatHistory = [], isTranslatorMode = true, activeSpeaker = null, isRecording = false, isSending = false, isCompressing = false;
+let chatHistory = [], isTranslatorMode = true, activeSpeaker = null, isSending = false, isCompressing = false;
 let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
@@ -506,7 +500,14 @@ let isLocked = false;
 let iceCandidatesQueue = []; 
 let isCameraOn = true;
 
+// LiveKit Variables
 let livekitRoom = null;
+
+// Mic Variables
+let isMicIntendedOn = false;
+let isRecording = false;
+let silenceTimer = null;
+let finalTranscriptBuffer = "";
 
 // --- ترجمة الواجهة الديناميكية ---
 const UI_TEXT = {
@@ -654,9 +655,7 @@ function setModeUI(mode) {
   if (mode === 'local') {
     document.body.classList.remove('remote-mode', 'meeting-mode');
     topHeader.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; 
-    musicBtn.style.display = 'flex'; 
-    translateModeBtn.style.display = 'inline-block';
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
     uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
     avatarWrap.style.display = 'flex';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
@@ -700,8 +699,9 @@ remoteLockBtn.addEventListener('click', () => {
     if (appMode === 'meeting') $('meetingGridContainer').classList.add('locked-ui');
     stopAudio();
     if (isRecording) {
+        isMicIntendedOn = false;
         isRecording = false;
-        recognition.stop();
+        try { recognition.stop(); } catch(e){}
         unlockMics();
     }
     setStatus('App is locked 🔒');
@@ -719,6 +719,13 @@ remoteLockBtn.addEventListener('click', () => {
 });
 
 backBtn.addEventListener('click', async () => {
+  if (isMicIntendedOn) {
+      isMicIntendedOn = false;
+      isRecording = false;
+      try { recognition.stop(); } catch(e){}
+  }
+  stopAudio();
+
   if (appMode === 'remote' || appMode === 'meeting') {
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
     stopPing(); if (ws) ws.close();
@@ -747,7 +754,7 @@ backBtn.addEventListener('click', async () => {
         $('meetingGridContainer').classList.remove('locked-ui');
     }
   } else {
-    chatEl.innerHTML = ''; chatHistory = []; stopAudio();
+    chatEl.innerHTML = ''; chatHistory = [];
     appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex';
     $('landingOverlay').style.display = 'flex';
   }
@@ -794,8 +801,9 @@ clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = 
 stopAudioBtn.addEventListener('click', () => { 
     stopAudio(); 
     if (isRecording) { 
+        isMicIntendedOn = false;
         isRecording = false; 
-        recognition.stop(); 
+        try { recognition.stop(); } catch(e){}
         unlockMics();
     } 
 });
@@ -1156,6 +1164,7 @@ function setAvatarState(playing) {
 function unlockMics() {
   activeSpeaker = null;
   isRecording = false;
+  isMicIntendedOn = false;
   micA.disabled = false; micB.disabled = false; 
   if (remoteMicBtn) remoteMicBtn.disabled = false;
   if (floatingMicBtn) floatingMicBtn.disabled = false;
@@ -1178,27 +1187,41 @@ function stopAudio() {
 async function speak(text, lang) {
   if (isLocked) return; 
   
+  stopAudio(); isBotTalking = true;
+
+  // Pause mic if recording
   if (isRecording) {
     try { recognition.stop(); } catch(e){}
-    isRecording = false; // To prevent auto restart
-    unlockMics();
+    isRecording = false;
   }
 
   const cleanText = cleanTextForTTS(text);
-  if (!cleanText) { unlockMics(); return; }
+  if (!cleanText) { 
+      isBotTalking = false;
+      if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} }
+      else unlockMics(); 
+      return; 
+  }
 
-  stopAudio(); isBotTalking = true;
   const myId = ++currentSpeechId; setStatus('Speaking...');
   setAvatarState(true);
   
+  const resumeMic = () => {
+      isBotTalking = false; setAvatarState(false);
+      if (isMicIntendedOn) {
+          isRecording = true;
+          try { recognition.start(); } catch(e){}
+      } else {
+          unlockMics();
+      }
+  };
+
   try {
     const res = await fetch(TTS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: cleanText, lang, voice: voiceSelect.value, session_id: SESSION_ID }) });
     if (res.ok) {
       const blob = await res.blob(); if (myId !== currentSpeechId) return;
       currentAudio = new Audio(URL.createObjectURL(blob));
-      currentAudio.onended = () => { 
-        isBotTalking = false; setAvatarState(false); unlockMics(); 
-      };
+      currentAudio.onended = resumeMic;
       currentAudio.onerror = () => { speakBrowser(cleanText, lang, myId); };
       await currentAudio.play(); return;
     }
@@ -1220,12 +1243,16 @@ function speakBrowser(text, lang, myId) {
 
   u.onend = () => { 
     if (myId === currentSpeechId) { 
-      isBotTalking = false; setAvatarState(false); unlockMics(); 
+      isBotTalking = false; setAvatarState(false); 
+      if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} }
+      else unlockMics(); 
     } 
   };
   u.onerror = () => { 
     if (myId === currentSpeechId) { 
-      isBotTalking = false; setAvatarState(false); unlockMics(); 
+      isBotTalking = false; setAvatarState(false); 
+      if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} }
+      else unlockMics(); 
     } 
   };
   speechSynthesis.speak(u);
@@ -1289,8 +1316,6 @@ async function startVideoCall(isCaller = false) {
 // --- Speech Recognition (Open Mic & Continuous) ---
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
-let silenceTimer = null;
-let finalTranscriptBuffer = "";
 
 if (SR) {
   recognition = new SR();
@@ -1319,27 +1344,29 @@ if (SR) {
       }
     }
     
-    // Update status UI with current speech
-    setStatus(`🎤 Listening... ${finalTranscriptBuffer}${interim}`.slice(-40));
+    setStatus(`🎤 Listening... ${finalTranscriptBuffer.slice(-30)}${interim}`);
 
-    // Debounce: Wait for silence before sending
     clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
       if (finalTranscriptBuffer.trim()) {
-        processVoice(finalTranscriptBuffer.trim());
-        finalTranscriptBuffer = "";
+        const textToSend = finalTranscriptBuffer.trim();
+        finalTranscriptBuffer = ""; 
+        
+        // Flush internal browser buffer to prevent duplication hallucination
+        if (isMicIntendedOn) {
+            try { recognition.stop(); } catch(e){} 
+        }
+
+        processVoice(textToSend);
         resetStatus();
       }
-    }, 2000); // 2 seconds of silence triggers the send
+    }, 2500); 
   };
 
   recognition.onerror = (e) => {
-    if (e.error === 'no-speech') {
-      // Ignore, auto-restart in onend
-      return;
-    }
+    if (e.error === 'no-speech') return;
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        isRecording = false;
+        isMicIntendedOn = false;
         unlockMics();
         setStatus('Mic permission denied.');
         return;
@@ -1348,10 +1375,9 @@ if (SR) {
   };
 
   recognition.onend = () => {
-    if (isRecording) {
-        // Automatically restart if the browser killed it while we're supposed to be recording
+    if (isMicIntendedOn && !isBotTalking) {
         try { recognition.start(); } catch(e) {} 
-    } else {
+    } else if (!isMicIntendedOn) {
         unlockMics();
     }
   };
@@ -1360,11 +1386,12 @@ if (SR) {
     if (isLocked) return;
     unlockAudio();
     
-    if (isRecording && activeSpeaker === speaker) {
-        // Toggle OFF manually
+    if (isMicIntendedOn && activeSpeaker === speaker) {
+        // Turn OFF manually
+        isMicIntendedOn = false;
         isRecording = false;
         clearTimeout(silenceTimer);
-        recognition.stop();
+        try { recognition.stop(); } catch(e){}
         if (finalTranscriptBuffer.trim()) {
             processVoice(finalTranscriptBuffer.trim());
             finalTranscriptBuffer = "";
@@ -1373,14 +1400,15 @@ if (SR) {
         return;
     }
 
-    // Toggle ON
-    if (isRecording) {
-        recognition.stop();
+    // Turn ON
+    if (isMicIntendedOn) {
+        try { recognition.stop(); } catch(e){}
     }
     
     stopAudio(); 
     activeSpeaker = speaker;
     setAvatarState(true);
+    isMicIntendedOn = true;
     isRecording = true;
     finalTranscriptBuffer = "";
     
@@ -1419,7 +1447,7 @@ sendBtn.addEventListener('click', () => {
 
 function buildSystemPrompt(targetLang, sourceLang) {
   if (isTranslatorMode) {
-    return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT use markdown like ** or __. DO NOT reply in the source language.`;
+    return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, explanations, or quotes.`;
   }
   return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}. DO NOT use markdown or bold text like **.`;
 }
