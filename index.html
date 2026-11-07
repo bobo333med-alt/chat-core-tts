@@ -332,7 +332,7 @@ const ROOM_CREATE_URL = "https://vibe-core-0m1r.onrender.com/rooms/create";
 const TOKEN_URL = "https://vibe-core-0m1r.onrender.com/get-token";
 const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
 const WS_BASE = SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://').replace('/chat', '');
-const REQUEST_TIMEOUT_MS = 90000;
+const REQUEST_TIMEOUT_MS = 60000; // تم تقليل المهلة لـ 60 ثانية
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
 const $ = id => document.getElementById(id);
@@ -480,13 +480,10 @@ function cleanTextForTTS(text) {
     .trim();
 }
 
-// تنظيف الهلوة والكلمات المكررة
 function removeRepeatedWords(text) {
   if (!text) return "";
   let cleaned = text;
-  // إزالة الكلمات المتكررة بدون فواصل "hello hello"
   cleaned = cleaned.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
-  // إزالة الكلمات المتكررة مع الفواصل "fruits, fruits, fruits"
   cleaned = cleaned.replace(/\b(\w+)[,.]?\s+\1\b/gi, '$1');
   return cleaned.trim();
 }
@@ -623,7 +620,16 @@ toggleCamBtn.addEventListener('click', async () => {
     toggleCamBtn.innerHTML = isCameraOn 
         ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
         : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
-    if (localStream) { const videoTrack = localStream.getVideoTracks()[0]; if (videoTrack) videoTrack.enabled = isCameraOn; }
+    
+    // إغلاق/فتح كاميرا الغرف P2P
+    if (localStream) { 
+        const videoTrack = localStream.getVideoTracks()[0]; 
+        if (videoTrack) {
+            videoTrack.enabled = isCameraOn; 
+        }
+    }
+    
+    // إغلاق/فتح كاميرا الاجتماعات LiveKit
     if (livekitRoom) { 
         try { 
             await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); 
@@ -678,16 +684,13 @@ async function connectLiveKit(roomCode, participantName) {
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ Connected to Meeting");
             try { 
-                // استخدام getUserMedia كخطوة أولى لضمان طلب صلاحية الكاميرا من المتصفح
-                const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                testStream.getTracks().forEach(t => t.stop());
-                
+                // تفعيل الكاميرا والمايك مباشرة عبر LiveKit (هو من سيتعامل مع الصلاحيات)
                 await livekitRoom.localParticipant.setCameraEnabled(true); 
                 await livekitRoom.localParticipant.setMicrophoneEnabled(true); 
             } 
             catch (err) { 
                 console.warn("Camera/Mic permission denied.", err); 
-                addMsg("⚠️ الكاميرا لا تعمل. يرجى التأكد من السماح بالوصول أو إغلاق التطبيقات الأخرى التي تستخدم الكاميرا.", 'bot'); 
+                addMsg("⚠️ يرجى السماح بالوصول للكاميرا والمايك من إعدادات المتصفح.", 'bot'); 
             }
             try { await livekitRoom.startAudio(); } catch(e) {}
         });
@@ -973,7 +976,6 @@ if (SR) {
   recognition.interimResults = true; 
 
   const processVoice = (text) => {
-    // استخدام دالة التنظيف لمنع الهلوة
     const clean = removeRepeatedWords(text).trim();
     if (!clean) return;
 
@@ -1083,6 +1085,16 @@ sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim();
   if (appMode === 'remote' || appMode === 'meeting') { if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; } } 
   else { if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; } }
+});
+
+// إرسال الرسالة عند الضغط على زر Enter في الكيبورد
+inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault(); // منع إنشاء سطر جديد
+        if (!sendBtn.disabled) {
+            sendBtn.click();
+        }
+    }
 });
 
 function buildSystemPrompt(targetLang, sourceLang) {
