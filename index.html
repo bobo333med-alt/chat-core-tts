@@ -5,128 +5,111 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chat-Core - Translator</title>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
   body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
   
+  /* Auth Screen Styles */
+  #authOverlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; }
+  .auth-box { background: #1e293b; padding: 30px; border-radius: 15px; width: 100%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; }
+  .auth-box h2 { color: #0ea5e9; margin-bottom: 20px; font-size: 24px; }
+  .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; outline: none; font-size: 14px; }
+  .auth-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #10b981; color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; }
+  .auth-btn:hover { background: #059669; }
+  .auth-btn.outline { background: transparent; border: 1px solid #6366f1; color: #6366f1; }
+  .auth-btn.outline:hover { background: #6366f1; color: #fff; }
+  .social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #334155; color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; }
+  .social-btn:hover { background: #475569; }
+  #authError { color: #ef4444; font-size: 12px; margin-bottom: 10px; min-height: 18px; }
+  .divider { display: flex; align-items: center; margin: 15px 0; color: #64748b; font-size: 12px; }
+  .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid #334155; margin: 0 10px; }
+
+  /* User Profile Widget */
+  #userProfile { position: absolute; top: 10px; left: 10px; z-index: 10002; display: none; align-items: center; gap: 8px; background: #1e293b; padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+  #userProfile img { width: 24px; height: 24px; border-radius: 50%; }
+  #userProfile span { font-size: 12px; color: #fff; font-weight: bold; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #logoutBtn { background: #ef4444; border: none; color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 10px; cursor: pointer; }
+
+  /* Existing Styles (Trimmed for brevity but intact in functionality) */
   .top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
   .user-section { display: flex; align-items: center; gap: 4px; }
-  
-  .lang-select { padding: 0 2px; border-radius: 4px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 9px; font-family: Tahoma; outline: none; width: 75px !important; height: 24px; text-align: center; }
-  
+  .lang-select { padding: 0 2px; border-radius: 4px; background: #0f172a; color: #ffffff; border: 1px solid #334155; font-size: 9px; outline: none; width: 75px !important; height: 24px; text-align: center; }
   .mic-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
-  .mic-btn.blue { background: #6366f1; box-shadow: 0 0 8px rgba(99,102,241,0.5); }
-  .mic-btn.green { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
-  .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 12px rgba(239,68,68,0.8); }
-  .mic-btn:disabled { background: #475569 !important; opacity: 0.5; animation: none; }
+  .mic-btn.blue { background: #6366f1; } .mic-btn.green { background: #10b981; } .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; }
+  .mic-btn:disabled { background: #475569 !important; opacity: 0.5; }
   @keyframes pulse { 50% { transform: scale(1.1); } }
-
   .locked-ui { opacity: 0.4; pointer-events: none; filter: blur(1px); }
-
   #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
   #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); z-index: 1; transition: all 0.3s; }
   #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
   #avatar-video { display: none; }
-  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; background: #000; }
+  #avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; }
   #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
   #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
-  
-  #removeAvatarBtn { 
-    display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%);
-    width: 14px; height: 14px; border-radius: 50%; background: #000000; border: none; 
-    outline: none; box-shadow: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.9; 
-  }
-
-  #closeFullscreen, #closeVideoFullscreen { 
-    display: none; position: fixed; background: #e57373; border: none; outline: none; 
-    width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; 
-    align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  }
-  .inner-white-dot { width: 14px; height: 14px; background: #ffffff; border-radius: 50%; }
-  #closeFullscreen { top: 80px; right: 20px; }
-  #closeVideoFullscreen { top: 20px; right: 20px; }
-
-  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
+  #removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 14px; height: 14px; border-radius: 50%; background: #000; border: none; cursor: pointer; z-index: 10; }
+  #closeFullscreen, #closeVideoFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+  .inner-white-dot { width: 14px; height: 14px; background: #fff; border-radius: 50%; }
+  #closeFullscreen { top: 80px; right: 20px; } #closeVideoFullscreen { top: 20px; right: 20px; }
+  #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; pointer-events: auto; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; pointer-events: none; }
-  
   body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100vw; z-index: 99999; margin: 0; border-radius: 0; }
   body.video-maximized #remoteVideo { object-fit: cover; }
   body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
   body.video-maximized #closeVideoFullscreen { display: flex; }
   body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
-
   #meetingGridContainer { display: none; position: relative; width: 100%; flex: 1; background: #0f172a; border-radius: 12px; padding: 10px; overflow-y: auto; margin-bottom: 10px; }
   #videoGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-content: start; }
   .participant-box { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; border: 2px solid #334155; }
   .participant-box video { width: 100%; height: 100%; object-fit: cover; }
   .participant-name { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #fff; z-index: 2; }
   body.meeting-mode .chat-container { max-height: 35vh; }
-
-  #floatingMicBtn {
-    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%;
-    background: #10b981; color: white; display: none; align-items: center; justify-content: center; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100000; border: none; cursor: pointer; transition: all 0.3s;
-  }
+  #floatingMicBtn { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%; background: #10b981; color: white; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100000; border: none; cursor: pointer; transition: all 0.3s; }
   #floatingMicBtn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; }
   body.video-maximized #floatingMicBtn { display: flex; }
-
   .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
   #chat { flex: 1; background: #1e293b; border-radius: 12px; padding: 12px; overflow-y: auto; }
   .msg { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; }
   .msg:active { opacity: 0.7; }
-  
   .user-a { background: #4f46e5; margin-right: auto; border-bottom-right-radius: 4px; } 
   .user-b { background: #10b981; margin-left: auto; border-bottom-left-radius: 4px; color: #000;} 
   .bot { background: #334155; margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px; cursor: default; }
-  .bot:active { opacity: 1; }
-  
   .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
-  
   #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
   #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
-
   #imagePreviewContainer { display: none; position: absolute; bottom: 50px; right: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
   #imagePreview { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; }
   #cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-
   .row { display: flex; gap: 6px; align-items: center; flex-shrink: 0; position: relative; }
   input[type=text] { flex: 1; padding: 10px; padding-left: 35px; border-radius: 24px; border: 1px solid #1e293b; background: #ffffff; color: #000; font-size: 14px; order: 3; }
-  
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   #musicBtn { background: #ffffff; color: #000000; order: 1; font-size: 16px; }
   #mediaBtn { background: #1d4ed8; color: #ffffff; order: 2; font-size: 22px; width: 32px; height: 32px; padding-bottom: 2px; font-weight: normal; }
-  
   #remoteMicBtn { background: #10b981; color: #fff; order: 2; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4); display: none; transition: all 0.3s ease; }
   #remoteMicBtn.recording { background: #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.8); animation: pulse 1s infinite; }
-  
   #toggleCamBtn { background: #475569; color: #fff; order: 2; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); display: none; border: none; cursor: pointer; transition: all 0.3s ease; }
   #toggleCamBtn.off { background: #ef4444; }
-
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
-  
   #stopAudioBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; outline: none; }
   #stopAudioBtn svg { fill: #2d3748; width: 14px; height: 14px; }
-
   #status { text-align: center; font-size: 12px; color: #0f172a; margin-top: 6px; min-height: 18px; font-weight: bold; }
-  
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; align-items: center; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
   .extra-controls button.active { background: #eab308; color: #000; }
   .btn-back { background: #e57373 !important; color: white !important; }
-
   body.remote-mode #extraControls, body.meeting-mode #extraControls { justify-content: space-between; padding: 0 10px; }
   body.remote-mode #voiceSelect, body.meeting-mode #voiceSelect { width: 48% !important; max-width: 200px; height: 38px !important; text-align: center; }
   body.remote-mode #backBtn, body.meeting-mode #backBtn { width: 48% !important; max-width: 200px; height: 32px !important; display: flex; align-items: center; justify-content: center; }
-
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-  
   #musicMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; z-index: 2000; width: 200px; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
   #musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #94a3b8; }
   .music-item { padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-bottom: 4px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; }
@@ -135,22 +118,17 @@
   .music-item.add-more { background: #22c55e; } .music-item.stop-btn { background: #991b1b; margin-bottom: 6px; } .music-item.pause-btn { background: #475569; margin-bottom: 6px; }
   .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
   .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 14px; }
-
   #remoteBar { display: none; background: #1e293b; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   #remoteBar .room-info { display: flex; align-items: center; gap: 8px; }
   #remoteBar strong { color: #fbbf24; letter-spacing: 2px; font-size: 14px; }
   #copyRoomBtn { background: #6366f1; color: #fff; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold; }
   #remoteLockBtn { background: #ef4444; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; outline: none; }
-
   .overlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
   .overlay h1 { font-size: 28px; color: #0ea5e9; margin-bottom: 10px; }
   .overlay h2 { font-size: 20px; color: #10b981; margin-bottom: 5px; }
   .overlay .mode-btn { padding: 15px 30px; font-size: 16px; border-radius: 12px; border: none; color: #fff; cursor: pointer; width: 260px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  #btnLocal { background: #6366f1; }
-  #btnRemote { background: #10b981; }
-  #btnMeeting { background: #1d4ed8; }
+  #btnLocal { background: #6366f1; } #btnRemote { background: #10b981; } #btnMeeting { background: #1d4ed8; }
   #btnMeeting .plus-icon { font-size: 24px; font-weight: bold; margin-bottom: 3px; }
-  
   .join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .join-form input, .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
   .join-form input:focus { border-color: #0ea5e9; }
@@ -164,11 +142,38 @@
 </head>
 <body>
 
+<!-- Auth Screen Overlay -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <h1 style="color:#0ea5e9; margin-bottom:10px;">🌐 Chat-Core</h1>
+    <h2 id="authTitle">تسجيل الدخول</h2>
+    <div id="authError"></div>
+    <input type="email" id="authEmail" class="auth-input" placeholder="البريد الإلكتروني">
+    <input type="password" id="authPassword" class="auth-input" placeholder="كلمة المرور">
+    
+    <button id="authSubmitBtn" class="auth-btn" onclick="handleEmailAuth()">دخول</button>
+    <button id="authToggleBtn" class="auth-btn outline" onclick="toggleAuthMode()">إنشاء حساب جديد</button>
+    
+    <div class="divider">أو</div>
+    
+    <button class="social-btn" onclick="loginWithGoogle()">🌐 تسجيل الدخول بواسطة Google</button>
+    <button class="social-btn" onclick="loginWithGithub()">🐙 تسجيل الدخول بواسطة GitHub</button>
+    <button class="social-btn" onclick="loginWithTwitter()">🐦 تسجيل الدخول بواسطة X</button>
+  </div>
+</div>
+
+<!-- User Profile Widget -->
+<div id="userProfile">
+  <img id="userAvatar" src="" alt="User">
+  <span id="userName">User</span>
+  <button id="logoutBtn" onclick="logoutUser()">خروج</button>
+</div>
+
 <button id="floatingMicBtn" title="Talk">
   <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
 </button>
 
-<div class="overlay" id="landingOverlay">
+<div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
   <p style="color:#94a3b8; font-size:13px; margin-bottom:10px;">اختر وضع التشغيل</p>
   <button class="mode-btn" id="btnLocal">🌐 Face-to-Face</button>
@@ -225,7 +230,7 @@
   <button id="remoteLockBtn">Lock</button>
 </div>
 
-<div class="top-header" id="topHeader">
+<div class="top-header" id="topHeader" style="display:none;">
   <div class="top-bar" id="topBar">
     <div class="user-section" id="friendSection">
       <span style="font-size:8px; color:#94a3b8;">Friend</span>
@@ -250,7 +255,7 @@
   </div>
 </div>
 
-<div class="extra-controls" id="extraControls">
+<div class="extra-controls" id="extraControls" style="display:none;">
     <button id="translateModeBtn" class="active">Translator Mode ON</button>
     <select id="voiceSelect">
       <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
@@ -270,7 +275,7 @@
   <div id="videoGrid"></div>
 </div>
 
-<div id="avatar-wrap">
+<div id="avatar-wrap" style="display:none;">
   <div id="avatar-container">
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
     <video id="avatar-video" autoplay loop muted playsinline></video>
@@ -279,7 +284,7 @@
   <button id="closeFullscreen" title="Close"><div class="inner-white-dot"></div></button>
 </div>
 
-<div class="chat-container" id="chatContainer">
+<div class="chat-container" id="chatContainer" style="display:none;">
   <div id="chat"></div>
   <button id="clearBtn" title="Clear Chat"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
 </div>
@@ -289,7 +294,7 @@
   <button id="cancelImageBtn">✕</button>
 </div>
 
-<div class="row" id="inputRow">
+<div class="row" id="inputRow" style="display:none;">
   <button class="btn" id="musicBtn" title="Music">🎵</button>
   <button class="btn" id="mediaBtn" title="Media">+</button>
   
@@ -308,7 +313,7 @@
 
   <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
 </div>
-<div id="status" class="status-text">Ready</div>
+<div id="status" class="status-text" style="display:none;">Ready</div>
 
 <div id="actionMenu">
   <button class="action-btn" id="menuCamera">📸 Camera</button>
@@ -326,13 +331,120 @@
 <script>
 'use strict';
 
+// ==========================================
+// Firebase Configuration & Auth Logic
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
+  authDomain: "chat-core-app.firebaseapp.com",
+  projectId: "chat-core-app",
+  storageBucket: "chat-core-app.firebasestorage.app",
+  messagingSenderId: "216958872856",
+  appId: "1:216958872856:web:f03d559611b327c91b426d",
+  measurementId: "G-DHB0S6TW96"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+let isLoginMode = true;
+let currentUser = null;
+
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    document.getElementById('authTitle').textContent = isLoginMode ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
+    document.getElementById('authSubmitBtn').textContent = isLoginMode ? 'دخول' : 'تسجيل';
+    document.getElementById('authToggleBtn').textContent = isLoginMode ? 'إنشاء حساب جديد' : 'لديك حساب بالفعل؟ سجل دخولك';
+    document.getElementById('authError').textContent = '';
+}
+
+function showAuthError(msg) {
+    document.getElementById('authError').textContent = msg;
+}
+
+function handleEmailAuth() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    if(!email || !password) return showAuthError("يرجى إدخال البريد وكلمة المرور");
+    
+    showAuthError("");
+    document.getElementById('authSubmitBtn').textContent = "...";
+
+    if(isLoginMode) {
+        auth.signInWithEmailAndPassword(email, password).catch(err => {
+            showAuthError(err.message);
+            document.getElementById('authSubmitBtn').textContent = 'دخول';
+        });
+    } else {
+        auth.createUserWithEmailAndPassword(email, password).catch(err => {
+            showAuthError(err.message);
+            document.getElementById('authSubmitBtn').textContent = 'تسجيل';
+        });
+    }
+}
+
+function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => showAuthError(err.message));
+}
+
+function loginWithGithub() {
+    const provider = new firebase.auth.GithubAuthProvider();
+    auth.signInWithPopup(provider).catch(err => showAuthError("تأكد من إعداد GitHub في Firebase Console: " + err.message));
+}
+
+function loginWithTwitter() {
+    const provider = new firebase.auth.TwitterAuthProvider();
+    auth.signInWithPopup(provider).catch(err => showAuthError("تأكد من إعداد X/Twitter في Firebase Console: " + err.message));
+}
+
+function logoutUser() {
+    auth.signOut().then(() => { location.reload(); });
+}
+
+// Auth State Listener
+auth.onAuthStateChanged(user => {
+    const authOverlay = document.getElementById('authOverlay');
+    const landingOverlay = document.getElementById('landingOverlay');
+    const userProfile = document.getElementById('userProfile');
+    
+    if (user) {
+        currentUser = user;
+        authOverlay.style.display = 'none';
+        landingOverlay.style.display = 'flex';
+        userProfile.style.display = 'flex';
+        
+        // Set user info in widget
+        document.getElementById('userName').textContent = user.displayName || user.email.split('@')[0];
+        if (user.photoURL) {
+            document.getElementById('userAvatar').src = user.photoURL;
+        } else {
+            document.getElementById('userAvatar').src = "https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg";
+        }
+        
+        // Auto-fill name in inputs
+        document.getElementById('playerName').value = user.displayName || user.email.split('@')[0];
+        document.getElementById('meetPlayerName').value = user.displayName || user.email.split('@')[0];
+        
+    } else {
+        currentUser = null;
+        authOverlay.style.display = 'flex';
+        landingOverlay.style.display = 'none';
+        userProfile.style.display = 'none';
+    }
+});
+
+// ==========================================
+// App Logic (Same as before)
+// ==========================================
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const TTS_URL = "https://vibe-core-0m1r.onrender.com/tts";
 const ROOM_CREATE_URL = "https://vibe-core-0m1r.onrender.com/rooms/create";
 const TOKEN_URL = "https://vibe-core-0m1r.onrender.com/get-token";
 const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
 const WS_BASE = SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://').replace('/chat', '');
-const REQUEST_TIMEOUT_MS = 60000; // تم تقليل المهلة لـ 60 ثانية
+const REQUEST_TIMEOUT_MS = 60000; 
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
 const $ = id => document.getElementById(id);
@@ -363,7 +475,6 @@ let isCameraOn = true;
 
 let livekitRoom = null;
 
-// Mic Variables
 let isMicIntendedOn = false;
 let isRecording = false;
 let silenceTimer = null;
@@ -371,6 +482,22 @@ let finalTranscriptBuffer = "";
 let isProcessingAudio = false;
 let lastSentText = "";
 let lastSentTime = 0;
+
+// UI Elements show/hide logic
+const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
+
+function showAppUI() {
+    UI_ELEMENTS.forEach(id => { 
+        const el = document.getElementById(id);
+        if(el) el.style.display = (id === 'inputRow' || id === 'chatContainer' || id === 'topHeader' || id === 'extraControls' || id === 'avatar-wrap') ? 'flex' : 'block';
+    });
+    // Fix specific flex displays
+    document.getElementById('inputRow').style.display = 'flex';
+    document.getElementById('topHeader').style.display = 'flex';
+    document.getElementById('extraControls').style.display = 'flex';
+    document.getElementById('avatar-wrap').style.display = 'flex';
+    document.getElementById('chatContainer').style.display = 'flex';
+}
 
 // --- ترجمة الواجهة الديناميكية ---
 const UI_TEXT = {
@@ -406,14 +533,9 @@ function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (appMode === 'meeting' ? `Meeting ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'))); }
 resetStatus();
 
-function setBusy(busy) {
-  isSending = busy;
-  sendBtn.disabled = busy || isCompressing;
-}
+function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function addMsg(text, className, lang, imageBase64 = null) {
   const div = document.createElement('div');
@@ -428,17 +550,8 @@ function addMsg(text, className, lang, imageBase64 = null) {
   
   if (imageBase64) {
       const img = document.createElement('img');
-      img.src = imageBase64;
-      img.style.maxWidth = '150px';
-      img.style.borderRadius = '8px';
-      img.style.display = 'block';
-      img.style.marginTop = '5px';
-      img.style.border = '2px solid #475569';
-      img.style.cursor = 'pointer';
-      img.onclick = (e) => {
-          e.stopPropagation();
-          window.open(imageBase64, '_blank');
-      };
+      img.src = imageBase64; img.style.maxWidth = '150px'; img.style.borderRadius = '8px'; img.style.display = 'block'; img.style.marginTop = '5px'; img.style.border = '2px solid #475569'; img.style.cursor = 'pointer';
+      img.onclick = (e) => { e.stopPropagation(); window.open(imageBase64, '_blank'); };
       div.appendChild(img);
   }
   
@@ -446,8 +559,7 @@ function addMsg(text, className, lang, imageBase64 = null) {
       div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
       div.addEventListener('click', () => {
           if (isLocked || isSending || appMode === 'remote' || appMode === 'meeting') return;
-          div.style.opacity = '0.5';
-          setTimeout(() => div.style.opacity = '1', 200);
+          div.style.opacity = '0.5'; setTimeout(() => div.style.opacity = '1', 200);
           speak(text, lang || langA.value);
       });
   }
@@ -463,8 +575,7 @@ function unlockAudio() {
 document.body.addEventListener('click', unlockAudio, { once: true });
 
 function fetchWithTimeout(url, options, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
@@ -473,11 +584,7 @@ function localeFor(code) { return { 'ar': 'ar-SA', 'en': 'en-US', 'fr': 'fr-FR',
 
 function cleanTextForTTS(text) {
   if (!text) return "";
-  return text
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '')
-    .replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ') 
-    .replace(/\s+/g, ' ')
-    .trim();
+  return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function removeRepeatedWords(text) {
@@ -490,11 +597,9 @@ function removeRepeatedWords(text) {
 
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
+    const img = new Image(); img.src = base64Str;
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width, height = img.height;
+      const canvas = document.createElement('canvas'); let width = img.width, height = img.height;
       if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
       canvas.width = width; canvas.height = height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
@@ -506,29 +611,29 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
 
 function setModeUI(mode) {
   appMode = mode;
-  
-  topHeader.style.display = 'none'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none'; toggleCamBtn.style.display = 'none';
+  UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
+  remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none'; toggleCamBtn.style.display = 'none';
   mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'none';
   uploadBtn.style.display = 'none'; voiceSelect.style.display = 'none';
-  videoContainer.style.display = 'none'; avatarWrap.style.display = 'none'; meetingGridContainer.style.display = 'none';
+  videoContainer.style.display = 'none'; meetingGridContainer.style.display = 'none';
   $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
-  $('extraControls').style.display = 'none';
 
   if (mode === 'local') {
     document.body.classList.remove('remote-mode', 'meeting-mode');
-    topHeader.style.display = 'flex'; mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
-    uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block'; avatarWrap.style.display = 'flex';
+    showAppUI();
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
+    uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
-    $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
     document.body.classList.remove('meeting-mode'); document.body.classList.add('remote-mode');
-    topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'none'; voiceSelect.style.display = 'inline-block'; $('extraControls').style.display = 'flex';
+    showAppUI();
+    remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
+    mediaBtn.style.display = 'flex'; voiceSelect.style.display = 'inline-block';
   } else if (mode === 'meeting') {
     document.body.classList.remove('remote-mode'); document.body.classList.add('meeting-mode');
-    topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'none'; meetingGridContainer.style.display = 'block'; 
-    voiceSelect.style.display = 'inline-block'; $('extraControls').style.display = 'flex';
+    showAppUI();
+    remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
+    mediaBtn.style.display = 'flex'; meetingGridContainer.style.display = 'block'; voiceSelect.style.display = 'inline-block';
   }
 }
 
@@ -541,8 +646,7 @@ $('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOv
 
 remoteLockBtn.addEventListener('click', () => {
   if (!isLocked) {
-    isLocked = true;
-    remoteLockBtn.textContent = 'Unlock';
+    isLocked = true; remoteLockBtn.textContent = 'Unlock';
     $('chatContainer').classList.add('locked-ui'); $('inputRow').classList.add('locked-ui'); $('topBar').classList.add('locked-ui'); $('extraControls').classList.add('locked-ui');
     if (appMode === 'remote') $('videoContainer').classList.add('locked-ui');
     if (appMode === 'meeting') $('meetingGridContainer').classList.add('locked-ui');
@@ -550,8 +654,7 @@ remoteLockBtn.addEventListener('click', () => {
     if (isRecording) { isMicIntendedOn = false; isRecording = false; try { recognition.stop(); } catch(e){} unlockMics(); }
     setStatus('App is locked 🔒');
   } else {
-    isLocked = false;
-    remoteLockBtn.textContent = 'Lock';
+    isLocked = false; remoteLockBtn.textContent = 'Lock';
     $('chatContainer').classList.remove('locked-ui'); $('inputRow').classList.remove('locked-ui'); $('topBar').classList.remove('locked-ui'); $('extraControls').classList.remove('locked-ui');
     $('videoContainer').classList.remove('locked-ui'); $('meetingGridContainer').classList.remove('locked-ui');
     resetStatus();
@@ -569,7 +672,8 @@ backBtn.addEventListener('click', async () => {
     if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
     
     iceCandidatesQueue = []; videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
-    videoGrid.innerHTML = ''; appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
+    videoGrid.innerHTML = ''; appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; 
+    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
     chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
     
     if (isLocked) {
@@ -577,7 +681,9 @@ backBtn.addEventListener('click', async () => {
         $('chatContainer').classList.remove('locked-ui'); $('inputRow').classList.remove('locked-ui'); $('topBar').classList.remove('locked-ui'); $('extraControls').classList.remove('locked-ui'); $('videoContainer').classList.remove('locked-ui'); $('meetingGridContainer').classList.remove('locked-ui');
     }
   } else {
-    chatEl.innerHTML = ''; chatHistory = []; appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex'; $('landingOverlay').style.display = 'flex';
+    chatEl.innerHTML = ''; chatHistory = []; appMode = 'none'; setModeUI('none'); 
+    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
+    $('landingOverlay').style.display = 'flex';
   }
 });
 
@@ -621,22 +727,14 @@ toggleCamBtn.addEventListener('click', async () => {
         ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
         : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
     
-    // إغلاق/فتح كاميرا الغرف P2P
     if (localStream) { 
         const videoTrack = localStream.getVideoTracks()[0]; 
-        if (videoTrack) {
-            videoTrack.enabled = isCameraOn; 
-        }
+        if (videoTrack) { videoTrack.enabled = isCameraOn; }
     }
     
-    // إغلاق/فتح كاميرا الاجتماعات LiveKit
     if (livekitRoom) { 
-        try { 
-            await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); 
-        } catch (e) { 
-            console.warn(e); 
-            if (isCameraOn) addMsg("⚠️ تعذر تشغيل الكاميرا. قد تكون مستخدمة من تطبيق آخر.", "bot");
-        } 
+        try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } 
+        catch (e) { console.warn(e); if (isCameraOn) addMsg("⚠️ تعذر تشغيل الكاميرا. قد تكون مستخدمة من تطبيق آخر.", "bot"); } 
     }
 });
 
@@ -684,7 +782,6 @@ async function connectLiveKit(roomCode, participantName) {
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ Connected to Meeting");
             try { 
-                // تفعيل الكاميرا والمايك مباشرة عبر LiveKit (هو من سيتعامل مع الصلاحيات)
                 await livekitRoom.localParticipant.setCameraEnabled(true); 
                 await livekitRoom.localParticipant.setMicrophoneEnabled(true); 
             } 
@@ -864,13 +961,9 @@ function stopAudio() {
 
 async function speak(text, lang) {
   if (isLocked) return; 
-  
   stopAudio(); isBotTalking = true;
 
-  if (isRecording) {
-    try { recognition.stop(); } catch(e){}
-    isRecording = false;
-  }
+  if (isRecording) { try { recognition.stop(); } catch(e){} isRecording = false; }
 
   const cleanText = cleanTextForTTS(text);
   if (!cleanText) { 
@@ -887,14 +980,9 @@ async function speak(text, lang) {
       isBotTalking = false; setAvatarState(false);
       if (isMicIntendedOn) {
           setTimeout(() => {
-              if (isMicIntendedOn && !isBotTalking) {
-                  isRecording = true;
-                  try { recognition.start(); } catch(e){}
-              }
+              if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} }
           }, 800); 
-      } else {
-          unlockMics();
-      }
+      } else { unlockMics(); }
   };
 
   try {
@@ -933,9 +1021,7 @@ function speakBrowser(text, lang, myId) {
       } 
   };
 
-  u.onend = resumeMic;
-  u.onerror = resumeMic;
-  speechSynthesis.speak(u);
+  u.onend = resumeMic; u.onerror = resumeMic; speechSynthesis.speak(u);
 }
 
 async function startVideoCall(isCaller = false) {
@@ -966,7 +1052,6 @@ async function startVideoCall(isCaller = false) {
   }
 }
 
-// --- Speech Recognition (Open Mic & Continuous) ---
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 
@@ -1004,15 +1089,12 @@ if (SR) {
         if (newPart) {
             let cleanBuffer = finalTranscriptBuffer.toLowerCase().replace(/[.,?!]/g, '').trim();
             let cleanNewPart = newPart.toLowerCase().replace(/[.,?!]/g, '').trim();
-            
             if (cleanNewPart.length > 0) {
                 if (cleanBuffer.endsWith(cleanNewPart) || finalTranscriptBuffer.includes(newPart + " ")) {
-                    // تجاهل التكرار
+                    // تجاهل
                 } else if (cleanNewPart.startsWith(cleanBuffer) && cleanBuffer.length > 0) {
-                    // استبدال الجملة القديمة بالجديدة الأطول
                     finalTranscriptBuffer = newPart + " ";
                 } else {
-                    // إضافة كلمة جديدة
                     finalTranscriptBuffer += newPart + " ";
                 }
             }
@@ -1029,8 +1111,7 @@ if (SR) {
       if (finalTranscriptBuffer.trim()) {
         const textToSend = finalTranscriptBuffer.trim();
         finalTranscriptBuffer = ""; 
-        isProcessingAudio = true; // قفل العملية لمنع التكرار
-        
+        isProcessingAudio = true; 
         try { recognition.stop(); } catch(e){} 
         processVoice(textToSend);
         resetStatus();
@@ -1047,12 +1128,8 @@ if (SR) {
   recognition.onend = () => {
     isProcessingAudio = false;
     if (isMicIntendedOn && !isBotTalking) {
-        setTimeout(() => {
-            if (isMicIntendedOn && !isBotTalking) { try { recognition.start(); } catch(e) {} }
-        }, 500); 
-    } else if (!isMicIntendedOn) {
-        unlockMics();
-    }
+        setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { try { recognition.start(); } catch(e) {} } }, 500); 
+    } else if (!isMicIntendedOn) { unlockMics(); }
   };
 
   const startMic = (speaker) => {
@@ -1087,14 +1164,8 @@ sendBtn.addEventListener('click', () => {
   else { if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; } }
 });
 
-// إرسال الرسالة عند الضغط على زر Enter في الكيبورد
 inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault(); // منع إنشاء سطر جديد
-        if (!sendBtn.disabled) {
-            sendBtn.click();
-        }
-    }
+    if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); }
 });
 
 function buildSystemPrompt(targetLang, sourceLang) {
