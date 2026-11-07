@@ -1,6 +1,6 @@
 import os
 import re
-import time 
+import time
 import asyncio
 import secrets
 import logging
@@ -46,10 +46,9 @@ class RoomManager:
     async def join(self, code, ws, name, lang):
         async with self.lock:
             if code not in self.rooms:
-                # Auto-create for meeting if not exists
                 self.rooms[code] = {"created_at": time.time(), "users": {}, "history": []}
                 
-            if len(self.rooms[code]["users"]) >= 50: # Increased limit for meetings
+            if len(self.rooms[code]["users"]) >= 50:
                 return False
             self.rooms[code]["users"][ws] = {"name": name, "lang": lang}
             return True
@@ -269,10 +268,17 @@ async def get_token_endpoint(req: MeetingTokenRequest):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         raise HTTPException(500, detail="LiveKit keys not configured")
     
+    # 🌟 إعطاء صلاحيات النشر والاشتراك (للكاميرا والمايك)
     token = api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET) \
         .with_identity(req.participant_name) \
         .with_name(req.participant_name) \
-        .with_grants(api.VideoGrants(room_join=True, room=req.room_name))
+        .with_grants(api.VideoGrants(
+            room_join=True, 
+            room=req.room_name,
+            can_publish=True,
+            can_subscribe=True,
+            can_publish_data=True
+        ))
     
     return {"token": token.to_jwt()}
 
@@ -357,7 +363,6 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
 async def ws_endpoint(websocket: WebSocket, room_code: str):
     room_code = room_code.upper().strip()
     if not re.match(r'^[A-Z0-9]{6}$', room_code) and not room_code.startswith("MTG"):
-        # Allow standard 6-char codes or "MTG" prefix
         if len(room_code) < 3:
             await websocket.close(code=4000)
             return
@@ -415,7 +420,6 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                     await room_manager.update_user_lang(room_code, websocket, my_lang)
                 continue
             elif mtype in ["rtc-offer", "rtc-answer", "rtc-ice"]:
-                # Only broadcast RTC signals if it's NOT a meeting room (LiveKit handles media)
                 if not room_code.startswith("MTG"):
                     await room_manager.broadcast(room_code, msg, exclude=websocket)
                 continue
