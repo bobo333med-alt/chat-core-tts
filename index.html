@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chat-Core - Translator</title>
+<!-- مكتبة LiveKit للفيديو الجماعي -->
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
@@ -33,12 +35,11 @@
   #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   
-  /* النقطة السوداء: تم إرجاعها بجانب الأفاتار في المنتصف الأيمن */
   #removeAvatarBtn { 
     display: none; 
     position: absolute; 
     top: 50%;
-    right: -15px; /* تحريكها للخارج حسب الخط الأحمر */
+    right: -15px; 
     transform: translateY(-50%);
     width: 14px; 
     height: 14px; 
@@ -53,8 +54,7 @@
     opacity: 0.9; 
   }
 
-  /* أزرار الإغلاق الجديدة (دائرة حمراء ونقطة بيضاء) */
-  #closeFullscreen, #closeVideoFullscreen { 
+  #closeFullscreen, #closeVideoFullscreen, #leaveMeetingBtn { 
     display: none; 
     position: fixed; 
     background: #e57373;
@@ -69,14 +69,10 @@
     justify-content: center; 
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   }
-  .inner-white-dot {
-    width: 14px;
-    height: 14px;
-    background: #ffffff;
-    border-radius: 50%;
-  }
+  .inner-white-dot { width: 14px; height: 14px; background: #ffffff; border-radius: 50%; }
   #closeFullscreen { top: 80px; right: 20px; }
   #closeVideoFullscreen { top: 20px; right: 20px; }
+  #leaveMeetingBtn { top: 20px; left: 20px; background: #ef4444; }
 
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
@@ -88,6 +84,53 @@
   body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
   body.video-maximized #closeVideoFullscreen { display: flex; }
   body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
+
+  /* LiveKit Meeting Grid */
+  #meetingGridContainer {
+    display: none;
+    position: relative;
+    width: 100%;
+    flex: 1;
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 10px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+  #videoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    align-content: start;
+  }
+  .participant-box {
+    position: relative;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #334155;
+  }
+  .participant-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .participant-name {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background: rgba(0,0,0,0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    color: #fff;
+    z-index: 2;
+  }
+  body.meeting-mode .chat-container { max-height: 35vh; } /* Smaller chat in meeting mode */
 
   #floatingMicBtn {
     position: fixed;
@@ -186,9 +229,9 @@
   
   .btn-back { background: #e57373 !important; color: white !important; }
 
-  body.remote-mode #extraControls { justify-content: space-between; padding: 0 10px; }
-  body.remote-mode #voiceSelect { width: 48% !important; max-width: 200px; height: 38px !important; text-align: center; }
-  body.remote-mode #backBtn { width: 48% !important; max-width: 200px; height: 32px !important; display: flex; align-items: center; justify-content: center; }
+  body.remote-mode #extraControls, body.meeting-mode #extraControls { justify-content: space-between; padding: 0 10px; }
+  body.remote-mode #voiceSelect, body.meeting-mode #voiceSelect { width: 48% !important; max-width: 200px; height: 38px !important; text-align: center; }
+  body.remote-mode #backBtn, body.meeting-mode #backBtn { width: 48% !important; max-width: 200px; height: 32px !important; display: flex; align-items: center; justify-content: center; }
 
   #actionMenu { display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .action-btn { padding: 8px 12px; border-radius: 8px; border: none; background: #0f172a; color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
@@ -208,12 +251,13 @@
   #copyRoomBtn { background: #6366f1; color: #fff; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold; }
   #remoteLockBtn { background: #ef4444; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; outline: none; }
 
-  .overlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; }
+  .overlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
   .overlay h1 { font-size: 28px; color: #0ea5e9; margin-bottom: 10px; }
   .overlay h2 { font-size: 20px; color: #10b981; margin-bottom: 5px; }
   .overlay .mode-btn { padding: 15px 30px; font-size: 16px; border-radius: 12px; border: none; color: #fff; cursor: pointer; width: 260px; font-weight: bold; }
   #btnLocal { background: #6366f1; }
   #btnRemote { background: #10b981; }
+  #btnMeeting { background: #8b5cf6; }
   
   .join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .join-form input, .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
@@ -237,6 +281,7 @@
   <p style="color:#94a3b8; font-size:13px; margin-bottom:10px;">اختر وضع التشغيل</p>
   <button class="mode-btn" id="btnLocal">🌐 Face-to-Face</button>
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
+  <button class="mode-btn" id="btnMeeting">👥 Meeting Room</button>
 </div>
 
 <!-- شاشة الغرف (نصوص ديناميكية) -->
@@ -267,6 +312,37 @@
       <button id="joinRoomBtn">Join</button>
     </div>
     <button id="backToLandingBtn">← Back</button>
+  </div>
+</div>
+
+<!-- شاشة الاجتماعات (Meeting Room) -->
+<div class="overlay" id="meetingJoinOverlay" style="display:none;">
+  <h2>👥 Meeting Room</h2>
+  <div class="join-form">
+    <input type="text" id="meetPlayerName" placeholder="Your Name" maxlength="30">
+    <select id="meetPlayerLang">
+      <option value="ar">🇹🇳 العربية</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="en">🇬🇧 English</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="tr">🇹🇷 Türkçe</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="zh">🇨🇳 中文</option>
+      <option value="ru">🇷🇺 Русский</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="pt">🇵🇹 Português</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <button id="createMeetingBtn">➕ Create Meeting</button>
+    
+    <div style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
+    
+    <div id="joinRow">
+      <input type="text" id="joinMeetingCodeInput" placeholder="Meeting Code" maxlength="12">
+      <button id="joinMeetingBtn">Join</button>
+    </div>
+    <button id="backToLandingFromMeetBtn">← Back</button>
   </div>
 </div>
 
@@ -318,11 +394,18 @@
     <button id="backBtn" class="btn-back">Back</button>
 </div>
 
+<!-- P2P Video Container (For Remote Mode) -->
 <div id="videoContainer">
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
   <div id="videoStatus">📡 متصل بالكاميرا</div>
   <button id="closeVideoFullscreen" title="إغلاق"><div class="inner-white-dot"></div></button>
+</div>
+
+<!-- LiveKit Meeting Container -->
+<div id="meetingGridContainer">
+  <div id="videoGrid"></div>
+  <button id="leaveMeetingBtn" title="Leave Meeting"><div class="inner-white-dot"></div></button>
 </div>
 
 <div id="avatar-wrap">
@@ -388,7 +471,9 @@
 const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
 const TTS_URL = "https://vibe-core-0m1r.onrender.com/tts";
 const ROOM_CREATE_URL = "https://vibe-core-0m1r.onrender.com/rooms/create";
+const TOKEN_URL = "https://vibe-core-0m1r.onrender.com/get-token";
 const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
+const LIVEKIT_WS_URL = "wss://chat-core-ozzy0gzk.livekit.cloud"; // Your LiveKit URL
 const WS_BASE = SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://').replace('/chat', '');
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
@@ -408,6 +493,7 @@ const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('me
 const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
+const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid'), leaveMeetingBtn = $('leaveMeetingBtn');
 
 let appMode = 'none';
 let chatHistory = [], isTranslatorMode = true, activeSpeaker = null, isRecording = false, isSending = false, isCompressing = false;
@@ -419,20 +505,14 @@ let isLocked = false;
 let iceCandidatesQueue = []; 
 let isCameraOn = true;
 
+// LiveKit Variables
+let livekitRoom = null;
+
 // --- ترجمة الواجهة الديناميكية ---
 const UI_TEXT = {
     'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', or: 'أو', code: 'كود الغرفة', join: 'انضمام', back: '← رجوع' },
     'fr': { name: 'Votre Nom', create: '➕ Créer un salon', or: 'Ou', code: 'Code du salon', join: 'Rejoindre', back: '← Retour' },
-    'en': { name: 'Your Name', create: '➕ Create Room', or: 'Or', code: 'Room Code', join: 'Join', back: '← Back' },
-    'de': { name: 'Dein Name', create: '➕ Raum erstellen', or: 'Oder', code: 'Raumcode', join: 'Beitreten', back: '← Zurück' },
-    'tr': { name: 'Adınız', create: '➕ Oda Oluştur', or: 'Veya', code: 'Oda Kodu', join: 'Katıl', back: '← Geri' },
-    'it': { name: 'Il tuo nome', create: '➕ Crea Stanza', or: 'O', code: 'Codice Stanza', join: 'Unisciti', back: '← Indietro' },
-    'es': { name: 'Tu Nombre', create: '➕ Crear Sala', or: 'O', code: 'Código de Sala', join: 'Unirse', back: '← Atrás' },
-    'pt': { name: 'Seu Nome', create: '➕ Criar Sala', or: 'Ou', code: 'Código da Sala', join: 'Entrar', back: '← Voltar' },
-    'nl': { name: 'Jouw Naam', create: '➕ Kamer Maken', or: 'Of', code: 'Kamercode', join: 'Deelnemen', back: '← Terug' },
-    'no': { name: 'Ditt Navn', create: '➕ Lag Rom', or: 'Eller', code: 'Romkode', join: 'Bli med', back: '← Tilbake' },
-    'zh': { name: '你的名字', create: '➕ 创建房间', or: '或', code: '房间代码', join: '加入', back: '← 返回' },
-    'ru': { name: 'Ваше имя', create: '➕ Создать комнату', or: 'Или', code: 'Код комнаты', join: 'Войти', back: '← Назад' }
+    'en': { name: 'Your Name', create: '➕ Create Room', or: 'Or', code: 'Room Code', join: 'Join', back: '← Back' }
 };
 
 $('playerLang').addEventListener('change', (e) => {
@@ -446,8 +526,22 @@ $('playerLang').addEventListener('change', (e) => {
     $('backToLandingBtn').textContent = t.back;
 });
 
+// Meeting Form Language update (Simple english fallback)
+const updateMeetForm = () => {
+    const lang = $('meetPlayerLang').value;
+    const t = UI_TEXT[lang] || UI_TEXT['en'];
+    $('meetPlayerName').placeholder = t.name;
+    $('createMeetingBtn').textContent = t.create;
+    $('joinMeetingCodeInput').placeholder = "Meeting Code";
+    $('joinMeetingBtn').textContent = t.join;
+    $('backToLandingFromMeetBtn').textContent = t.back;
+};
+$('meetPlayerLang').addEventListener('change', updateMeetForm);
+updateMeetForm();
+
+
 function setStatus(s) { statusEl.textContent = s; }
-function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬')); }
+function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (appMode === 'meeting' ? `Meeting ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'))); }
 resetStatus();
 
 function setBusy(busy) {
@@ -487,9 +581,8 @@ function addMsg(text, className, lang, imageBase64 = null) {
   
   if (text) {
       div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
-      
       div.addEventListener('click', () => {
-          if (isLocked || isSending || appMode === 'remote') return;
+          if (isLocked || isSending || appMode === 'remote' || appMode === 'meeting') return;
           div.style.opacity = '0.5';
           setTimeout(() => div.style.opacity = '1', 200);
           speak(text, lang || langA.value);
@@ -542,31 +635,56 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
 
 function setModeUI(mode) {
   appMode = mode;
+  
+  // Hide everything initially
+  topHeader.style.display = 'none'; 
+  remoteBar.style.display = 'none'; 
+  remoteMicBtn.style.display = 'none'; 
+  toggleCamBtn.style.display = 'none';
+  mediaBtn.style.display = 'none'; 
+  musicBtn.style.display = 'none'; 
+  translateModeBtn.style.display = 'none';
+  uploadBtn.style.display = 'none'; 
+  voiceSelect.style.display = 'none';
+  videoContainer.style.display = 'none'; 
+  avatarWrap.style.display = 'none';
+  meetingGridContainer.style.display = 'none';
+  $('friendSection').style.display = 'none'; 
+  micA.style.display = 'none'; 
+  micB.style.display = 'none';
+  $('extraControls').style.display = 'none';
+
   if (mode === 'local') {
-    document.body.classList.remove('remote-mode');
-    topHeader.style.display = 'flex'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none'; toggleCamBtn.style.display = 'none';
+    document.body.classList.remove('remote-mode', 'meeting-mode');
+    topHeader.style.display = 'flex';
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
     uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
-    videoContainer.style.display = 'none'; avatarWrap.style.display = 'flex';
+    avatarWrap.style.display = 'flex';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
     $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
+    document.body.classList.remove('meeting-mode');
     document.body.classList.add('remote-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
     mediaBtn.style.display = 'flex'; 
-    musicBtn.style.display = 'none'; 
-    translateModeBtn.style.display = 'none';
-    uploadBtn.style.display = 'none';
     voiceSelect.style.display = 'inline-block'; 
-    avatarWrap.style.display = 'none';
-    $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
+    $('extraControls').style.display = 'flex';
+  } else if (mode === 'meeting') {
+    document.body.classList.remove('remote-mode');
+    document.body.classList.add('meeting-mode');
+    topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
+    meetingGridContainer.style.display = 'block'; 
+    voiceSelect.style.display = 'inline-block'; 
     $('extraControls').style.display = 'flex';
   }
 }
 
 $('btnLocal').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; setModeUI('local'); resetStatus(); });
 $('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
+$('btnMeeting').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('meetingJoinOverlay').style.display = 'flex'; });
+
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
+$('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
 remoteLockBtn.addEventListener('click', () => {
   if (!isLocked) {
@@ -576,7 +694,8 @@ remoteLockBtn.addEventListener('click', () => {
     $('inputRow').classList.add('locked-ui');
     $('topBar').classList.add('locked-ui');
     $('extraControls').classList.add('locked-ui');
-    $('videoContainer').classList.add('locked-ui');
+    if (appMode === 'remote') $('videoContainer').classList.add('locked-ui');
+    if (appMode === 'meeting') $('meetingGridContainer').classList.add('locked-ui');
     stopAudio();
     if (isRecording) recognition.stop();
     setStatus('App is locked 🔒');
@@ -588,18 +707,21 @@ remoteLockBtn.addEventListener('click', () => {
     $('topBar').classList.remove('locked-ui');
     $('extraControls').classList.remove('locked-ui');
     $('videoContainer').classList.remove('locked-ui');
+    $('meetingGridContainer').classList.remove('locked-ui');
     resetStatus();
   }
 });
 
 backBtn.addEventListener('click', () => {
-  if (appMode === 'remote') {
+  if (appMode === 'remote' || appMode === 'meeting') {
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
     stopPing(); if (ws) ws.close();
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (pc) { pc.close(); pc = null; }
+    if (livekitRoom) { livekitRoom.disconnect(); livekitRoom = null; }
     iceCandidatesQueue = [];
     videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
+    videoGrid.innerHTML = ''; // Clear meeting videos
     appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
     chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
     
@@ -611,6 +733,7 @@ backBtn.addEventListener('click', () => {
         $('topBar').classList.remove('locked-ui');
         $('extraControls').classList.remove('locked-ui');
         $('videoContainer').classList.remove('locked-ui');
+        $('meetingGridContainer').classList.remove('locked-ui');
     }
   } else {
     chatEl.innerHTML = ''; chatHistory = []; stopAudio();
@@ -623,15 +746,11 @@ videoContainer.addEventListener('click', (e) => {
   if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target)) return;
   document.body.classList.toggle('video-maximized');
 });
-
-localVideo.addEventListener('click', (e) => {
-  e.stopPropagation(); 
-});
-
+localVideo.addEventListener('click', (e) => { e.stopPropagation(); });
 closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
 
 langA.addEventListener('change', () => {
-  if (appMode === 'remote') {
+  if (appMode === 'remote' || appMode === 'meeting') {
     myLang = langA.value;
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'change_lang', lang: myLang }));
     addMsg(`تم تغيير لغتك إلى ${langA.options[langA.selectedIndex].text}`, 'bot');
@@ -664,319 +783,157 @@ clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = 
 stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isRecording) { isRecording = false; recognition.stop(); } });
 
 toggleCamBtn.addEventListener('click', () => {
+    isCameraOn = !isCameraOn;
+    toggleCamBtn.classList.toggle('off', !isCameraOn);
+    toggleCamBtn.innerHTML = isCameraOn 
+        ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
+    
+    // Apply to P2P
     if (localStream) {
         const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-            isCameraOn = !isCameraOn;
-            videoTrack.enabled = isCameraOn;
-            toggleCamBtn.classList.toggle('off', !isCameraOn);
-            toggleCamBtn.innerHTML = isCameraOn 
-                ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
-                : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
+        if (videoTrack) videoTrack.enabled = isCameraOn;
+    }
+    // Apply to LiveKit
+    if (livekitRoom) {
+        livekitRoom.localParticipant.setCameraEnabled(isCameraOn);
+    }
+});
+
+// LiveKit Track Handlers
+function handleTrackSubscribed(track, publication, participant) {
+    if (track.kind === 'video' || track.kind === 'audio') {
+        let boxId = 'participant-' + participant.identity;
+        let box = document.getElementById(boxId);
+        
+        if (!box) {
+            box = document.createElement('div');
+            box.id = boxId;
+            box.className = 'participant-box';
+            
+            let nameLabel = document.createElement('div');
+            nameLabel.className = 'participant-name';
+            nameLabel.textContent = participant.name || participant.identity;
+            box.appendChild(nameLabel);
+            
+            videoGrid.appendChild(box);
+        }
+        
+        if (track.kind === 'video') {
+            const videoEl = track.attach();
+            videoEl.autoplay = true;
+            videoEl.playsInline = true;
+            // Remove old video if exists
+            const oldVideo = box.querySelector('video');
+            if (oldVideo) oldVideo.remove();
+            box.insertBefore(videoEl, box.firstChild);
+        } else if (track.kind === 'audio') {
+            const audioEl = track.attach();
+            audioEl.autoplay = true;
+            box.appendChild(audioEl);
         }
     }
-});
-
-uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
-videoAvatarUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
-  currentAvatarObjectUrl = URL.createObjectURL(file);
-  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
-  avatarVideo.src = currentAvatarObjectUrl; 
-  if (isBotTalking || isRecording) avatarVideo.play().catch(()=>{});
-  removeAvatarBtn.style.display = 'block';
-});
-removeAvatarBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
-  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block'; removeAvatarBtn.style.display = 'none';
-  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
-});
-
-mediaBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); musicMenu.style.display = 'none';
-  if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none';
-  else {
-    const rect = mediaBtn.getBoundingClientRect();
-    actionMenu.style.display = 'flex';
-    actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
-    actionMenu.style.left = Math.max(10, rect.left - 50) + 'px';
-  }
-});
-musicBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); actionMenu.style.display = 'none';
-  if (musicMenu.style.display === 'block') musicMenu.style.display = 'none';
-  else {
-    const rect = musicBtn.getBoundingClientRect();
-    musicMenu.style.display = 'block';
-    musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
-    musicMenu.style.left = Math.max(10, rect.left - 80) + 'px';
-  }
-});
-document.addEventListener('click', (e) => {
-  if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none';
-  if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none';
-});
-
-menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
-menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
-
-videoUpload.addEventListener('change', async (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  
-  if (appMode === 'remote') {
-      return alert('عذراً، إرسال الفيديوهات غير مدعوم حالياً بسبب قيود السيرفر. يرجى استخدام الصور.');
-  }
-
-  if (file.size > 25 * 1024 * 1024) {
-    return alert('حجم الملف كبير جداً! يجب أن يكون أقل من 25 ميجابايت.');
-  }
-
-  const targetLang = appMode === 'remote' ? myLang : langB.value;
-  addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
-  setStatus('⏳ جاري استخراج النص وترجمته...');
-  setBusy(true);
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('target_lang', targetLang);
-
-  try {
-    const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-    if (!res.ok) throw new Error('Server error');
-    const data = await res.json();
-    
-    addMsg(data.original, 'user-b', 'AUTO');
-    addMsg(data.translated, 'bot', targetLang);
-    speak(data.translated, targetLang);
-    setStatus('✅ تمت الترجمة بنجاح!');
-  } catch (err) {
-    addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot');
-    setStatus('Error');
-  } finally {
-    setBusy(false);
-    e.target.value = '';
-  }
-});
-
-async function handleImage(e) {
-  const file = e.target.files[0]; if (!file) return;
-  isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    const compressed = await compressImage(ev.target.result);
-    
-    if (appMode === 'remote') {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ 
-                type: 'chat_media', 
-                media_type: 'image', 
-                data: compressed 
-            }));
-            addMsg('', 'user-a', myLang, compressed); 
-        }
-        isCompressing = false; sendBtn.disabled = isSending; setStatus('');
-    } else {
-        attachedFileText = null;
-        attachedImageBase64 = compressed;
-        imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
-        isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
-    }
-  };
-  reader.readAsDataURL(file);
-}
-galleryUpload.addEventListener('change', handleImage);
-cameraUpload.addEventListener('change', handleImage);
-cancelImageBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null;
-  imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.');
-});
-
-audioUpload.addEventListener('change', (e) => {
-  const files = e.target.files;
-  for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
-  renderPlaylist(); e.target.value = '';
-});
-function renderPlaylist() {
-  musicList.innerHTML = '';
-  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause';
-  pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
-  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
-  playlist.forEach((song, index) => {
-    const div = document.createElement('div'); div.className = 'music-item';
-    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
-    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
-    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
-    div.appendChild(name); div.appendChild(del);
-    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
-    div.onclick = () => { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); } else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); } };
-    musicList.appendChild(div);
-  });
-}
-function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
-bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
-bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
-renderPlaylist(); 
-
-function buildSystemPrompt(targetLang, sourceLang) {
-  if (isTranslatorMode) {
-    return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT use markdown like ** or __. DO NOT reply in the source language.`;
-  }
-  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}. DO NOT use markdown or bold text like **.`;
 }
 
-async function ask(text, sourceLang, targetLang, speaker) {
-  if (isSending || isLocked) return;
-  setBusy(true); setStatus('Processing...');
-  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
-  let finalText = text || '';
-  if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
-  let userContent = attachedImageBase64 ? [{ type: "text", text: finalText || "Analyze this image." }, { type: "image_url", image_url: { url: attachedImageBase64 } }] : finalText;
-  messages.push({ role: 'user', content: userContent });
-
-  try {
-    const res = await fetchWithTimeout(SERVER_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID })
-    }, REQUEST_TIMEOUT_MS);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail);
-    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang);
-    resetStatus(); speak(data.reply.trim(), targetLang);
-    attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
-  } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
+function handleTrackUnsubscribed(track, publication, participant) {
+    track.detach().forEach(el => el.remove());
 }
 
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-if (SR) {
-  recognition = new SR();
-  recognition.continuous = false; 
-  recognition.interimResults = false; 
-
-  recognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    if (text && text.trim()) {
-      const isA = activeSpeaker === 'A';
-      if (appMode === 'remote') {
-        addMsg(`You: ${text}`, 'user-a', myLang);
-        sendRemoteMessage(text);
-      } else {
-        addMsg(text, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
-        ask(text, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
-      }
-    }
-  };
-
-  recognition.onerror = (e) => {
-    setStatus('Mic Error: ' + e.error);
-    unlockMics();
-  };
-
-  recognition.onend = () => {
-    isRecording = false; 
-    if (!isBotTalking && !isSending) unlockMics();
-  };
-
-  const startMic = (speaker) => {
-    if (isLocked) return;
-    unlockAudio();
-    if (isRecording) { recognition.stop(); return; }
-    stopAudio(); activeSpeaker = speaker;
-    
-    setAvatarState(true);
-    isRecording = true;
-    
-    if (speaker === 'A') {
-      recognition.lang = localeFor(langA.value);
-      micA.classList.add('recording'); micB.disabled = true;
-      setStatus('Listening (You)...');
-    } else if (speaker === 'B') {
-      recognition.lang = localeFor(langB.value);
-      micB.classList.add('recording'); micA.disabled = true;
-      setStatus('Listening (Friend)...');
-    } else {
-      recognition.lang = localeFor(myLang);
-      if (remoteMicBtn) remoteMicBtn.classList.add('recording'); 
-      if (floatingMicBtn) floatingMicBtn.classList.add('recording');
-      setStatus('Listening...');
-    }
-    try { recognition.start(); } catch (e) {}
-  };
-  
-  micA.addEventListener('click', () => startMic('A'));
-  micB.addEventListener('click', () => startMic('B'));
-  if (remoteMicBtn) remoteMicBtn.addEventListener('click', () => startMic('R'));
-  if (floatingMicBtn) floatingMicBtn.addEventListener('click', () => startMic('R'));
+function handleParticipantDisconnected(participant) {
+    let box = document.getElementById('participant-' + participant.identity);
+    if (box) box.remove();
 }
 
-sendBtn.addEventListener('click', () => {
-  if (isLocked) return;
-  const t = inputEl.value.trim();
-  if (appMode === 'remote') {
-    if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
-  } else {
-    if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
-  }
-});
-
-async function startVideoCall(isCaller = false) {
-  if (!localStream) {
+async function connectLiveKit(roomCode, participantName) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      localVideo.srcObject = localStream;
-      videoContainer.style.display = 'block';
-      isCameraOn = true;
-      toggleCamBtn.classList.remove('off');
-    } catch (err) { 
-      console.error('Camera access denied', err); 
-      addMsg('⚠️ تعذر الوصول إلى الكاميرا. يرجى السماح بالوصول.', 'bot');
-      return; 
+        setStatus("Getting token...");
+        const res = await fetch(TOKEN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ room_name: roomCode, participant_name: participantName })
+        });
+        if (!res.ok) throw new Error("Token fetch failed");
+        const { token } = await res.json();
+
+        setStatus("Connecting to LiveKit...");
+        livekitRoom = new LivekitClient.Room();
+        
+        livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
+        livekitRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+        livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+        
+        // Add local video
+        livekitRoom.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
+             if (publication.track.kind === 'video') {
+                 let box = document.createElement('div');
+                 box.id = 'participant-' + participant.identity;
+                 box.className = 'participant-box';
+                 let nameLabel = document.createElement('div');
+                 nameLabel.className = 'participant-name';
+                 nameLabel.textContent = participant.name + " (You)";
+                 box.appendChild(nameLabel);
+                 const videoEl = publication.track.attach();
+                 videoEl.autoplay = true;
+                 videoEl.playsInline = true;
+                 videoEl.muted = true; // Mute self
+                 box.insertBefore(videoEl, box.firstChild);
+                 videoGrid.appendChild(box);
+             }
+        });
+
+        await livekitRoom.connect(LIVEKIT_WS_URL, token);
+        
+        // Enable camera and mic
+        await livekitRoom.localParticipant.enableCameraAndMicrophone();
+        
+        setStatus("✅ Connected to Meeting");
+        
+    } catch (e) {
+        console.error(e);
+        addMsg("⚠️ Failed to join meeting: " + e.message, 'bot');
+        setStatus("Meeting Error");
     }
-  }
-
-  if (!pc) {
-    const iceServers = [
-      { urls: 'stun:stun.relay.metered.ca:80' },
-      { urls: 'turn:global.relay.metered.ca:80', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
-      { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
-      { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
-      { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
-    ];
-
-    pc = new RTCPeerConnection({ iceServers: iceServers });
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    
-    pc.ontrack = (event) => { 
-      remoteVideo.srcObject = event.streams[0]; 
-      remoteVideo.play().catch(e => console.log("Autoplay blocked:", e));
-      setStatus('✅ تم الاتصال بالكاميرا بنجاح!');
-    };
-    
-    pc.onicecandidate = (event) => { 
-      if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); 
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-        console.log("ICE State:", pc.iceConnectionState);
-        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-            setStatus('⚠️ انقطع اتصال الفيديو. قد تكون المشكلة في الشبكة.');
-        }
-    };
-  }
-
-  if (isCaller) {
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer }));
-    setStatus('📡 جاري طلب الاتصال بالكاميرا...');
-  }
 }
 
+// Meeting Form Handlers
+$('createMeetingBtn').addEventListener('click', async () => {
+    const name = $('meetPlayerName').value.trim();
+    if (!name) return alert("Enter your name");
+    const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase(); // MTGXXXXXX
+    
+    myName = name; myLang = $('meetPlayerLang').value;
+    langA.value = myLang;
+    
+    $('meetingJoinOverlay').style.display = 'none';
+    setModeUI('meeting');
+    roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting";
+    chatEl.innerHTML = '';
+    
+    connectWebSocket(code); // Connect to WS for text translation
+    connectLiveKit(code, name); // Connect to LiveKit for media
+});
+
+$('joinMeetingBtn').addEventListener('click', () => {
+    const name = $('meetPlayerName').value.trim();
+    const code = $('joinMeetingCodeInput').value.trim().toUpperCase();
+    if (!name) return alert("Enter your name");
+    if (!code) return alert("Enter meeting code");
+    
+    myName = name; myLang = $('meetPlayerLang').value;
+    langA.value = myLang;
+    
+    $('meetingJoinOverlay').style.display = 'none';
+    setModeUI('meeting');
+    roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting";
+    chatEl.innerHTML = '';
+    
+    connectWebSocket(code);
+    connectLiveKit(code, name);
+});
+
+leaveMeetingBtn.addEventListener('click', () => { backBtn.click(); });
+
+// Existing Remote Mode Handlers
 $('createRoomBtn').addEventListener('click', async () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value;
   if (!name) return alert('Please enter your name');
@@ -990,7 +947,7 @@ $('createRoomBtn').addEventListener('click', async () => {
     if (!data.code) throw new Error('لم يتم استلام الكود');
     enterRemoteRoom(data.code);
   } catch (e) { alert('Failed to create room: ' + e.message); } 
-  finally { btn.textContent = UI_TEXT[lang].create; btn.disabled = false; }
+  finally { btn.textContent = '➕ Create Room'; btn.disabled = false; }
 });
 $('joinRoomBtn').addEventListener('click', () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value, code = $('joinCodeInput').value.trim().toUpperCase();
@@ -1032,7 +989,7 @@ function connectWebSocket(code) {
       setStatus('Connection failed');
       return; 
     }
-    if (shouldReconnect && appMode === 'remote') {
+    if (shouldReconnect && (appMode === 'remote' || appMode === 'meeting')) {
       setStatus(`Disconnected. Retrying...`);
       wsReconnectTimer = setTimeout(() => connectWebSocket(code), 3000);
     }
@@ -1043,15 +1000,21 @@ function handleWsMessage(ev) {
   const data = JSON.parse(ev.data);
   switch (data.type) {
     case 'joined':
-      hasJoinedOnce = true; onlineCount.textContent = `${data.users.length}/4`;
+      hasJoinedOnce = true; 
+      if (appMode === 'remote') onlineCount.textContent = `${data.users.length}/4`;
+      if (appMode === 'meeting') onlineCount.textContent = `${data.users.length} online`;
       addMsg(`✅ Joined room ${currentRoomCode}`, 'bot');
-      if (data.users.length > 1) {
-        startVideoCall(true);
+      if (appMode === 'remote' && data.users.length > 1) {
+        startVideoCall(true); // P2P video
       }
       break;
     case 'user_joined':
       addMsg(`👤 ${data.name} joined`, 'bot');
-      startVideoCall(false);
+      if (appMode === 'meeting') {
+          onlineCount.textContent = `${Object.keys(room_manager.users).length} online`; // approximate
+      } else if (appMode === 'remote') {
+          startVideoCall(false);
+      }
       break;
     case 'translated':
       if (data.is_mine) return;
@@ -1065,6 +1028,7 @@ function handleWsMessage(ev) {
       }
       break;
     case 'rtc-offer':
+      if (appMode === 'meeting') break; // Handled by LiveKit
       startVideoCall(false).then(async () => {
         if (!pc) return;
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -1077,6 +1041,7 @@ function handleWsMessage(ev) {
       });
       break;
     case 'rtc-answer':
+      if (appMode === 'meeting') break;
       if (pc) {
         pc.setRemoteDescription(new RTCSessionDescription(data.answer)).then(() => {
             while (iceCandidatesQueue.length > 0) {
@@ -1086,6 +1051,7 @@ function handleWsMessage(ev) {
       }
       break;
     case 'rtc-ice':
+      if (appMode === 'meeting') break;
       if (pc && pc.remoteDescription && pc.remoteDescription.type) {
         pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => {});
       } else {
@@ -1184,6 +1150,311 @@ function speakBrowser(text, lang, myId) {
   };
   speechSynthesis.speak(u);
 }
+
+async function startVideoCall(isCaller = false) {
+  if (!localStream) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      localVideo.srcObject = localStream;
+      videoContainer.style.display = 'block';
+      isCameraOn = true;
+      toggleCamBtn.classList.remove('off');
+    } catch (err) { 
+      console.error('Camera access denied', err); 
+      addMsg('⚠️ تعذر الوصول إلى الكاميرا. يرجى السماح بالوصول.', 'bot');
+      return; 
+    }
+  }
+
+  if (!pc) {
+    const iceServers = [
+      { urls: 'stun:stun.relay.metered.ca:80' },
+      { urls: 'turn:global.relay.metered.ca:80', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
+      { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
+      { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
+      { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
+    ];
+
+    pc = new RTCPeerConnection({ iceServers: iceServers });
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    
+    pc.ontrack = (event) => { 
+      remoteVideo.srcObject = event.streams[0]; 
+      remoteVideo.play().catch(e => console.log("Autoplay blocked:", e));
+      setStatus('✅ تم الاتصال بالكاميرا بنجاح!');
+    };
+    
+    pc.onicecandidate = (event) => { 
+      if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); 
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+        console.log("ICE State:", pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            setStatus('⚠️ انقطع اتصال الفيديو. قد تكون المشكلة في الشبكة.');
+        }
+    };
+  }
+
+  if (isCaller) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer }));
+    setStatus('📡 جاري طلب الاتصال بالكاميرا...');
+  }
+}
+
+// Speech Recognition
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+if (SR) {
+  recognition = new SR();
+  recognition.continuous = false; 
+  recognition.interimResults = false; 
+
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    if (text && text.trim()) {
+      const isA = activeSpeaker === 'A';
+      if (appMode === 'remote' || appMode === 'meeting') {
+        addMsg(`You: ${text}`, 'user-a', myLang);
+        sendRemoteMessage(text);
+      } else {
+        addMsg(text, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
+        ask(text, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
+      }
+    }
+  };
+
+  recognition.onerror = (e) => {
+    setStatus('Mic Error: ' + e.error);
+    unlockMics();
+  };
+
+  recognition.onend = () => {
+    isRecording = false; 
+    if (!isBotTalking && !isSending) unlockMics();
+  };
+
+  const startMic = (speaker) => {
+    if (isLocked) return;
+    unlockAudio();
+    if (isRecording) { recognition.stop(); return; }
+    stopAudio(); activeSpeaker = speaker;
+    
+    setAvatarState(true);
+    isRecording = true;
+    
+    if (speaker === 'A') {
+      recognition.lang = localeFor(langA.value);
+      micA.classList.add('recording'); micB.disabled = true;
+      setStatus('Listening (You)...');
+    } else if (speaker === 'B') {
+      recognition.lang = localeFor(langB.value);
+      micB.classList.add('recording'); micA.disabled = true;
+      setStatus('Listening (Friend)...');
+    } else {
+      recognition.lang = localeFor(myLang);
+      if (remoteMicBtn) remoteMicBtn.classList.add('recording'); 
+      if (floatingMicBtn) floatingMicBtn.classList.add('recording');
+      setStatus('Listening...');
+    }
+    try { recognition.start(); } catch (e) {}
+  };
+  
+  micA.addEventListener('click', () => startMic('A'));
+  micB.addEventListener('click', () => startMic('B'));
+  if (remoteMicBtn) remoteMicBtn.addEventListener('click', () => startMic('R'));
+  if (floatingMicBtn) floatingMicBtn.addEventListener('click', () => startMic('R'));
+}
+
+// Text Input Handling
+sendBtn.addEventListener('click', () => {
+  if (isLocked) return;
+  const t = inputEl.value.trim();
+  if (appMode === 'remote' || appMode === 'meeting') {
+    if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
+  } else {
+    if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
+  }
+});
+
+// AI Ask (Local Mode only)
+function buildSystemPrompt(targetLang, sourceLang) {
+  if (isTranslatorMode) {
+    return `You are a literal translation machine. Translate the user's text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, greetings, or explanations. DO NOT use markdown like ** or __. DO NOT reply in the source language.`;
+  }
+  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}. DO NOT use markdown or bold text like **.`;
+}
+
+async function ask(text, sourceLang, targetLang, speaker) {
+  if (isSending || isLocked) return;
+  setBusy(true); setStatus('Processing...');
+  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
+  let finalText = text || '';
+  if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
+  let userContent = attachedImageBase64 ? [{ type: "text", text: finalText || "Analyze this image." }, { type: "image_url", image_url: { url: attachedImageBase64 } }] : finalText;
+  messages.push({ role: 'user', content: userContent });
+
+  try {
+    const res = await fetchWithTimeout(SERVER_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID })
+    }, REQUEST_TIMEOUT_MS);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail);
+    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang);
+    resetStatus(); speak(data.reply.trim(), targetLang);
+    attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
+  } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
+}
+
+// Avatar & Media Handlers (Same as before)
+uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
+videoAvatarUpload.addEventListener('change', (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
+  currentAvatarObjectUrl = URL.createObjectURL(file);
+  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
+  avatarVideo.src = currentAvatarObjectUrl; 
+  if (isBotTalking || isRecording) avatarVideo.play().catch(()=>{});
+  removeAvatarBtn.style.display = 'block';
+});
+removeAvatarBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
+  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block'; removeAvatarBtn.style.display = 'none';
+  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
+});
+
+mediaBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); musicMenu.style.display = 'none';
+  if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none';
+  else {
+    const rect = mediaBtn.getBoundingClientRect();
+    actionMenu.style.display = 'flex';
+    actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    actionMenu.style.left = Math.max(10, rect.left - 50) + 'px';
+  }
+});
+musicBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); actionMenu.style.display = 'none';
+  if (musicMenu.style.display === 'block') musicMenu.style.display = 'none';
+  else {
+    const rect = musicBtn.getBoundingClientRect();
+    musicMenu.style.display = 'block';
+    musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+    musicMenu.style.left = Math.max(10, rect.left - 80) + 'px';
+  }
+});
+document.addEventListener('click', (e) => {
+  if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none';
+  if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none';
+});
+
+menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
+menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
+menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
+
+videoUpload.addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  
+  if (appMode === 'remote' || appMode === 'meeting') {
+      return alert('عذراً، إرسال الفيديوهات غير مدعوم حالياً. يرجى استخدام الصور.');
+  }
+
+  if (file.size > 25 * 1024 * 1024) {
+    return alert('حجم الملف كبير جداً! يجب أن يكون أقل من 25 ميجابايت.');
+  }
+
+  const targetLang = langB.value;
+  addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
+  setStatus('⏳ جاري استخراج النص وترجمته...');
+  setBusy(true);
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('target_lang', targetLang);
+
+  try {
+    const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json();
+    
+    addMsg(data.original, 'user-b', 'AUTO');
+    addMsg(data.translated, 'bot', targetLang);
+    speak(data.translated, targetLang);
+    setStatus('✅ تمت الترجمة بنجاح!');
+  } catch (err) {
+    addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot');
+    setStatus('Error');
+  } finally {
+    setBusy(false);
+    e.target.value = '';
+  }
+});
+
+async function handleImage(e) {
+  const file = e.target.files[0]; if (!file) return;
+  isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const compressed = await compressImage(ev.target.result);
+    
+    if (appMode === 'remote' || appMode === 'meeting') {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ 
+                type: 'chat_media', 
+                media_type: 'image', 
+                data: compressed 
+            }));
+            addMsg('', 'user-a', myLang, compressed); 
+        }
+        isCompressing = false; sendBtn.disabled = isSending; setStatus('');
+    } else {
+        attachedFileText = null;
+        attachedImageBase64 = compressed;
+        imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
+        isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+galleryUpload.addEventListener('change', handleImage);
+cameraUpload.addEventListener('change', handleImage);
+cancelImageBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null;
+  imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.');
+});
+
+// Music Player
+audioUpload.addEventListener('change', (e) => {
+  const files = e.target.files;
+  for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
+  renderPlaylist(); e.target.value = '';
+});
+function renderPlaylist() {
+  musicList.innerHTML = '';
+  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
+  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause';
+  pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
+  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
+  playlist.forEach((song, index) => {
+    const div = document.createElement('div'); div.className = 'music-item';
+    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
+    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
+    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
+    div.appendChild(name); div.appendChild(del);
+    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
+    div.onclick = () => { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); } else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); } };
+    musicList.appendChild(div);
+  });
+}
+function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
+bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
+bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
+renderPlaylist(); 
 </script>
 </body>
 </html>
