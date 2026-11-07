@@ -85,7 +85,6 @@
   body.video-maximized #closeVideoFullscreen { display: flex; }
   body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
 
-  /* LiveKit Meeting Grid */
   #meetingGridContainer {
     display: none;
     position: relative;
@@ -179,8 +178,7 @@
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   #musicBtn { background: #ffffff; color: #000000; order: 1; font-size: 16px; }
   
-  /* تعديل زر Media ليكون صغير الحجم وأزرق مع علامة + */
-  #mediaBtn { background: #1d4ed8; color: #ffffff; order: 2; font-size: 20px; width: 32px; height: 32px; padding-bottom: 2px; font-weight: normal; }
+  #mediaBtn { background: #1d4ed8; color: #ffffff; order: 2; font-size: 22px; width: 32px; height: 32px; padding-bottom: 2px; font-weight: normal; }
   
   #remoteMicBtn { 
     background: #10b981; 
@@ -256,12 +254,13 @@
   .overlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
   .overlay h1 { font-size: 28px; color: #0ea5e9; margin-bottom: 10px; }
   .overlay h2 { font-size: 20px; color: #10b981; margin-bottom: 5px; }
-  .overlay .mode-btn { padding: 15px 30px; font-size: 16px; border-radius: 12px; border: none; color: #fff; cursor: pointer; width: 260px; font-weight: bold; }
+  .overlay .mode-btn { padding: 15px 30px; font-size: 16px; border-radius: 12px; border: none; color: #fff; cursor: pointer; width: 260px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
   #btnLocal { background: #6366f1; }
   #btnRemote { background: #10b981; }
   
-  /* تعديل زر Meeting Room ليكون أزرق مع علامة + */
+  /* تم إصلاح زر Meeting Room ليكون واضحاً */
   #btnMeeting { background: #1d4ed8; }
+  #btnMeeting .plus-icon { font-size: 24px; font-weight: bold; margin-bottom: 3px; }
   
   .join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
   .join-form input, .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
@@ -286,7 +285,7 @@
   <button class="mode-btn" id="btnLocal">🌐 Face-to-Face</button>
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
   <!-- زر Meeting Room الجديد -->
-  <button class="mode-btn" id="btnMeeting">+ Meeting Room</button>
+  <button class="mode-btn" id="btnMeeting"><span class="plus-icon">+</span> Meeting Room</button>
 </div>
 
 <!-- شاشة الغرف (نصوص ديناميكية) -->
@@ -322,7 +321,7 @@
 
 <!-- شاشة الاجتماعات (Meeting Room) -->
 <div class="overlay" id="meetingJoinOverlay" style="display:none;">
-  <h2>+ Meeting Room</h2>
+  <h2><span style="font-size:24px; font-weight:bold;">+</span> Meeting Room</h2>
   <div class="join-form">
     <input type="text" id="meetPlayerName" placeholder="Your Name" maxlength="30">
     <select id="meetPlayerLang">
@@ -824,6 +823,10 @@ function handleTrackSubscribed(track, publication, participant) {
             const videoEl = track.attach();
             videoEl.autoplay = true;
             videoEl.playsInline = true;
+            videoEl.style.width = '100%';
+            videoEl.style.height = '100%';
+            videoEl.style.objectFit = 'cover';
+            
             const oldVideo = box.querySelector('video');
             if (oldVideo) oldVideo.remove();
             box.insertBefore(videoEl, box.firstChild);
@@ -856,6 +859,13 @@ async function connectLiveKit(roomCode, participantName) {
         const { token } = await res.json();
 
         setStatus("Connecting to LiveKit...");
+        
+        if (livekitRoom) {
+            livekitRoom.disconnect();
+            livekitRoom = null;
+        }
+        videoGrid.innerHTML = '';
+        
         livekitRoom = new LivekitClient.Room();
         
         livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
@@ -875,13 +885,22 @@ async function connectLiveKit(roomCode, participantName) {
                  videoEl.autoplay = true;
                  videoEl.playsInline = true;
                  videoEl.muted = true; 
+                 videoEl.style.width = '100%';
+                 videoEl.style.height = '100%';
+                 videoEl.style.objectFit = 'cover';
                  box.insertBefore(videoEl, box.firstChild);
                  videoGrid.appendChild(box);
              }
         });
 
         await livekitRoom.connect(LIVEKIT_WS_URL, token);
-        await livekitRoom.localParticipant.enableCameraAndMicrophone();
+        
+        try {
+            await livekitRoom.localParticipant.enableCameraAndMicrophone();
+        } catch (err) {
+            console.warn("Camera/Mic permission denied.", err);
+            addMsg("⚠️ يرجى السماح بالوصول للكاميرا والمايك.", 'bot');
+        }
         
         setStatus("✅ Connected to Meeting");
         
