@@ -7,7 +7,6 @@ import logging
 import tempfile
 from contextlib import asynccontextmanager
 from typing import List, Optional
-from datetime import timedelta
 
 import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
@@ -114,7 +113,6 @@ room_manager = RoomManager()
 
 @asynccontextmanager
 async def lifespan(app):
-    # فحص مفاتيح LiveKit عند الإقلاع
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         logger.error("⚠️ LIVEKIT_API_KEY or LIVEKIT_API_SECRET is missing! Meeting Room will fail.")
     else:
@@ -131,7 +129,7 @@ async def lifespan(app):
     yield
     task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="7.1", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="7.2", lifespan=lifespan)
 
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
@@ -280,20 +278,17 @@ async def get_token_endpoint(req: MeetingTokenRequest):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         raise HTTPException(500, detail="LiveKit keys not configured")
     
-    # 🌟 توليد ID فريد لمنع طرد المستخدمين الذين يحملون نفس الاسم
     unique_identity = f"{req.participant_name}#{secrets.token_hex(3)}"
 
     token = api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET) \
         .with_identity(unique_identity) \
         .with_name(req.participant_name) \
-        .with_ttl(timedelta(hours=2)) \
         .with_grants(api.VideoGrants(
             room_join=True, 
             room=req.room_name,
             can_publish=True,
             can_subscribe=True,
-            can_publish_data=True,
-            can_publish_sources=[api.TrackSource.CAMERA, api.TrackSource.MICROPHONE, api.TrackSource.SCREEN_SHARE, api.TrackSource.SCREEN_SHARE_AUDIO]
+            can_publish_data=True
         ))
     
     return {"token": token.to_jwt(), "url": LIVEKIT_URL}
