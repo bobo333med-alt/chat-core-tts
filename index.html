@@ -73,7 +73,8 @@
   #closeFullscreen { top: 80px; right: 20px; }
   #closeVideoFullscreen { top: 20px; right: 20px; }
   
-  #leaveMeetingBtn { top: 20px; left: 20px; background: #ef4444; }
+  /* إرجاع زر الخروج (الدائرة الحمراء) كما كان في السابق */
+  #leaveMeetingBtn { top: 70px; left: 20px; background: #ef4444; }
   body.meeting-mode #leaveMeetingBtn { display: flex; }
 
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; touch-action: manipulation; }
@@ -260,7 +261,6 @@
   #btnLocal { background: #6366f1; }
   #btnRemote { background: #10b981; }
   
-  /* تم إصلاح زر Meeting Room ليكون واضحاً */
   #btnMeeting { background: #1d4ed8; }
   #btnMeeting .plus-icon { font-size: 24px; font-weight: bold; margin-bottom: 3px; }
   
@@ -268,11 +268,13 @@
   .join-form input, .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
   .join-form input:focus { border-color: #0ea5e9; }
   .join-form button { padding: 12px; border-radius: 8px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 14px; }
-  #createRoomBtn { background: #10b981; }
-  #joinRoomBtn { background: #6366f1; }
+  
+  /* توحيد ألوان أزرار Meeting Room مع Remote Mode */
+  #createRoomBtn, #createMeetingBtn { background: #10b981; }
+  #joinRoomBtn, #joinMeetingBtn { background: #6366f1; }
   #joinRow { display: flex; gap: 8px; }
-  #joinCodeInput { flex: 1; text-transform: uppercase; text-align: center; letter-spacing: 2px; }
-  #backToLandingBtn { background: transparent; border: none; color: #94a3b8; cursor: pointer; margin-top: 5px; font-size: 13px; text-decoration: underline; }
+  #joinCodeInput, #joinMeetingCodeInput { flex: 1; text-transform: uppercase; text-align: center; letter-spacing: 2px; }
+  #backToLandingBtn, #backToLandingFromMeetBtn { background: transparent; border: none; color: #94a3b8; cursor: pointer; margin-top: 5px; font-size: 13px; text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -286,7 +288,6 @@
   <p style="color:#94a3b8; font-size:13px; margin-bottom:10px;">اختر وضع التشغيل</p>
   <button class="mode-btn" id="btnLocal">🌐 Face-to-Face</button>
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
-  <!-- زر Meeting Room الجديد -->
   <button class="mode-btn" id="btnMeeting"><span class="plus-icon">+</span> Meeting Room</button>
 </div>
 
@@ -437,7 +438,6 @@
 
 <div class="row" id="inputRow">
   <button class="btn" id="musicBtn" title="Music">🎵</button>
-  <!-- زر Media الجديد -->
   <button class="btn" id="mediaBtn" title="Media">+</button>
   
   <button class="btn" id="toggleCamBtn" title="Toggle Camera">
@@ -511,14 +511,13 @@ let isLocked = false;
 let iceCandidatesQueue = []; 
 let isCameraOn = true;
 
-// LiveKit Variables
 let livekitRoom = null;
 
 // --- ترجمة الواجهة الديناميكية ---
 const UI_TEXT = {
-    'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', or: 'أو', code: 'كود الغرفة', join: 'انضمام', back: '← رجوع' },
-    'fr': { name: 'Votre Nom', create: '➕ Créer un salon', or: 'Ou', code: 'Code du salon', join: 'Rejoindre', back: '← Retour' },
-    'en': { name: 'Your Name', create: '➕ Create Room', or: 'Or', code: 'Room Code', join: 'Join', back: '← Back' }
+    'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', createMeet: '➕ إنشاء اجتماع', or: 'أو', code: 'كود الغرفة', codeMeet: 'كود الاجتماع', join: 'انضمام', back: '← رجوع' },
+    'fr': { name: 'Votre Nom', create: '➕ Créer un salon', createMeet: '➕ Créer une réunion', or: 'Ou', code: 'Code du salon', codeMeet: 'Code de réunion', join: 'Rejoindre', back: '← Retour' },
+    'en': { name: 'Your Name', create: '➕ Create Room', createMeet: '➕ Create Meeting', or: 'Or', code: 'Room Code', codeMeet: 'Meeting Code', join: 'Join', back: '← Back' }
 };
 
 $('playerLang').addEventListener('change', (e) => {
@@ -536,14 +535,13 @@ const updateMeetForm = () => {
     const lang = $('meetPlayerLang').value;
     const t = UI_TEXT[lang] || UI_TEXT['en'];
     $('meetPlayerName').placeholder = t.name;
-    $('createMeetingBtn').textContent = t.create;
-    $('joinMeetingCodeInput').placeholder = "Meeting Code";
+    $('createMeetingBtn').textContent = t.createMeet;
+    $('joinMeetingCodeInput').placeholder = t.codeMeet;
     $('joinMeetingBtn').textContent = t.join;
     $('backToLandingFromMeetBtn').textContent = t.back;
 };
 $('meetPlayerLang').addEventListener('change', updateMeetForm);
 updateMeetForm();
-
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (appMode === 'meeting' ? `Meeting ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'))); }
@@ -670,13 +668,14 @@ function setModeUI(mode) {
     document.body.classList.remove('meeting-mode');
     document.body.classList.add('remote-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; 
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
     voiceSelect.style.display = 'inline-block'; 
     $('extraControls').style.display = 'flex';
   } else if (mode === 'meeting') {
     document.body.classList.remove('remote-mode');
     document.body.classList.add('meeting-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
     meetingGridContainer.style.display = 'block'; 
     voiceSelect.style.display = 'inline-block'; 
     $('extraControls').style.display = 'flex';
@@ -867,7 +866,12 @@ async function connectLiveKit(roomCode, participantName) {
         });
         clearTimeout(timeout);
         
-        if (!res.ok) throw new Error("Token fetch failed");
+        if (!res.ok) {
+            let errMsg = "Token fetch failed";
+            try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){}
+            throw new Error(errMsg);
+        }
+        
         const { token, url } = await res.json();
 
         setStatus("Connecting to LiveKit...");
