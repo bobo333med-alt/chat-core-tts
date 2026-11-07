@@ -33,12 +33,6 @@
   .divider { display: flex; align-items: center; margin: 15px 0; color: #64748b; font-size: 12px; }
   .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid #334155; margin: 0 10px; }
 
-  /* User Profile Widget */
-  #userProfile { position: fixed; top: 60px; left: 10px; z-index: 10002; display: none; align-items: center; gap: 8px; background: rgba(30, 41, 59, 0.9); padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 1px solid #334155; }
-  #userProfile img { width: 24px; height: 24px; border-radius: 50%; }
-  #userProfile span { font-size: 12px; color: #fff; font-weight: bold; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #logoutBtn { background: #ef4444; border: none; color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 10px; cursor: pointer; }
-
   /* App Layout & Elements */
   .top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
@@ -192,23 +186,20 @@
   </div>
 </div>
 
-<!-- User Profile Widget -->
-<div id="userProfile">
-  <img id="userAvatar" src="" alt="User">
-  <span id="userName">User</span>
-  <button id="logoutBtn" onclick="logoutUser()">خروج</button>
-</div>
-
 <button id="floatingMicBtn" title="Talk">
   <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
 </button>
 
+<!-- Landing Page (Option Selection) -->
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
   <p style="color:#94a3b8; font-size:13px; margin-bottom:10px;">اختر وضع التشغيل</p>
   <button class="mode-btn" id="btnLocal">🌐 Face-to-Face</button>
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
   <button class="mode-btn" id="btnMeeting"><span class="plus-icon">+</span> Meeting Room</button>
+  
+  <!-- زر تسجيل الخروج الأحمر الجديد -->
+  <button class="mode-btn" id="btnLogout" style="background: #ef4444; margin-top: 20px;">🚪 تسجيل الخروج</button>
 </div>
 
 <div class="overlay" id="remoteJoinOverlay" style="display:none;">
@@ -475,7 +466,10 @@ function loginWithTwitter() {
 }
 
 function logoutUser() {
-    auth.signOut().then(() => { location.reload(); });
+    auth.signOut().then(() => { 
+        // عند تسجيل الخروج، سيتم إعادة تحميل الصفحة وإظهار صفحة الدخول
+        window.location.reload(); 
+    });
 }
 
 auth.getRedirectResult().then((result) => {
@@ -485,26 +479,21 @@ auth.getRedirectResult().then((result) => {
 auth.onAuthStateChanged(user => {
     const authOverlay = document.getElementById('authOverlay');
     const landingOverlay = document.getElementById('landingOverlay');
-    const userProfile = document.getElementById('userProfile');
     
     if (user) {
         currentUser = user;
         authOverlay.style.display = 'none';
         landingOverlay.style.display = 'flex';
-        userProfile.style.display = 'flex';
         
-        document.getElementById('userName').textContent = user.displayName || user.email.split('@')[0];
-        if (user.photoURL) { document.getElementById('userAvatar').src = user.photoURL; } 
-        else { document.getElementById('userAvatar').src = "https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg"; }
-        
-        document.getElementById('playerName').value = user.displayName || user.email.split('@')[0];
-        document.getElementById('meetPlayerName').value = user.displayName || user.email.split('@')[0];
+        // تعبئة اسم المستخدم في خانات الغرف والاجتماعات
+        const displayName = user.displayName || user.email.split('@')[0];
+        document.getElementById('playerName').value = displayName;
+        document.getElementById('meetPlayerName').value = displayName;
         
     } else {
         currentUser = null;
         authOverlay.style.display = 'flex';
         landingOverlay.style.display = 'none';
-        userProfile.style.display = 'none';
     }
 });
 
@@ -538,6 +527,9 @@ const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), vide
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
 const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid');
+
+// Logout Button Event
+$('btnLogout').addEventListener('click', logoutUser);
 
 let appMode = 'none';
 let chatHistory = [], isTranslatorMode = true, activeSpeaker = null, isSending = false, isCompressing = false;
