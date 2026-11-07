@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chat-Core - Translator</title>
-<!-- مكتبة LiveKit للفيديو الجماعي -->
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,38 +35,15 @@
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   
   #removeAvatarBtn { 
-    display: none; 
-    position: absolute; 
-    top: 50%;
-    right: -15px; 
-    transform: translateY(-50%);
-    width: 14px; 
-    height: 14px; 
-    border-radius: 50%; 
-    background: #000000; 
-    border: none; 
-    outline: none; 
-    box-shadow: none; 
-    cursor: pointer; 
-    z-index: 10; 
-    padding: 0; 
-    opacity: 0.9; 
+    display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%);
+    width: 14px; height: 14px; border-radius: 50%; background: #000000; border: none; 
+    outline: none; box-shadow: none; cursor: pointer; z-index: 10; padding: 0; opacity: 0.9; 
   }
 
   #closeFullscreen, #closeVideoFullscreen { 
-    display: none; 
-    position: fixed; 
-    background: #e57373;
-    border: none; 
-    outline: none; 
-    width: 50px; 
-    height: 50px; 
-    border-radius: 50%; 
-    cursor: pointer; 
-    z-index: 10000; 
-    align-items: center; 
-    justify-content: center; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    display: none; position: fixed; background: #e57373; border: none; outline: none; 
+    width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; 
+    align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   }
   .inner-white-dot { width: 14px; height: 14px; background: #ffffff; border-radius: 50%; }
   #closeFullscreen { top: 80px; right: 20px; }
@@ -84,70 +60,17 @@
   body.video-maximized #closeVideoFullscreen { display: flex; }
   body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
 
-  #meetingGridContainer {
-    display: none;
-    position: relative;
-    width: 100%;
-    flex: 1;
-    background: #0f172a;
-    border-radius: 12px;
-    padding: 10px;
-    overflow-y: auto;
-    margin-bottom: 10px;
-  }
-  #videoGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-    align-content: start;
-  }
-  .participant-box {
-    position: relative;
-    background: #000;
-    border-radius: 8px;
-    overflow: hidden;
-    aspect-ratio: 4/3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #334155;
-  }
-  .participant-box video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .participant-name {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    background: rgba(0,0,0,0.6);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    color: #fff;
-    z-index: 2;
-  }
+  #meetingGridContainer { display: none; position: relative; width: 100%; flex: 1; background: #0f172a; border-radius: 12px; padding: 10px; overflow-y: auto; margin-bottom: 10px; }
+  #videoGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-content: start; }
+  .participant-box { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; border: 2px solid #334155; }
+  .participant-box video { width: 100%; height: 100%; object-fit: cover; }
+  .participant-name { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #fff; z-index: 2; }
   body.meeting-mode .chat-container { max-height: 35vh; }
 
   #floatingMicBtn {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: #10b981;
-    color: white;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    z-index: 100000;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s;
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%;
+    background: #10b981; color: white; display: none; align-items: center; justify-content: center; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100000; border: none; cursor: pointer; transition: all 0.3s;
   }
   #floatingMicBtn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; }
   body.video-maximized #floatingMicBtn { display: flex; }
@@ -176,42 +99,13 @@
   
   button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
   #musicBtn { background: #ffffff; color: #000000; order: 1; font-size: 16px; }
-  
   #mediaBtn { background: #1d4ed8; color: #ffffff; order: 2; font-size: 22px; width: 32px; height: 32px; padding-bottom: 2px; font-weight: normal; }
   
-  #remoteMicBtn { 
-    background: #10b981; 
-    color: #fff; 
-    order: 2; 
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
-    display: none; 
-    transition: all 0.3s ease;
-  }
-  #remoteMicBtn.recording {
-    background: #ef4444 !important;
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
-    animation: pulse 1s infinite;
-  }
+  #remoteMicBtn { background: #10b981; color: #fff; order: 2; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4); display: none; transition: all 0.3s ease; }
+  #remoteMicBtn.recording { background: #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.8); animation: pulse 1s infinite; }
   
-  #toggleCamBtn {
-    background: #475569;
-    color: #fff;
-    order: 2;
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    display: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  #toggleCamBtn.off {
-    background: #ef4444;
-  }
+  #toggleCamBtn { background: #475569; color: #fff; order: 2; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); display: none; border: none; cursor: pointer; transition: all 0.3s ease; }
+  #toggleCamBtn.off { background: #ef4444; }
 
   #sendBtn { background: #1d4ed8; order: 4; color: #fff; }
   #sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
@@ -223,9 +117,7 @@
   
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: nowrap; width: 100%; padding: 0 5px; align-items: center; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
-  
   .extra-controls button.active { background: #eab308; color: #000; }
-  
   .btn-back { background: #e57373 !important; color: white !important; }
 
   body.remote-mode #extraControls, body.meeting-mode #extraControls { justify-content: space-between; padding: 0 10px; }
@@ -256,7 +148,6 @@
   .overlay .mode-btn { padding: 15px 30px; font-size: 16px; border-radius: 12px; border: none; color: #fff; cursor: pointer; width: 260px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
   #btnLocal { background: #6366f1; }
   #btnRemote { background: #10b981; }
-  
   #btnMeeting { background: #1d4ed8; }
   #btnMeeting .plus-icon { font-size: 24px; font-weight: bold; margin-bottom: 3px; }
   
@@ -264,7 +155,6 @@
   .join-form input, .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
   .join-form input:focus { border-color: #0ea5e9; }
   .join-form button { padding: 12px; border-radius: 8px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 14px; }
-  
   #createRoomBtn, #createMeetingBtn { background: #10b981; }
   #joinRoomBtn, #joinMeetingBtn { background: #6366f1; }
   #joinRow { display: flex; gap: 8px; }
@@ -291,23 +181,13 @@
   <div class="join-form">
     <input type="text" id="playerName" placeholder="Your Name" maxlength="30">
     <select id="playerLang">
-      <option value="ar">🇹🇳 العربية</option>
-      <option value="fr">🇫🇷 Français</option>
-      <option value="en">🇬🇧 English</option>
-      <option value="de">🇩🇪 Deutsch</option>
-      <option value="tr">🇹🇷 Türkçe</option>
-      <option value="it">🇮🇹 Italiano</option>
-      <option value="zh">🇨🇳 中文</option>
-      <option value="ru">🇷🇺 Русский</option>
-      <option value="es">🇪🇸 Español</option>
-      <option value="pt">🇵🇹 Português</option>
-      <option value="nl">🇳🇱 Nederlands</option>
-      <option value="no">🇳🇴 Norsk</option>
+      <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
+      <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
+      <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
+      <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
     </select>
     <button id="createRoomBtn">➕ Create Room</button>
-    
     <div id="orText" style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
-    
     <div id="joinRow">
       <input type="text" id="joinCodeInput" placeholder="Room Code" maxlength="6">
       <button id="joinRoomBtn">Join</button>
@@ -321,23 +201,13 @@
   <div class="join-form">
     <input type="text" id="meetPlayerName" placeholder="Your Name" maxlength="30">
     <select id="meetPlayerLang">
-      <option value="ar">🇹🇳 العربية</option>
-      <option value="fr">🇫🇷 Français</option>
-      <option value="en">🇬🇧 English</option>
-      <option value="de">🇩🇪 Deutsch</option>
-      <option value="tr">🇹🇷 Türkçe</option>
-      <option value="it">🇮🇹 Italiano</option>
-      <option value="zh">🇨🇳 中文</option>
-      <option value="ru">🇷🇺 Русский</option>
-      <option value="es">🇪🇸 Español</option>
-      <option value="pt">🇵🇹 Português</option>
-      <option value="nl">🇳🇱 Nederlands</option>
-      <option value="no">🇳🇴 Norsk</option>
+      <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
+      <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
+      <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
+      <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
     </select>
     <button id="createMeetingBtn">➕ Create Meeting</button>
-    
     <div style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
-    
     <div id="joinRow">
       <input type="text" id="joinMeetingCodeInput" placeholder="Meeting Code" maxlength="12">
       <button id="joinMeetingBtn">Join</button>
@@ -362,9 +232,8 @@
       <select id="langB" class="lang-select">
         <option value="fr">French</option><option value="ar">Arabic</option><option value="en">English</option>
         <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
-        <option value="zh">Chinese</option><option value="ru">Russian</option>
-        <option value="es">Spanish</option><option value="pt">Portuguese</option>
-        <option value="nl">Dutch</option><option value="no">Norwegian</option>
+        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
+        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
       </select>
       <button id="micB" class="mic-btn green" title="Talk">🎤</button>
     </div>
@@ -373,9 +242,8 @@
       <select id="langA" class="lang-select">
         <option value="ar">Arabic</option><option value="fr">French</option><option value="en">English</option>
         <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
-        <option value="zh">Chinese</option><option value="ru">Russian</option>
-        <option value="es">Spanish</option><option value="pt">Portuguese</option>
-        <option value="nl">Dutch</option><option value="no">Norwegian</option>
+        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
+        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
       </select>
       <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
     </div>
@@ -385,10 +253,7 @@
 <div class="extra-controls" id="extraControls">
     <button id="translateModeBtn" class="active">Translator Mode ON</button>
     <select id="voiceSelect">
-      <option value="man">👨 Men</option>
-      <option value="woman">👩 Woman</option>
-      <option value="girl">👧 Girl</option>
-      <option value="child">🧒 Child</option>
+      <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
     </select>
     <button id="uploadBtn">📁 Avatar</button>
     <button id="backBtn" class="btn-back">Back</button>
@@ -416,9 +281,7 @@
 
 <div class="chat-container" id="chatContainer">
   <div id="chat"></div>
-  <button id="clearBtn" title="Clear Chat">
-    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-  </button>
+  <button id="clearBtn" title="Clear Chat"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
 </div>
 
 <div id="imagePreviewContainer">
@@ -440,9 +303,7 @@
 
   <div style="flex: 1; position: relative; display: flex; align-items: center; order: 3;">
     <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" />
-    <button id="stopAudioBtn" title="Stop Audio">
-      <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-    </button>
+    <button id="stopAudioBtn" title="Stop Audio"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
   </div>
 
   <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
@@ -500,7 +361,6 @@ let isLocked = false;
 let iceCandidatesQueue = []; 
 let isCameraOn = true;
 
-// LiveKit Variables
 let livekitRoom = null;
 
 // Mic Variables
@@ -508,6 +368,9 @@ let isMicIntendedOn = false;
 let isRecording = false;
 let silenceTimer = null;
 let finalTranscriptBuffer = "";
+let isProcessingAudio = false;
+let lastSentText = "";
+let lastSentTime = 0;
 
 // --- ترجمة الواجهة الديناميكية ---
 const UI_TEXT = {
@@ -557,8 +420,10 @@ function addMsg(text, className, lang, imageBase64 = null) {
   div.className = 'msg ' + className;
   div.setAttribute('dir', 'auto');
   
-  if (lang) {
-    const tag = document.createElement('span'); tag.className = 'lang-tag'; tag.textContent = String(lang).toUpperCase();
+  // تأكيد وجود لغة الترجمة
+  const displayLang = lang ? String(lang).toUpperCase() : 'AUTO';
+  if (displayLang !== 'AUTO' || className === 'user-b' || className === 'user-a') {
+    const tag = document.createElement('span'); tag.className = 'lang-tag'; tag.textContent = displayLang;
     div.appendChild(tag);
   }
   
@@ -635,48 +500,28 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
 function setModeUI(mode) {
   appMode = mode;
   
-  topHeader.style.display = 'none'; 
-  remoteBar.style.display = 'none'; 
-  remoteMicBtn.style.display = 'none'; 
-  toggleCamBtn.style.display = 'none';
-  mediaBtn.style.display = 'none'; 
-  musicBtn.style.display = 'none'; 
-  translateModeBtn.style.display = 'none';
-  uploadBtn.style.display = 'none'; 
-  voiceSelect.style.display = 'none';
-  videoContainer.style.display = 'none'; 
-  avatarWrap.style.display = 'none';
-  meetingGridContainer.style.display = 'none';
-  $('friendSection').style.display = 'none'; 
-  micA.style.display = 'none'; 
-  micB.style.display = 'none';
+  topHeader.style.display = 'none'; remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none'; toggleCamBtn.style.display = 'none';
+  mediaBtn.style.display = 'none'; musicBtn.style.display = 'none'; translateModeBtn.style.display = 'none';
+  uploadBtn.style.display = 'none'; voiceSelect.style.display = 'none';
+  videoContainer.style.display = 'none'; avatarWrap.style.display = 'none'; meetingGridContainer.style.display = 'none';
+  $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
   $('extraControls').style.display = 'none';
 
   if (mode === 'local') {
     document.body.classList.remove('remote-mode', 'meeting-mode');
-    topHeader.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
-    uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
-    avatarWrap.style.display = 'flex';
+    topHeader.style.display = 'flex'; mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex'; translateModeBtn.style.display = 'inline-block';
+    uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block'; avatarWrap.style.display = 'flex';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
     $('extraControls').style.display = 'flex';
   } else if (mode === 'remote') {
-    document.body.classList.remove('meeting-mode');
-    document.body.classList.add('remote-mode');
+    document.body.classList.remove('meeting-mode'); document.body.classList.add('remote-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; 
-    musicBtn.style.display = 'none'; 
-    voiceSelect.style.display = 'inline-block'; 
-    $('extraControls').style.display = 'flex';
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'none'; voiceSelect.style.display = 'inline-block'; $('extraControls').style.display = 'flex';
   } else if (mode === 'meeting') {
-    document.body.classList.remove('remote-mode');
-    document.body.classList.add('meeting-mode');
+    document.body.classList.remove('remote-mode'); document.body.classList.add('meeting-mode');
     topHeader.style.display = 'flex'; remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; 
-    musicBtn.style.display = 'none'; 
-    meetingGridContainer.style.display = 'block'; 
-    voiceSelect.style.display = 'inline-block'; 
-    $('extraControls').style.display = 'flex';
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'none'; meetingGridContainer.style.display = 'block'; 
+    voiceSelect.style.display = 'inline-block'; $('extraControls').style.display = 'flex';
   }
 }
 
@@ -691,79 +536,45 @@ remoteLockBtn.addEventListener('click', () => {
   if (!isLocked) {
     isLocked = true;
     remoteLockBtn.textContent = 'Unlock';
-    $('chatContainer').classList.add('locked-ui');
-    $('inputRow').classList.add('locked-ui');
-    $('topBar').classList.add('locked-ui');
-    $('extraControls').classList.add('locked-ui');
+    $('chatContainer').classList.add('locked-ui'); $('inputRow').classList.add('locked-ui'); $('topBar').classList.add('locked-ui'); $('extraControls').classList.add('locked-ui');
     if (appMode === 'remote') $('videoContainer').classList.add('locked-ui');
     if (appMode === 'meeting') $('meetingGridContainer').classList.add('locked-ui');
     stopAudio();
-    if (isRecording) {
-        isMicIntendedOn = false;
-        isRecording = false;
-        try { recognition.stop(); } catch(e){}
-        unlockMics();
-    }
+    if (isRecording) { isMicIntendedOn = false; isRecording = false; try { recognition.stop(); } catch(e){} unlockMics(); }
     setStatus('App is locked 🔒');
   } else {
     isLocked = false;
     remoteLockBtn.textContent = 'Lock';
-    $('chatContainer').classList.remove('locked-ui');
-    $('inputRow').classList.remove('locked-ui');
-    $('topBar').classList.remove('locked-ui');
-    $('extraControls').classList.remove('locked-ui');
-    $('videoContainer').classList.remove('locked-ui');
-    $('meetingGridContainer').classList.remove('locked-ui');
+    $('chatContainer').classList.remove('locked-ui'); $('inputRow').classList.remove('locked-ui'); $('topBar').classList.remove('locked-ui'); $('extraControls').classList.remove('locked-ui');
+    $('videoContainer').classList.remove('locked-ui'); $('meetingGridContainer').classList.remove('locked-ui');
     resetStatus();
   }
 });
 
 backBtn.addEventListener('click', async () => {
-  if (isMicIntendedOn) {
-      isMicIntendedOn = false;
-      isRecording = false;
-      try { recognition.stop(); } catch(e){}
-  }
+  if (isMicIntendedOn) { isMicIntendedOn = false; isRecording = false; try { recognition.stop(); } catch(e){} }
   stopAudio();
 
   if (appMode === 'remote' || appMode === 'meeting') {
-    shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-    stopPing(); if (ws) ws.close();
+    shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (pc) { pc.close(); pc = null; }
+    if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
     
-    if (livekitRoom) { 
-        await livekitRoom.disconnect(); 
-        livekitRoom = null; 
-    }
-    
-    iceCandidatesQueue = [];
-    videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
-    videoGrid.innerHTML = ''; 
-    appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
+    iceCandidatesQueue = []; videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
+    videoGrid.innerHTML = ''; appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none'; topHeader.style.display = 'flex';
     chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
     
     if (isLocked) {
-        isLocked = false;
-        remoteLockBtn.textContent = 'Lock';
-        $('chatContainer').classList.remove('locked-ui');
-        $('inputRow').classList.remove('locked-ui');
-        $('topBar').classList.remove('locked-ui');
-        $('extraControls').classList.remove('locked-ui');
-        $('videoContainer').classList.remove('locked-ui');
-        $('meetingGridContainer').classList.remove('locked-ui');
+        isLocked = false; remoteLockBtn.textContent = 'Lock';
+        $('chatContainer').classList.remove('locked-ui'); $('inputRow').classList.remove('locked-ui'); $('topBar').classList.remove('locked-ui'); $('extraControls').classList.remove('locked-ui'); $('videoContainer').classList.remove('locked-ui'); $('meetingGridContainer').classList.remove('locked-ui');
     }
   } else {
-    chatEl.innerHTML = ''; chatHistory = [];
-    appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex';
-    $('landingOverlay').style.display = 'flex';
+    chatEl.innerHTML = ''; chatHistory = []; appMode = 'none'; setModeUI('none'); topHeader.style.display = 'flex'; $('landingOverlay').style.display = 'flex';
   }
 });
 
-videoContainer.addEventListener('click', (e) => {
-  if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target)) return;
-  document.body.classList.toggle('video-maximized');
-});
+videoContainer.addEventListener('click', (e) => { if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target)) return; document.body.classList.toggle('video-maximized'); });
 localVideo.addEventListener('click', (e) => { e.stopPropagation(); });
 closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
 
@@ -777,17 +588,10 @@ langA.addEventListener('change', () => {
 
 $('copyRoomBtn').addEventListener('click', () => {
   if (!currentRoomCode) return;
-  navigator.clipboard.writeText(currentRoomCode).then(() => {
-    setStatus('Code copied!');
-    setTimeout(resetStatus, 2000);
-  }).catch(() => alert('Room Code: ' + currentRoomCode));
+  navigator.clipboard.writeText(currentRoomCode).then(() => { setStatus('Code copied!'); setTimeout(resetStatus, 2000); }).catch(() => alert('Room Code: ' + currentRoomCode));
 });
 
-avatarWrap.addEventListener('click', (e) => {
-  if (isLocked) return;
-  if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return;
-  avatarWrap.classList.toggle('fullscreen');
-});
+avatarWrap.addEventListener('click', (e) => { if (isLocked) return; if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return; avatarWrap.classList.toggle('fullscreen'); });
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
 
 translateModeBtn.addEventListener('click', () => {
@@ -800,12 +604,7 @@ translateModeBtn.addEventListener('click', () => {
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
 stopAudioBtn.addEventListener('click', () => { 
     stopAudio(); 
-    if (isRecording) { 
-        isMicIntendedOn = false;
-        isRecording = false; 
-        try { recognition.stop(); } catch(e){}
-        unlockMics();
-    } 
+    if (isRecording) { isMicIntendedOn = false; isRecording = false; try { recognition.stop(); } catch(e){} unlockMics(); } 
 });
 
 toggleCamBtn.addEventListener('click', async () => {
@@ -814,92 +613,45 @@ toggleCamBtn.addEventListener('click', async () => {
     toggleCamBtn.innerHTML = isCameraOn 
         ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
         : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
-    
-    if (localStream) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) videoTrack.enabled = isCameraOn;
-    }
-    if (livekitRoom) {
-        try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); }
-    }
+    if (localStream) { const videoTrack = localStream.getVideoTracks()[0]; if (videoTrack) videoTrack.enabled = isCameraOn; }
+    if (livekitRoom) { try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); } }
 });
 
 function handleTrackSubscribed(track, publication, participant) {
     if (track.kind === 'video' || track.kind === 'audio') {
         let boxId = 'participant-' + participant.identity;
         let box = document.getElementById(boxId);
-        
         if (!box) {
-            box = document.createElement('div');
-            box.id = boxId;
-            box.className = 'participant-box';
-            
-            let nameLabel = document.createElement('div');
-            nameLabel.className = 'participant-name';
-            nameLabel.textContent = participant.name || participant.identity;
-            box.appendChild(nameLabel);
-            
-            videoGrid.appendChild(box);
+            box = document.createElement('div'); box.id = boxId; box.className = 'participant-box';
+            let nameLabel = document.createElement('div'); nameLabel.className = 'participant-name'; nameLabel.textContent = participant.name || participant.identity;
+            box.appendChild(nameLabel); videoGrid.appendChild(box);
         }
-        
         if (track.kind === 'video') {
-            const videoEl = track.attach();
-            videoEl.autoplay = true;
-            videoEl.playsInline = true;
-            videoEl.style.width = '100%';
-            videoEl.style.height = '100%';
-            videoEl.style.objectFit = 'cover';
-            
-            const oldVideo = box.querySelector('video');
-            if (oldVideo) oldVideo.remove();
+            const videoEl = track.attach(); videoEl.autoplay = true; videoEl.playsInline = true;
+            videoEl.style.width = '100%'; videoEl.style.height = '100%'; videoEl.style.objectFit = 'cover';
+            const oldVideo = box.querySelector('video'); if (oldVideo) oldVideo.remove();
             box.insertBefore(videoEl, box.firstChild);
         } else if (track.kind === 'audio') {
-            const audioEl = track.attach();
-            audioEl.autoplay = true;
-            box.appendChild(audioEl);
+            const audioEl = track.attach(); audioEl.autoplay = true; box.appendChild(audioEl);
         }
     }
 }
 
-function handleTrackUnsubscribed(track, publication, participant) {
-    track.detach().forEach(el => el.remove());
-}
-
-function handleParticipantDisconnected(participant) {
-    let box = document.getElementById('participant-' + participant.identity);
-    if (box) box.remove();
-}
+function handleTrackUnsubscribed(track, publication, participant) { track.detach().forEach(el => el.remove()); }
+function handleParticipantDisconnected(participant) { let box = document.getElementById('participant-' + participant.identity); if (box) box.remove(); }
 
 async function connectLiveKit(roomCode, participantName) {
     try {
         setStatus("Getting token...");
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 25000);
-
-        const res = await fetch(TOKEN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ room_name: roomCode, participant_name: participantName }),
-            signal: controller.signal
-        });
+        const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 25000);
+        const res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_name: roomCode, participant_name: participantName }), signal: controller.signal });
         clearTimeout(timeout);
-        
-        if (!res.ok) {
-            let errMsg = "Token fetch failed";
-            try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){}
-            throw new Error(errMsg);
-        }
-        
+        if (!res.ok) { let errMsg = "Token fetch failed"; try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){} throw new Error(errMsg); }
         const { token, url } = await res.json();
 
         setStatus("Connecting to LiveKit...");
-        
-        if (livekitRoom) {
-            await livekitRoom.disconnect();
-            livekitRoom = null;
-        }
+        if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
         videoGrid.innerHTML = '';
-        
         livekitRoom = new LivekitClient.Room();
         
         livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
@@ -908,55 +660,27 @@ async function connectLiveKit(roomCode, participantName) {
         
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ Connected to Meeting");
-            try {
-                await livekitRoom.localParticipant.setCameraEnabled(true);
-                await livekitRoom.localParticipant.setMicrophoneEnabled(true);
-            } catch (err) {
-                console.warn("Camera/Mic permission denied.", err);
-                addMsg("⚠️ يرجى السماح بالوصول للكاميرا والمايك.", 'bot');
-            }
+            try { await livekitRoom.localParticipant.setCameraEnabled(true); await livekitRoom.localParticipant.setMicrophoneEnabled(true); } 
+            catch (err) { console.warn("Camera/Mic permission denied.", err); addMsg("⚠️ يرجى السماح بالوصول للكاميرا والمايك.", 'bot'); }
             try { await livekitRoom.startAudio(); } catch(e) {}
         });
 
-        livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => {
-            setStatus("Disconnected");
-            addMsg("⚠️ تم قطع الاتصال بالاجتماع.", "bot");
-        });
-
+        livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => { setStatus("Disconnected"); addMsg("⚠️ تم قطع الاتصال بالاجتماع.", "bot"); });
         livekitRoom.on(LivekitClient.RoomEvent.Reconnecting, () => setStatus("Reconnecting..."));
         livekitRoom.on(LivekitClient.RoomEvent.Reconnected, () => setStatus("✅ Reconnected"));
-        
-        livekitRoom.on(LivekitClient.RoomEvent.MediaDevicesError, (e) => {
-            console.error(e);
-            addMsg("⚠️ خطأ في أجهزة الوسائط (كاميرا/مايك).", "bot");
-        });
+        livekitRoom.on(LivekitClient.RoomEvent.MediaDevicesError, (e) => { console.error(e); addMsg("⚠️ خطأ في أجهزة الوسائط (كاميرا/مايك).", "bot"); });
 
         livekitRoom.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
              if (publication.track.kind === 'video') {
-                 let boxId = 'participant-' + participant.identity;
-                 let box = document.getElementById(boxId);
-                 
+                 let boxId = 'participant-' + participant.identity; let box = document.getElementById(boxId);
                  if (!box) {
-                     box = document.createElement('div');
-                     box.id = boxId;
-                     box.className = 'participant-box';
-                     let nameLabel = document.createElement('div');
-                     nameLabel.className = 'participant-name';
-                     nameLabel.textContent = (participant.name || participant.identity) + " (You)";
-                     box.appendChild(nameLabel);
-                     videoGrid.appendChild(box);
+                     box = document.createElement('div'); box.id = boxId; box.className = 'participant-box';
+                     let nameLabel = document.createElement('div'); nameLabel.className = 'participant-name'; nameLabel.textContent = (participant.name || participant.identity) + " (You)";
+                     box.appendChild(nameLabel); videoGrid.appendChild(box);
                  }
-                 
-                 const oldVideo = box.querySelector('video');
-                 if (oldVideo) oldVideo.remove();
-                 
-                 const videoEl = publication.track.attach();
-                 videoEl.autoplay = true;
-                 videoEl.playsInline = true;
-                 videoEl.muted = true; 
-                 videoEl.style.width = '100%';
-                 videoEl.style.height = '100%';
-                 videoEl.style.objectFit = 'cover';
+                 const oldVideo = box.querySelector('video'); if (oldVideo) oldVideo.remove();
+                 const videoEl = publication.track.attach(); videoEl.autoplay = true; videoEl.playsInline = true; videoEl.muted = true; 
+                 videoEl.style.width = '100%'; videoEl.style.height = '100%'; videoEl.style.objectFit = 'cover';
                  box.insertBefore(videoEl, box.firstChild);
              }
         });
@@ -964,121 +688,66 @@ async function connectLiveKit(roomCode, participantName) {
         livekitRoom.on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication, participant) => {
              if (publication.track && publication.track.kind === 'video') {
                  let box = document.getElementById('participant-' + participant.identity);
-                 if (box) {
-                     const videoEl = box.querySelector('video');
-                     if (videoEl) videoEl.remove();
-                 }
+                 if (box) { const videoEl = box.querySelector('video'); if (videoEl) videoEl.remove(); }
              }
         });
 
         await livekitRoom.connect(url, token);
-        
     } catch (e) {
         console.error(e);
-        if (e.name === 'AbortError') {
-            addMsg("⚠️ الخادم يستغرق وقتاً طويلاً للاستجابة. يرجى المحاولة مرة أخرى.", 'bot');
-            setStatus("Connection timeout");
-        } else {
-            addMsg("⚠️ Failed to join meeting: " + e.message, 'bot');
-            setStatus("Meeting Error");
-        }
+        if (e.name === 'AbortError') { addMsg("⚠️ الخادم يستغرق وقتاً طويلاً للاستجابة. يرجى المحاولة مرة أخرى.", 'bot'); setStatus("Connection timeout"); } 
+        else { addMsg("⚠️ Failed to join meeting: " + e.message, 'bot'); setStatus("Meeting Error"); }
     }
 }
 
 $('createMeetingBtn').addEventListener('click', async () => {
-    const name = $('meetPlayerName').value.trim();
-    if (!name) return alert("Enter your name");
+    const name = $('meetPlayerName').value.trim(); if (!name) return alert("Enter your name");
     const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
-    
-    myName = name; myLang = $('meetPlayerLang').value;
-    langA.value = myLang;
-    
-    $('meetingJoinOverlay').style.display = 'none';
-    setModeUI('meeting');
-    roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting";
-    chatEl.innerHTML = '';
-    
-    connectWebSocket(code); 
-    connectLiveKit(code, name); 
+    myName = name; myLang = $('meetPlayerLang').value; langA.value = myLang;
+    $('meetingJoinOverlay').style.display = 'none'; setModeUI('meeting'); roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting"; chatEl.innerHTML = '';
+    connectWebSocket(code); connectLiveKit(code, name); 
 });
 
 $('joinMeetingBtn').addEventListener('click', () => {
-    const name = $('meetPlayerName').value.trim();
-    const code = $('joinMeetingCodeInput').value.trim().toUpperCase();
-    if (!name) return alert("Enter your name");
-    if (!code) return alert("Enter meeting code");
-    
-    myName = name; myLang = $('meetPlayerLang').value;
-    langA.value = myLang;
-    
-    $('meetingJoinOverlay').style.display = 'none';
-    setModeUI('meeting');
-    roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting";
-    chatEl.innerHTML = '';
-    
-    connectWebSocket(code);
-    connectLiveKit(code, name);
+    const name = $('meetPlayerName').value.trim(); const code = $('joinMeetingCodeInput').value.trim().toUpperCase();
+    if (!name) return alert("Enter your name"); if (!code) return alert("Enter meeting code");
+    myName = name; myLang = $('meetPlayerLang').value; langA.value = myLang;
+    $('meetingJoinOverlay').style.display = 'none'; setModeUI('meeting'); roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting"; chatEl.innerHTML = '';
+    connectWebSocket(code); connectLiveKit(code, name);
 });
 
 $('createRoomBtn').addEventListener('click', async () => {
-  const name = $('playerName').value.trim(), lang = $('playerLang').value;
-  if (!name) return alert('Please enter your name');
-  myName = name; myLang = lang;
-  langA.value = lang; 
-  
+  const name = $('playerName').value.trim(), lang = $('playerLang').value; if (!name) return alert('Please enter your name');
+  myName = name; myLang = lang; langA.value = lang; 
   const btn = $('createRoomBtn'); btn.textContent = '⏳ Connecting...'; btn.disabled = true;
   try {
-    const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
-    const data = await res.json();
-    if (!data.code) throw new Error('لم يتم استلام الكود');
-    enterRemoteRoom(data.code);
+    const res = await fetch(ROOM_CREATE_URL, { method: 'POST' }); const data = await res.json();
+    if (!data.code) throw new Error('لم يتم استلام الكود'); enterRemoteRoom(data.code);
   } catch (e) { alert('Failed to create room: ' + e.message); } 
   finally { btn.textContent = '➕ Create Room'; btn.disabled = false; }
 });
 $('joinRoomBtn').addEventListener('click', () => {
   const name = $('playerName').value.trim(), lang = $('playerLang').value, code = $('joinCodeInput').value.trim().toUpperCase();
-  if (!name) return alert('Please enter your name');
-  if (code.length !== 6) return alert('Invalid code');
-  myName = name; myLang = lang; 
-  langA.value = lang;
-  enterRemoteRoom(code);
+  if (!name) return alert('Please enter your name'); if (code.length !== 6) return alert('Invalid code');
+  myName = name; myLang = lang; langA.value = lang; enterRemoteRoom(code);
 });
 
 function enterRemoteRoom(code) {
   currentRoomCode = code; hasJoinedOnce = false; shouldReconnect = true;
-  $('remoteJoinOverlay').style.display = 'none'; setModeUI('remote');
-  roomCodeLabel.textContent = code; onlineCount.textContent = '1/4'; chatEl.innerHTML = '';
-  setStatus(`Connecting to ${code}...`);
-  connectWebSocket(code);
+  $('remoteJoinOverlay').style.display = 'none'; setModeUI('remote'); roomCodeLabel.textContent = code; onlineCount.textContent = '1/4'; chatEl.innerHTML = '';
+  setStatus(`Connecting to ${code}...`); connectWebSocket(code);
 }
 
 function connectWebSocket(code) {
   if (ws) { try { ws.close(); } catch(e){} }
   ws = new WebSocket(WS_BASE + '/ws/' + code);
-  
-  ws.onopen = () => { 
-    ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); 
-    startPing(); 
-  };
-  
+  ws.onopen = () => { ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); startPing(); };
   ws.onmessage = handleWsMessage;
-  
-  ws.onerror = (e) => {
-    console.error('WS Error', e);
-    addMsg('⚠️ WebSocket Error.', 'bot');
-  };
-
+  ws.onerror = (e) => { console.error('WS Error', e); addMsg('⚠️ WebSocket Error.', 'bot'); };
   ws.onclose = (ev) => {
     stopPing();
-    if (!hasJoinedOnce) { 
-      addMsg(`⚠️ Failed to join. Error code: ${ev.code}`, 'bot');
-      setStatus('Connection failed');
-      return; 
-    }
-    if (shouldReconnect && (appMode === 'remote' || appMode === 'meeting')) {
-      setStatus(`Disconnected. Retrying...`);
-      wsReconnectTimer = setTimeout(() => connectWebSocket(code), 3000);
-    }
+    if (!hasJoinedOnce) { addMsg(`⚠️ Failed to join. Error code: ${ev.code}`, 'bot'); setStatus('Connection failed'); return; }
+    if (shouldReconnect && (appMode === 'remote' || appMode === 'meeting')) { setStatus(`Disconnected. Retrying...`); wsReconnectTimer = setTimeout(() => connectWebSocket(code), 3000); }
   };
 }
 
@@ -1090,17 +759,12 @@ function handleWsMessage(ev) {
       if (appMode === 'remote') onlineCount.textContent = `${data.users.length}/4`;
       if (appMode === 'meeting') onlineCount.textContent = `${data.users.length} online`;
       addMsg(`✅ Joined room ${currentRoomCode}`, 'bot');
-      if (appMode === 'remote' && data.users.length > 1) {
-        startVideoCall(true); 
-      }
+      if (appMode === 'remote' && data.users.length > 1) { startVideoCall(true); }
       break;
     case 'user_joined':
       addMsg(`👤 ${data.name} joined`, 'bot');
-      if (appMode === 'meeting') {
-          onlineCount.textContent = `${data.users.length} online`; 
-      } else if (appMode === 'remote') {
-          startVideoCall(false);
-      }
+      if (appMode === 'meeting') { onlineCount.textContent = `${data.users.length} online`; } 
+      else if (appMode === 'remote') { startVideoCall(false); }
       break;
     case 'translated':
       if (data.is_mine) return;
@@ -1109,20 +773,15 @@ function handleWsMessage(ev) {
       else { speak(data.original, myLang); }
       break;
     case 'chat_media':
-      if (data.media_type === 'image') {
-          addMsg('', 'user-b', data.from_lang, data.data);
-      }
+      if (data.media_type === 'image') { addMsg('', 'user-b', data.from_lang, data.data); }
       break;
     case 'rtc-offer':
       if (appMode === 'meeting') break;
       startVideoCall(false).then(async () => {
         if (!pc) return;
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-        while (iceCandidatesQueue.length > 0) {
-          await pc.addIceCandidate(new RTCIceCandidate(iceCandidatesQueue.shift())).catch(e => {});
-        }
-        const answer = await pc.createAnswer(); 
-        await pc.setLocalDescription(answer);
+        while (iceCandidatesQueue.length > 0) { await pc.addIceCandidate(new RTCIceCandidate(iceCandidatesQueue.shift())).catch(e => {}); }
+        const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
         ws.send(JSON.stringify({ type: 'rtc-answer', answer: answer }));
       });
       break;
@@ -1130,23 +789,16 @@ function handleWsMessage(ev) {
       if (appMode === 'meeting') break;
       if (pc) {
         pc.setRemoteDescription(new RTCSessionDescription(data.answer)).then(() => {
-            while (iceCandidatesQueue.length > 0) {
-              pc.addIceCandidate(new RTCIceCandidate(iceCandidatesQueue.shift())).catch(e => {});
-            }
+            while (iceCandidatesQueue.length > 0) { pc.addIceCandidate(new RTCIceCandidate(iceCandidatesQueue.shift())).catch(e => {}); }
         });
       }
       break;
     case 'rtc-ice':
       if (appMode === 'meeting') break;
-      if (pc && pc.remoteDescription && pc.remoteDescription.type) {
-        pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => {});
-      } else {
-        iceCandidatesQueue.push(data.candidate);
-      }
+      if (pc && pc.remoteDescription && pc.remoteDescription.type) { pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => {}); } 
+      else { iceCandidatesQueue.push(data.candidate); }
       break;
-    case 'error':
-      addMsg(`⚠️ ${data.message}`, 'bot');
-      break;
+    case 'error': addMsg(`⚠️ ${data.message}`, 'bot'); break;
   }
 }
 
@@ -1162,17 +814,13 @@ function setAvatarState(playing) {
 }
 
 function unlockMics() {
-  activeSpeaker = null;
-  isRecording = false;
-  isMicIntendedOn = false;
+  activeSpeaker = null; isRecording = false; isMicIntendedOn = false;
   micA.disabled = false; micB.disabled = false; 
   if (remoteMicBtn) remoteMicBtn.disabled = false;
   if (floatingMicBtn) floatingMicBtn.disabled = false;
-  
   micA.classList.remove('recording'); micB.classList.remove('recording'); 
   if (remoteMicBtn) remoteMicBtn.classList.remove('recording'); 
   if (floatingMicBtn) floatingMicBtn.classList.remove('recording'); 
-  
   if (!isBotTalking) resetStatus();
 }
 
@@ -1187,9 +835,10 @@ function stopAudio() {
 async function speak(text, lang) {
   if (isLocked) return; 
   
-  stopAudio(); isBotTalking = true;
+  // إيقاف المايك تماماً لمنع التقاط الصدى
+  stopAudio(); 
+  isBotTalking = true;
 
-  // Pause mic if recording
   if (isRecording) {
     try { recognition.stop(); } catch(e){}
     isRecording = false;
@@ -1206,11 +855,16 @@ async function speak(text, lang) {
   const myId = ++currentSpeechId; setStatus('Speaking...');
   setAvatarState(true);
   
+  // إعادة تشغيل المايك بعد تأخير بسيط لمنع التقاط أول حرف من الصوت القادم
   const resumeMic = () => {
       isBotTalking = false; setAvatarState(false);
       if (isMicIntendedOn) {
-          isRecording = true;
-          try { recognition.start(); } catch(e){}
+          setTimeout(() => {
+              if (isMicIntendedOn && !isBotTalking) {
+                  isRecording = true;
+                  try { recognition.start(); } catch(e){}
+              }
+          }, 800); // تأخير 800 مللي ثانية
       } else {
           unlockMics();
       }
@@ -1241,20 +895,19 @@ function speakBrowser(text, lang, myId) {
   else if (voiceType === 'girl') { u.pitch = 1.3; u.rate = 1.05; } 
   else if (voiceType === 'child') { u.pitch = 1.5; u.rate = 1.1; }
 
-  u.onend = () => { 
-    if (myId === currentSpeechId) { 
-      isBotTalking = false; setAvatarState(false); 
-      if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} }
-      else unlockMics(); 
-    } 
+  const resumeMic = () => {
+      if (myId === currentSpeechId) { 
+          isBotTalking = false; setAvatarState(false); 
+          if (isMicIntendedOn) { 
+              setTimeout(() => {
+                  if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} }
+              }, 800);
+          } else unlockMics(); 
+      } 
   };
-  u.onerror = () => { 
-    if (myId === currentSpeechId) { 
-      isBotTalking = false; setAvatarState(false); 
-      if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} }
-      else unlockMics(); 
-    } 
-  };
+
+  u.onend = resumeMic;
+  u.onerror = resumeMic;
   speechSynthesis.speak(u);
 }
 
@@ -1262,17 +915,10 @@ async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      localVideo.srcObject = localStream;
-      videoContainer.style.display = 'block';
-      isCameraOn = true;
-      toggleCamBtn.classList.remove('off');
-    } catch (err) { 
-      console.error('Camera access denied', err); 
-      addMsg('⚠️ تعذر الوصول إلى الكاميرا. يرجى السماح بالوصول.', 'bot');
-      return; 
-    }
+      localVideo.srcObject = localStream; videoContainer.style.display = 'block';
+      isCameraOn = true; toggleCamBtn.classList.remove('off');
+    } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا. يرجى السماح بالوصول.', 'bot'); return; }
   }
-
   if (!pc) {
     const iceServers = [
       { urls: 'stun:stun.relay.metered.ca:80' },
@@ -1281,35 +927,15 @@ async function startVideoCall(isCaller = false) {
       { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
       { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
     ];
-
     pc = new RTCPeerConnection({ iceServers: iceServers });
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    
-    pc.ontrack = (event) => { 
-      remoteVideo.srcObject = event.streams[0]; 
-      remoteVideo.play().catch(e => console.log("Autoplay blocked:", e));
-      setStatus('✅ تم الاتصال بالكاميرا بنجاح!');
-    };
-    
-    pc.onicecandidate = (event) => { 
-      if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); 
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-        console.log("ICE State:", pc.iceConnectionState);
-        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-            setStatus('⚠️ انقطع اتصال الفيديو. قد تكون المشكلة في الشبكة.');
-        }
-    };
+    pc.ontrack = (event) => { remoteVideo.srcObject = event.streams[0]; remoteVideo.play().catch(e => console.log("Autoplay blocked:", e)); setStatus('✅ تم الاتصال بالكاميرا بنجاح!'); };
+    pc.onicecandidate = (event) => { if (event.candidate && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); } };
+    pc.oniceconnectionstatechange = () => { if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') { setStatus('⚠️ انقطع اتصال الفيديو.'); } };
   }
-
   if (isCaller) {
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer }));
-    setStatus('📡 جاري طلب الاتصال بالكاميرا...');
+    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); setStatus('📡 جاري طلب الاتصال بالكاميرا...');
   }
 }
 
@@ -1323,22 +949,36 @@ if (SR) {
   recognition.interimResults = true; 
 
   const processVoice = (text) => {
-    if (!text || !text.trim()) return;
+    const clean = text.trim();
+    if (!clean) return;
+
+    // فلترة التكرار (Deduplication)
+    const now = Date.now();
+    if (clean === lastSentText && (now - lastSentTime) < 3000) return; 
+    lastSentText = clean;
+    lastSentTime = now;
+
     const isA = activeSpeaker === 'A';
     if (appMode === 'remote' || appMode === 'meeting') {
-        addMsg(`You: ${text}`, 'user-a', myLang);
-        sendRemoteMessage(text);
+        addMsg(`You: ${clean}`, 'user-a', myLang);
+        sendRemoteMessage(clean);
     } else {
-        addMsg(text, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
-        ask(text, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
+        addMsg(clean, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
+        ask(clean, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
     }
   };
 
   recognition.onresult = (e) => {
+    if (isProcessingAudio) return; 
+    
     let interim = "";
     for (let i = e.resultIndex; i < e.results.length; ++i) {
       if (e.results[i].isFinal) {
-        finalTranscriptBuffer += e.results[i][0].transcript + " ";
+        let newPart = e.results[i][0].transcript;
+        // منع إضافة نفس النص مرتين في الذاكرة
+        if (!finalTranscriptBuffer.endsWith(newPart + " ")) {
+            finalTranscriptBuffer += newPart + " ";
+        }
       } else {
         interim += e.results[i][0].transcript;
       }
@@ -1351,12 +991,9 @@ if (SR) {
       if (finalTranscriptBuffer.trim()) {
         const textToSend = finalTranscriptBuffer.trim();
         finalTranscriptBuffer = ""; 
+        isProcessingAudio = true; // قفل العملية لمنع التكرار
         
-        // Flush internal browser buffer to prevent duplication hallucination
-        if (isMicIntendedOn) {
-            try { recognition.stop(); } catch(e){} 
-        }
-
+        try { recognition.stop(); } catch(e){} 
         processVoice(textToSend);
         resetStatus();
       }
@@ -1365,18 +1002,16 @@ if (SR) {
 
   recognition.onerror = (e) => {
     if (e.error === 'no-speech') return;
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        isMicIntendedOn = false;
-        unlockMics();
-        setStatus('Mic permission denied.');
-        return;
-    }
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { isMicIntendedOn = false; unlockMics(); setStatus('Mic permission denied.'); return; }
     setStatus('Mic Error: ' + e.error);
   };
 
   recognition.onend = () => {
+    isProcessingAudio = false;
     if (isMicIntendedOn && !isBotTalking) {
-        try { recognition.start(); } catch(e) {} 
+        setTimeout(() => {
+            if (isMicIntendedOn && !isBotTalking) { try { recognition.start(); } catch(e) {} }
+        }, 500); 
     } else if (!isMicIntendedOn) {
         unlockMics();
     }
@@ -1387,45 +1022,17 @@ if (SR) {
     unlockAudio();
     
     if (isMicIntendedOn && activeSpeaker === speaker) {
-        // Turn OFF manually
-        isMicIntendedOn = false;
-        isRecording = false;
-        clearTimeout(silenceTimer);
-        try { recognition.stop(); } catch(e){}
-        if (finalTranscriptBuffer.trim()) {
-            processVoice(finalTranscriptBuffer.trim());
-            finalTranscriptBuffer = "";
-        }
-        unlockMics();
-        return;
+        isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.stop(); } catch(e){}
+        if (finalTranscriptBuffer.trim()) { processVoice(finalTranscriptBuffer.trim()); finalTranscriptBuffer = ""; }
+        unlockMics(); return;
     }
 
-    // Turn ON
-    if (isMicIntendedOn) {
-        try { recognition.stop(); } catch(e){}
-    }
+    if (isMicIntendedOn) { try { recognition.stop(); } catch(e){} }
+    stopAudio(); activeSpeaker = speaker; setAvatarState(true); isMicIntendedOn = true; isRecording = true; finalTranscriptBuffer = "";
     
-    stopAudio(); 
-    activeSpeaker = speaker;
-    setAvatarState(true);
-    isMicIntendedOn = true;
-    isRecording = true;
-    finalTranscriptBuffer = "";
-    
-    if (speaker === 'A') {
-      recognition.lang = localeFor(langA.value);
-      micA.classList.add('recording'); micB.disabled = true;
-      setStatus('🎤 Listening (You)...');
-    } else if (speaker === 'B') {
-      recognition.lang = localeFor(langB.value);
-      micB.classList.add('recording'); micA.disabled = true;
-      setStatus('🎤 Listening (Friend)...');
-    } else {
-      recognition.lang = localeFor(myLang);
-      if (remoteMicBtn) remoteMicBtn.classList.add('recording'); 
-      if (floatingMicBtn) floatingMicBtn.classList.add('recording');
-      setStatus('🎤 Listening...');
-    }
+    if (speaker === 'A') { recognition.lang = localeFor(langA.value); micA.classList.add('recording'); micB.disabled = true; setStatus('🎤 Listening (You)...'); } 
+    else if (speaker === 'B') { recognition.lang = localeFor(langB.value); micB.classList.add('recording'); micA.disabled = true; setStatus('🎤 Listening (Friend)...'); } 
+    else { recognition.lang = localeFor(myLang); if (remoteMicBtn) remoteMicBtn.classList.add('recording'); if (floatingMicBtn) floatingMicBtn.classList.add('recording'); setStatus('🎤 Listening...'); }
     try { recognition.start(); } catch (e) {}
   };
   
@@ -1438,16 +1045,14 @@ if (SR) {
 sendBtn.addEventListener('click', () => {
   if (isLocked) return;
   const t = inputEl.value.trim();
-  if (appMode === 'remote' || appMode === 'meeting') {
-    if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
-  } else {
-    if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
-  }
+  if (appMode === 'remote' || appMode === 'meeting') { if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; } } 
+  else { if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; } }
 });
 
+// تحسين أمر الترجمة لمنع التكرار الحرفي
 function buildSystemPrompt(targetLang, sourceLang) {
   if (isTranslatorMode) {
-    return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text. DO NOT add any conversational words, explanations, or quotes.`;
+    return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. If the user repeats the same word or phrase consecutively (e.g., "hello hello"), translate it naturally as if spoken once. Output ONLY the translated text. DO NOT add conversational words, explanations, or quotes.`;
   }
   return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}. DO NOT use markdown or bold text like **.`;
 }
@@ -1468,8 +1073,8 @@ async function ask(text, sourceLang, targetLang, speaker) {
     }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail);
-    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang);
-    resetStatus(); speak(data.reply.trim(), targetLang);
+    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
+    resetStatus(); speak(data.reply.trim(), targetLang || langA.value);
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
@@ -1479,8 +1084,7 @@ videoAvatarUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
   if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
   currentAvatarObjectUrl = URL.createObjectURL(file);
-  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block';
-  avatarVideo.src = currentAvatarObjectUrl; 
+  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block'; avatarVideo.src = currentAvatarObjectUrl; 
   if (isBotTalking || isRecording) avatarVideo.play().catch(()=>{});
   removeAvatarBtn.style.display = 'block';
 });
@@ -1493,22 +1097,12 @@ removeAvatarBtn.addEventListener('click', (e) => {
 mediaBtn.addEventListener('click', (e) => {
   e.stopPropagation(); musicMenu.style.display = 'none';
   if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none';
-  else {
-    const rect = mediaBtn.getBoundingClientRect();
-    actionMenu.style.display = 'flex';
-    actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
-    actionMenu.style.left = Math.max(10, rect.left - 50) + 'px';
-  }
+  else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; }
 });
 musicBtn.addEventListener('click', (e) => {
   e.stopPropagation(); actionMenu.style.display = 'none';
   if (musicMenu.style.display === 'block') musicMenu.style.display = 'none';
-  else {
-    const rect = musicBtn.getBoundingClientRect();
-    musicMenu.style.display = 'block';
-    musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
-    musicMenu.style.left = Math.max(10, rect.left - 80) + 'px';
-  }
+  else { const rect = musicBtn.getBoundingClientRect(); musicMenu.style.display = 'block'; musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; musicMenu.style.left = Math.max(10, rect.left - 80) + 'px'; }
 });
 document.addEventListener('click', (e) => {
   if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none';
@@ -1521,40 +1115,20 @@ menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; v
 
 videoUpload.addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
-  
-  if (appMode === 'remote' || appMode === 'meeting') {
-      return alert('عذراً، إرسال الفيديوهات غير مدعوم حالياً. يرجى استخدام الصور.');
-  }
-
-  if (file.size > 25 * 1024 * 1024) {
-    return alert('حجم الملف كبير جداً! يجب أن يكون أقل من 25 ميجابايت.');
-  }
-
+  if (appMode === 'remote' || appMode === 'meeting') return alert('عذراً، إرسال الفيديوهات غير مدعوم حالياً. يرجى استخدام الصور.');
+  if (file.size > 25 * 1024 * 1024) return alert('حجم الملف كبير جداً! يجب أن يكون أقل من 25 ميجابايت.');
   const targetLang = langB.value;
   addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
-  setStatus('⏳ جاري استخراج النص وترجمته...');
-  setBusy(true);
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('target_lang', targetLang);
-
+  setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
+  const formData = new FormData(); formData.append('file', file); formData.append('target_lang', targetLang);
   try {
     const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
-    
-    addMsg(data.original, 'user-b', 'AUTO');
-    addMsg(data.translated, 'bot', targetLang);
-    speak(data.translated, targetLang);
-    setStatus('✅ تمت الترجمة بنجاح!');
-  } catch (err) {
-    addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot');
-    setStatus('Error');
-  } finally {
-    setBusy(false);
-    e.target.value = '';
-  }
+    addMsg(data.original, 'user-b', 'AUTO'); addMsg(data.translated, 'bot', targetLang);
+    speak(data.translated, targetLang); setStatus('✅ تمت الترجمة بنجاح!');
+  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); } 
+  finally { setBusy(false); e.target.value = ''; }
 });
 
 async function handleImage(e) {
@@ -1563,20 +1137,14 @@ async function handleImage(e) {
   const reader = new FileReader();
   reader.onload = async ev => {
     const compressed = await compressImage(ev.target.result);
-    
     if (appMode === 'remote' || appMode === 'meeting') {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ 
-                type: 'chat_media', 
-                media_type: 'image', 
-                data: compressed 
-            }));
+            ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed }));
             addMsg('', 'user-a', myLang, compressed); 
         }
         isCompressing = false; sendBtn.disabled = isSending; setStatus('');
     } else {
-        attachedFileText = null;
-        attachedImageBase64 = compressed;
+        attachedFileText = null; attachedImageBase64 = compressed;
         imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
         isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
     }
@@ -1585,10 +1153,7 @@ async function handleImage(e) {
 }
 galleryUpload.addEventListener('change', handleImage);
 cameraUpload.addEventListener('change', handleImage);
-cancelImageBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null;
-  imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.');
-});
+cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.'); });
 
 audioUpload.addEventListener('change', (e) => {
   const files = e.target.files;
