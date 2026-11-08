@@ -13,7 +13,7 @@
   body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
   
   /* Auth Screen Styles */
-  #authOverlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; transition: direction 0.3s; }
+  #authOverlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; }
   .auth-lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 5px; }
   .lang-btn { background: #334155; border: 1px solid #475569; color: #fff; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
   .lang-btn.active { background: #0ea5e9; border-color: #0ea5e9; }
@@ -159,7 +159,7 @@
 <body>
 
 <!-- Auth Screen Overlay -->
-<div id="authOverlay" dir="rtl">
+<div id="authOverlay">
   <div class="auth-lang-switch">
     <button class="lang-btn active" onclick="changeAuthLang('ar')">AR</button>
     <button class="lang-btn" onclick="changeAuthLang('fr')">FR</button>
@@ -224,6 +224,21 @@
     <div style="font-size:12px; color:#94a3b8;" id="frListTitle">قائمة الأصدقاء</div>
     <div id="frList" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;"></div>
     <button id="frBackBtn" style="background:transparent; color:#94a3b8; text-decoration:underline; font-weight:normal;">← رجوع</button>
+  </div>
+</div>
+
+<!-- Friend chat overlay -->
+<div class="overlay" id="chatOverlay" style="display:none; justify-content:flex-start; gap:8px; padding:10px;">
+  <div style="width:100%; max-width:420px; display:flex; align-items:center; gap:8px; flex-shrink:0;">
+    <button id="chBack" style="background:#475569; color:#fff; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-weight:bold;">←</button>
+    <strong id="chName" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px;"></strong>
+    <select id="chLang" class="lang-select" style="width:92px; height:30px; font-size:10px;" title="Translate to"></select>
+  </div>
+  <div id="chMsgs" style="flex:1; width:100%; max-width:420px; overflow-y:auto; background:#1e293b; border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
+  <div id="chStatus" style="min-height:14px; font-size:11px; color:#fbbf24; width:100%; max-width:420px; text-align:center;"></div>
+  <div style="display:flex; gap:6px; width:100%; max-width:420px; flex-shrink:0; padding-bottom:env(safe-area-inset-bottom);">
+    <input type="text" id="chInput" maxlength="2000" style="padding-left:12px;">
+    <button id="chSend" style="background:#1d4ed8; color:#fff; border:none; border-radius:50%; width:42px; height:42px; cursor:pointer; font-size:16px;">➤</button>
   </div>
 </div>
 
@@ -362,7 +377,7 @@
   </button>
 
   <div style="flex: 1; position: relative; display: flex; align-items: center; order: 3;">
-    <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" dir="auto" />
+    <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" />
     <button id="stopAudioBtn" title="Stop Audio"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
   </div>
 
@@ -434,16 +449,9 @@ function changeAuthLang(lang) {
     currentAuthLang = lang;
     localStorage.setItem('authLang', lang);
     
-    // الحفاظ على اتجاه التطبيق الرئيسي RTL دائماً
     const htmlRoot = document.getElementById('htmlRoot');
-    htmlRoot.setAttribute('dir', 'rtl');
+    htmlRoot.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
     htmlRoot.setAttribute('lang', lang);
-    
-    // تغيير اتجاه صفحة التسجيل فقط
-    const authOverlay = document.getElementById('authOverlay');
-    if (authOverlay) {
-        authOverlay.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
-    }
     
     document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
     Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase()).classList.add('active');
@@ -909,7 +917,6 @@ async function connectLiveKit(roomCode, participantName) {
         
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ Connected to Meeting");
-            // الكاميرا والمايك في محاولتين منفصلتين: فشل المايك (مثلاً بسبب تعارضه مع التعرف على الصوت) لا يُخفي الكاميرا
             try {
                 await livekitRoom.localParticipant.setCameraEnabled(true);
                 isCameraOn = true; toggleCamBtn.classList.remove('off');
@@ -971,8 +978,6 @@ function cameraErrorText(err) {
   return (err && err.message) ? err.message : 'خطأ غير معروف';
 }
 
-// نطلب إذن الكاميرا فور ضغط المستخدم (قبل انتظار الخادم)، لأن بعض المتصفحات تشترط
-// أن يكون الطلب قريباً من نقرة المستخدم، ولأن الانتظار الطويل قبل ظهور نافذة الإذن يربك المستخدم
 async function preflightMedia() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
   try {
@@ -1490,6 +1495,7 @@ const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
 
 let db = null, friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
 let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
+let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [], chatTranslations = {};
 
 const frMsgEl = $('frMsg');
 function setFrMsg(t) { frMsgEl.textContent = t || ''; }
@@ -1528,7 +1534,9 @@ function frRow(name) {
 
 function renderFriendsUI() {
   const badge = $('friendsBadge');
-  badge.style.display = requestsCache.length ? 'block' : 'none'; badge.textContent = requestsCache.length;
+  const totalUnread = currentUser ? Object.values(chatsByFriend).reduce((n, c) => n + (c['unread_' + currentUser.uid] || 0), 0) : 0;
+  const badgeCount = requestsCache.length + totalUnread;
+  badge.style.display = badgeCount ? 'block' : 'none'; badge.textContent = badgeCount;
   $('frRequestsBox').style.display = requestsCache.length ? 'block' : 'none';
   const reqEl = $('frRequests'); reqEl.innerHTML = '';
   requestsCache.forEach(r => {
@@ -1543,7 +1551,9 @@ function renderFriendsUI() {
   }
   friendsCache.forEach(f => {
     const row = frRow(f.name || '?');
-    row.appendChild(frBtn('📞 ' + frT('call'), '#1d4ed8', () => callFriend(f)));
+    const ch = chatsByFriend[f.uid]; const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
+    row.appendChild(frBtn('💬' + (un ? ' ' + un : ''), un ? '#ef4444' : '#0ea5e9', () => openChat(f)));
+    row.appendChild(frBtn('📞', '#1d4ed8', () => callFriend(f)));
     row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
     listEl.appendChild(row);
   });
@@ -1592,6 +1602,16 @@ function initFriends() {
           showInvite(inv);
         });
       }, e => { lastFriendsError = e; }));
+      // مستمع واحد لكل المحادثات: يعطي العدّاد وآخر رسالة وحالة التسليم والقراءة دون مستمع لكل صديق
+      friendsUnsubs.push(db.collection('chats').where('members', 'array-contains', me).onSnapshot(s => {
+        s.docs.forEach(d => {
+          const data = d.data({ serverTimestamps: 'estimate' });
+          const other = (data.members || []).find(m => m !== me);
+          if (other) chatsByFriend[other] = { id: d.id, ...data };
+        });
+        markDelivered(s); renderFriendsUI();
+        if (chatOpenWith) { renderChatMsgs(); markRead(); }
+      }, e => { lastFriendsError = e; }));
       friendsReady = true; lastFriendsError = null; renderFriendsUI();
     } catch (e) {
       console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e;
@@ -1604,6 +1624,8 @@ function initFriends() {
 function teardownFriends() {
   friendsUnsubs.forEach(u => { try { u(); } catch (e) {} });
   friendsUnsubs = []; friendsReady = false; friendsInitPromise = null; myFriendCode = null;
+  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
+  chatsByFriend = {}; chatOpenWith = null; chatMsgsCache = []; chatTranslations = {}; $('chatOverlay').style.display = 'none';
   friendsCache = []; requestsCache = []; currentInvite = null; $('inviteToast').style.display = 'none'; renderFriendsUI();
 }
 
