@@ -325,7 +325,6 @@
 </div>
 
 <div class="extra-controls" id="extraControls" style="display:none;">
-    <!-- Translation Toggle for Face-to-Face -->
     <button id="transToggleBtnLocal" class="toggle-btn active">🌐 Translator ON</button>
     <select id="voiceSelect">
       <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
@@ -604,7 +603,7 @@ let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
 let iceCandidatesQueue = []; 
 let isCameraOn = true;
-let isWebRtcMicOn = true; // للتحكم في مايك المكالمة (الغرف والاجتماعات)
+let isWebRtcMicOn = true; 
 
 let livekitRoom = null;
 
@@ -675,7 +674,35 @@ function setTranslatorMode(isOn) {
         transToggleBtnLocal.textContent = textLocal;
         transToggleBtnLocal.classList.toggle('active', isOn);
     }
+    
+    // إدارة المايك بناءً على حالة الترجمة
+    if (appMode === 'remote' || appMode === 'meeting') {
+        if (isTranslatorMode) {
+            // وضع الترجمة: إيقاف بث الصوت الخام، والاعتماد على التعرف على الكلام
+            setWebRtcMic(false);
+        } else {
+            // وضع الهاتف: إيقاف التعرف على الكلام، وتشغيل بث الصوت الخام
+            if (isRecording) { try { recognition.stop(); } catch(e){} isRecording = false; isMicIntendedOn = false; }
+            setWebRtcMic(true);
+        }
+    }
+    
     resetStatus();
+}
+
+function setWebRtcMic(enabled) {
+    isWebRtcMicOn = enabled;
+    if (appMode === 'remote' && localStream) {
+        localStream.getAudioTracks().forEach(t => t.enabled = enabled);
+    }
+    if (appMode === 'meeting' && livekitRoom) {
+        livekitRoom.localParticipant.setMicrophoneEnabled(enabled);
+    }
+    const btn = (remoteMicBtn || floatingMicBtn);
+    if (btn) {
+        btn.classList.toggle('recording', !enabled);
+        btn.style.background = enabled ? '#10b981' : '#ef4444';
+    }
 }
 
 if (transToggleBtnRoom) transToggleBtnRoom.addEventListener('click', () => setTranslatorMode(!isTranslatorMode));
@@ -684,7 +711,7 @@ if (transToggleBtnLocal) transToggleBtnLocal.addEventListener('click', () => set
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (appMode === 'meeting' ? `Meeting ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'))); }
 resetStatus();
-setTranslatorMode(isTranslatorMode); // تطبيق الحالة المحفوظة
+setTranslatorMode(isTranslatorMode);
 
 function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -920,12 +947,15 @@ async function connectLiveKit(roomCode, participantName) {
                 isCameraOn = false; toggleCamBtn.classList.add('off');
                 addMsg("⚠️ الكاميرا: " + cameraErrorText(err), 'bot');
             }
-            try {
-                await livekitRoom.localParticipant.setMicrophoneEnabled(true);
-                isWebRtcMicOn = true;
-            } catch (err) {
-                console.warn("Mic error:", err);
-                addMsg("⚠️ المايك: " + cameraErrorText(err), 'bot');
+            // تفعيل المايك بناءً على وضع الترجمة
+            if (!isTranslatorMode) {
+                try {
+                    await livekitRoom.localParticipant.setMicrophoneEnabled(true);
+                    isWebRtcMicOn = true;
+                } catch (err) {
+                    console.warn("Mic error:", err);
+                    addMsg("⚠️ المايك: " + cameraErrorText(err), 'bot');
+                }
             }
             try { await livekitRoom.startAudio(); } catch(e) {}
         });
@@ -977,7 +1007,10 @@ function cameraErrorText(err) {
 async function preflightMedia() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
   try {
-    const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const s = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+    });
     s.getTracks().forEach(t => t.stop());
   } catch (e) {
     try {
@@ -1205,10 +1238,17 @@ function speakBrowser(text, lang, myId) {
 async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+      });
       localVideo.srcObject = localStream; videoContainer.style.display = 'block';
       isCameraOn = true; toggleCamBtn.classList.remove('off');
       isWebRtcMicOn = true;
+      if (isTranslatorMode) {
+          localStream.getAudioTracks().forEach(t => t.enabled = false);
+          isWebRtcMicOn = false;
+      }
     } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك. يرجى السماح بالوصول.', 'bot'); return; }
   }
   if (!pc) {
@@ -1318,25 +1358,28 @@ if (SR) {
   const startMic = (speaker) => {
     unlockAudio();
     
-    // في الغرف والاجتماعات: الزر يعمل ككتم وتشغيل للصوت فقط (مثل الواتساب)
     if (appMode === 'remote' || appMode === 'meeting') {
-        isWebRtcMicOn = !isWebRtcMicOn;
-        if (appMode === 'remote' && localStream) {
-            localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
+        if (isTranslatorMode) {
+            // وضع الترجمة: ابدأ التعرف على الصوت
+            if (isMicIntendedOn && activeSpeaker === speaker) {
+                isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.stop(); } catch(e){}
+                if (finalTranscriptBuffer.trim()) { processVoice(finalTranscriptBuffer.trim()); finalTranscriptBuffer = ""; }
+                unlockMics(); return;
+            }
+            if (isMicIntendedOn) { try { recognition.stop(); } catch(e){} }
+            stopAudio(); activeSpeaker = speaker; setAvatarState(true); isMicIntendedOn = true; isRecording = true; finalTranscriptBuffer = "";
+            recognition.lang = localeFor(myLang); 
+            if (remoteMicBtn) remoteMicBtn.classList.add('recording'); if (floatingMicBtn) floatingMicBtn.classList.add('recording'); 
+            setStatus('🎤 Listening...');
+            try { recognition.start(); } catch (e) {}
+        } else {
+            // وضع الهاتف: ابدأ كتم/تشغيل الصوت
+            setWebRtcMic(!isWebRtcMicOn);
         }
-        if (appMode === 'meeting' && livekitRoom) {
-            livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn);
-        }
-        const btn = (remoteMicBtn || floatingMicBtn);
-        if (btn) {
-            btn.classList.toggle('recording', !isWebRtcMicOn);
-            btn.style.background = isWebRtcMicOn ? '#10b981' : '#ef4444';
-        }
-        setStatus(isWebRtcMicOn ? '🎤 Mic ON' : '🔇 Mic OFF');
         return;
     }
     
-    // في Face-to-Face: الزر يعمل لتشغيل محرك التعرف على الصوت
+    // في Face-to-Face
     if (isMicIntendedOn && activeSpeaker === speaker) {
         isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.stop(); } catch(e){}
         if (finalTranscriptBuffer.trim()) { processVoice(finalTranscriptBuffer.trim()); finalTranscriptBuffer = ""; }
@@ -1378,7 +1421,6 @@ function buildSystemPrompt(targetLang, sourceLang) {
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   
-  // يعمل الشات بوت دائماً ويرد حتى لو كانت الترجمة مغلقة
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
@@ -1729,12 +1771,4 @@ $('btnFriends').addEventListener('click', async () => {
 });
 $('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 $('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
-$('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
-$('frCopyCode').addEventListener('click', () => {
-  if (!myFriendCode) return;
-  navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode));
-});
-renderPlaylist(); 
-</script>
-</body>
-</html>
+$('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAdd
