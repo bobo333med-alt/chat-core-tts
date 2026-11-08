@@ -402,7 +402,7 @@
 'use strict';
 
 // ==========================================
-// Firebase Configuration (REAL KEYS RESTORED)
+// Firebase Configuration (REAL KEYS)
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
@@ -577,8 +577,6 @@ function loadScript(src) {
 const loadLiveKit = () => window.LivekitClient ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js');
 const loadFirestore = () => (firebase.firestore ? Promise.resolve() : loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js'));
 
-// إيقاظ خادم Render (الخطة المجانية تنام بعد ~15 دقيقة وتحتاج حتى دقيقة للإيقاظ)
-// طلب no-cors بسيط يكفي لإيقاظه دون الحاجة لمسار /health
 const SERVER_BASE = SERVER_URL.replace('/chat', '');
 function wakeServer() { try { fetch(SERVER_BASE + '/', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} }
 wakeServer();
@@ -1352,6 +1350,13 @@ function buildSystemPrompt(targetLang, sourceLang) {
 
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending || isLocked) return;
+  
+  // ✅ التعديل الجديد: إذا كانت اللغتان متطابقتين، لا ترجم ولا تنطق، فقط اعرض النص فوراً.
+  if (sourceLang === targetLang) {
+      addMsg(text, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang);
+      return; 
+  }
+
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
@@ -1475,7 +1480,7 @@ bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongI
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
 
 // ==========================================
-// الأصدقاء (Firestore) - يُحمَّل بعد تسجيل الدخول دون تعطيل الشاشة الأولى
+// الأصدقاء (Firestore)
 // ==========================================
 const FR_TEXT = {
   ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع',
@@ -1602,7 +1607,6 @@ function initFriends() {
           showInvite(inv);
         });
       }, e => { lastFriendsError = e; }));
-      // مستمع واحد لكل المحادثات: يعطي العدّاد وآخر رسالة وحالة التسليم والقراءة دون مستمع لكل صديق
       friendsUnsubs.push(db.collection('chats').where('members', 'array-contains', me).onSnapshot(s => {
         s.docs.forEach(d => {
           const data = d.data({ serverTimestamps: 'estimate' });
