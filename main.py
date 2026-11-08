@@ -456,13 +456,11 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 text = (msg.get("text") or "").strip()[:2000]
                 if not text: continue
 
-                # التعديل الجديد: التحقق من حالة المترجم
                 is_translation_on = msg.get("translate", True)
 
                 ws_users = await room_manager.get_ws_users(room_code)
 
                 if not is_translation_on:
-                    # إذا كان المترجم مغلقاً، نرسل النص كما هو للجميع
                     await room_manager.add_history(room_code, {
                         "from": my_name, "original": text, "from_lang": my_lang, "translations": {u["lang"]: text for u in ws_users.values()},
                     })
@@ -471,7 +469,7 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                             "type": "translated", "from_name": my_name, "from_lang": my_lang,
                             "original": text, "translated": text, 
                             "target_lang": u["lang"], "is_mine": (ws == websocket),
-                            "no_tts": True # نطلب من الواجهة عدم النطق
+                            "no_tts": True 
                         }
                         try: await ws.send_json(payload)
                         except Exception: pass
