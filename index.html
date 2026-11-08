@@ -1355,6 +1355,12 @@ function buildSystemPrompt(targetLang, sourceLang) {
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   
+  // إذا كانت اللغات متطابقة والمترجم يعمل، اعرض فقط (لا ترجمة، لا AI)
+  if (isTranslatorMode && sourceLang === targetLang) {
+      addMsg(text, speaker === 'A' ? 'user-b' : 'user-a', targetLang);
+      return; 
+  }
+
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
