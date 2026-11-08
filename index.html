@@ -51,7 +51,6 @@
   #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
   #removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 14px; height: 14px; border-radius: 50%; background: #000; border: none; cursor: pointer; z-index: 10; }
   
-  /* Hide Avatar in Remote/Meeting modes */
   body.remote-mode #avatar-wrap, body.meeting-mode #avatar-wrap { display: none !important; }
 
   #closeFullscreen, #closeVideoFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
@@ -114,8 +113,7 @@
   .extra-controls { display: flex; gap: 6px; margin-bottom: 8px; justify-content: center; flex-wrap: wrap; width: 100%; padding: 0 5px; align-items: center; }
   .extra-controls button, .extra-controls select { padding: 6px 12px; border-radius: 15px; border: none; background: #475569; color: #fff; font-size: 10px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
   
-  /* زر الترجمة الجديد */
-  .toggle-btn { background: #ef4444 !important; color: white !important; transition: 0.3s; font-weight: bold; }
+  .toggle-btn { background: #ef4444 !important; color: white !important; font-weight: bold; transition: 0.3s; }
   .toggle-btn.active { background: #10b981 !important; }
 
   .btn-back { background: #e57373 !important; color: white !important; }
@@ -291,9 +289,9 @@
   </div>
 </div>
 
+<!-- Remote Bar with Translation Toggle instead of Lock -->
 <div id="remoteBar">
-  <!-- زر الترجمة الجديد (بدل القفل) -->
-  <button id="transToggleBtnRoom" class="toggle-btn active">🌐 ON</button>
+  <button id="transToggleBtnRoom" class="toggle-btn active" style="font-size: 11px; padding: 6px 10px;">🌐 ON</button>
   <div class="room-info">
     <span>Room: <strong id="roomCodeLabel">------</strong></span>
     <button id="copyRoomBtn">📋 Copy</button>
@@ -327,7 +325,7 @@
 </div>
 
 <div class="extra-controls" id="extraControls" style="display:none;">
-    <!-- زر الترجمة الجديد (بدل الأصفر) -->
+    <!-- Translation Toggle for Face-to-Face -->
     <button id="transToggleBtnLocal" class="toggle-btn active">🌐 Translator ON</button>
     <select id="voiceSelect">
       <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
@@ -403,6 +401,9 @@
 <script>
 'use strict';
 
+// ==========================================
+// Firebase Configuration
+// ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
   authDomain: "chat-core-app.firebaseapp.com",
@@ -599,7 +600,7 @@ $('btnLogout').addEventListener('click', logoutUser);
 
 let appMode = 'none';
 let chatHistory = [], activeSpeaker = null, isSending = false, isCompressing = false;
-let isTranslatorMode = localStorage.getItem('translatorMode') !== 'false'; // قراءة الحالة المحفوظة
+let isTranslatorMode = localStorage.getItem('translatorMode') !== 'false'; 
 let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
@@ -713,7 +714,7 @@ function addMsg(text, className, lang, imageBase64 = null) {
       div.addEventListener('click', () => {
           if (isSending || appMode === 'remote' || appMode === 'meeting') return;
           div.style.opacity = '0.5'; setTimeout(() => div.style.opacity = '1', 200);
-          if (isTranslatorMode) speak(text, lang || langA.value); // النطق فقط إذا كان المترجم يعمل
+          if (isTranslatorMode) speak(text, lang || langA.value); 
       });
   }
   
@@ -776,17 +777,23 @@ function setModeUI(mode) {
     showAppUI();
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
     uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
+    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'inline-block';
+    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'none';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
   } else if (mode === 'remote') {
     document.body.classList.remove('meeting-mode'); document.body.classList.add('remote-mode');
     showAppUI();
     remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
     mediaBtn.style.display = 'flex'; voiceSelect.style.display = 'inline-block';
+    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
+    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
   } else if (mode === 'meeting') {
     document.body.classList.remove('remote-mode'); document.body.classList.add('meeting-mode');
     showAppUI();
     remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
     mediaBtn.style.display = 'flex'; meetingGridContainer.style.display = 'block'; voiceSelect.style.display = 'inline-block';
+    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
+    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
   }
 }
 
@@ -1063,7 +1070,7 @@ function handleWsMessage(ev) {
       addMsg(`${data.from_name}: ${data.original}`, 'user-b', data.from_lang);
       
       if (data.no_tts) {
-          // المترجم مغلق، لا نفعل شيئاً
+          // No TTS
       } else if (isTranslatorMode) {
           if (data.translated && data.translated !== data.original) { addMsg(`→ ${data.translated}`, 'bot', myLang); speak(data.translated, myLang); } 
           else { speak(data.original, myLang); }
@@ -1348,12 +1355,6 @@ function buildSystemPrompt(targetLang, sourceLang) {
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   
-  // إذا كانت اللغتان متطابقتين، أو المترجم مغلق، اعرض النص مباشرة
-  if (sourceLang === targetLang || !isTranslatorMode) {
-      addMsg(text, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang);
-      return; 
-  }
-
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
