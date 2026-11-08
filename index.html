@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Chat-Core - Translator</title>
-<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
-<!-- Firebase SDK -->
+<!-- LiveKit و Firestore يُحمَّلان عند الحاجة فقط (انظر loadScript في الأسفل) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <style>
@@ -198,8 +197,43 @@
   <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
   <button class="mode-btn" id="btnMeeting"><span class="plus-icon">+</span> Meeting Room</button>
   
-  <!-- زر تسجيل الخروج الأحمر الجديد -->
+  <button class="mode-btn" id="btnFriends" style="background:#f59e0b; position:relative;">👥 <span id="btnFriendsLabel">الأصدقاء</span><span id="friendsBadge" style="display:none; position:absolute; top:-6px; right:-6px; min-width:22px; height:22px; border-radius:11px; background:#ef4444; font-size:12px; line-height:22px; text-align:center; padding:0 5px;">0</span></button>
+
+  <!-- زر تسجيل الخروج الأحمر -->
   <button class="mode-btn" id="btnLogout" style="background: #ef4444; margin-top: 20px;">🚪 تسجيل الخروج</button>
+</div>
+
+<!-- Friends Overlay -->
+<div class="overlay" id="friendsOverlay" style="display:none;">
+  <h2>👥 <span id="frTitle">الأصدقاء</span></h2>
+  <div class="join-form" style="max-width:340px;">
+    <div style="text-align:center; font-size:12px; color:#94a3b8;" id="frMyCodeLabel">كود الصداقة الخاص بك</div>
+    <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
+      <strong id="frMyCode" style="color:#fbbf24; letter-spacing:3px; font-size:18px;">--------</strong>
+      <button id="frCopyCode" style="background:#6366f1; padding:6px 10px; font-size:11px;">📋</button>
+    </div>
+    <div id="joinRowFr" style="display:flex; gap:8px;">
+      <input type="text" id="frAddInput" placeholder="كود صديق" maxlength="8" style="flex:1; text-transform:uppercase; text-align:center; letter-spacing:2px;">
+      <button id="frAddBtn" style="background:#10b981;">➕</button>
+    </div>
+    <div id="frMsg" style="min-height:16px; font-size:12px; text-align:center; color:#fbbf24;"></div>
+    <div id="frRequestsBox" style="display:none;">
+      <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;" id="frReqTitle">طلبات الصداقة</div>
+      <div id="frRequests" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+    <div style="font-size:12px; color:#94a3b8;" id="frListTitle">قائمة الأصدقاء</div>
+    <div id="frList" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;"></div>
+    <button id="frBackBtn" style="background:transparent; color:#94a3b8; text-decoration:underline; font-weight:normal;">← رجوع</button>
+  </div>
+</div>
+
+<!-- Invite toast -->
+<div id="inviteToast" style="display:none; position:fixed; top:14px; left:50%; transform:translateX(-50%); width:92%; max-width:360px; background:#1e293b; border:1px solid #f59e0b; border-radius:12px; padding:12px; z-index:9999990; box-shadow:0 6px 20px rgba(0,0,0,.5); font-size:13px;">
+  <div id="inviteText" style="margin-bottom:8px;"></div>
+  <div style="display:flex; gap:8px;">
+    <button id="inviteJoin" style="flex:1; padding:8px; border:none; border-radius:8px; background:#10b981; color:#fff; font-weight:bold; cursor:pointer;">انضمام</button>
+    <button id="inviteDecline" style="flex:1; padding:8px; border:none; border-radius:8px; background:#475569; color:#fff; font-weight:bold; cursor:pointer;">تجاهل</button>
+  </div>
 </div>
 
 <div class="overlay" id="remoteJoinOverlay" style="display:none;">
@@ -353,7 +387,7 @@
 'use strict';
 
 // ==========================================
-// Firebase Configuration & Auth Logic
+// Firebase Configuration (REAL KEYS RESTORED)
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
@@ -466,10 +500,7 @@ function loginWithTwitter() {
 }
 
 function logoutUser() {
-    auth.signOut().then(() => { 
-        // عند تسجيل الخروج، سيتم إعادة تحميل الصفحة وإظهار صفحة الدخول
-        window.location.reload(); 
-    });
+    auth.signOut().then(() => { window.location.reload(); });
 }
 
 auth.getRedirectResult().then((result) => {
@@ -484,16 +515,15 @@ auth.onAuthStateChanged(user => {
         currentUser = user;
         authOverlay.style.display = 'none';
         landingOverlay.style.display = 'flex';
-        
-        // تعبئة اسم المستخدم في خانات الغرف والاجتماعات
         const displayName = user.displayName || user.email.split('@')[0];
         document.getElementById('playerName').value = displayName;
         document.getElementById('meetPlayerName').value = displayName;
-        
+        if (typeof initFriends === 'function') initFriends();
     } else {
         currentUser = null;
         authOverlay.style.display = 'flex';
         landingOverlay.style.display = 'none';
+        if (typeof teardownFriends === 'function') teardownFriends();
     }
 });
 
@@ -512,6 +542,32 @@ const WS_BASE = SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws:
 const REQUEST_TIMEOUT_MS = 60000; 
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
+// ==========================================
+// تحميل المكتبات الثقيلة عند الحاجة فقط
+// ==========================================
+const _scriptPromises = {};
+function loadScript(src) {
+  if (!_scriptPromises[src]) {
+    _scriptPromises[src] = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.async = true;
+      s.onload = resolve;
+      s.onerror = () => { delete _scriptPromises[src]; reject(new Error('Failed to load ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+  return _scriptPromises[src];
+}
+// نثبّت النسخة الرئيسية 2 حتى لا يكسر تحديثٌ مفاجئ كود الكاميرا
+const loadLiveKit = () => window.LivekitClient ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js');
+const loadFirestore = () => (firebase.firestore ? Promise.resolve() : loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js'));
+
+// إيقاظ خادم Render (الخطة المجانية تنام بعد ~15 دقيقة وتحتاج حتى دقيقة للإيقاظ)
+// طلب no-cors بسيط يكفي لإيقاظه دون الحاجة لمسار /health
+const SERVER_BASE = SERVER_URL.replace('/chat', '');
+function wakeServer() { try { fetch(SERVER_BASE + '/', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} }
+wakeServer();
+
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn'), stopAudioBtn = $('stopAudioBtn');
 const micA = $('micA'), micB = $('micB'), remoteMicBtn = $('remoteMicBtn'), floatingMicBtn = $('floatingMicBtn'), toggleCamBtn = $('toggleCamBtn');
@@ -528,7 +584,6 @@ const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('music
 const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
 const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid');
 
-// Logout Button Event
 $('btnLogout').addEventListener('click', logoutUser);
 
 let appMode = 'none';
@@ -827,8 +882,10 @@ function handleParticipantDisconnected(participant) { let box = document.getElem
 
 async function connectLiveKit(roomCode, participantName) {
     try {
-        setStatus("Getting token...");
-        const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 25000);
+        setStatus("Loading video engine...");
+        await loadLiveKit();
+        setStatus("Getting token... (قد يستغرق الخادم حتى دقيقة إن كان نائماً)");
+        const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 70000);
         const res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_name: roomCode, participant_name: participantName }), signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) { let errMsg = "Token fetch failed"; try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){} throw new Error(errMsg); }
@@ -845,13 +902,20 @@ async function connectLiveKit(roomCode, participantName) {
         
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ Connected to Meeting");
-            try { 
-                await livekitRoom.localParticipant.setCameraEnabled(true); 
-                await livekitRoom.localParticipant.setMicrophoneEnabled(true); 
-            } 
-            catch (err) { 
-                console.warn("Camera/Mic permission denied.", err); 
-                addMsg("⚠️ يرجى السماح بالوصول للكاميرا والمايك من إعدادات المتصفح.", 'bot'); 
+            // الكاميرا والمايك في محاولتين منفصلتين: فشل المايك (مثلاً بسبب تعارضه مع التعرف على الصوت) لا يُخفي الكاميرا
+            try {
+                await livekitRoom.localParticipant.setCameraEnabled(true);
+                isCameraOn = true; toggleCamBtn.classList.remove('off');
+            } catch (err) {
+                console.warn("Camera error:", err);
+                isCameraOn = false; toggleCamBtn.classList.add('off');
+                addMsg("⚠️ الكاميرا: " + cameraErrorText(err), 'bot');
+            }
+            try {
+                await livekitRoom.localParticipant.setMicrophoneEnabled(true);
+            } catch (err) {
+                console.warn("Mic error:", err);
+                addMsg("⚠️ المايك: " + cameraErrorText(err), 'bot');
             }
             try { await livekitRoom.startAudio(); } catch(e) {}
         });
@@ -891,20 +955,54 @@ async function connectLiveKit(roomCode, participantName) {
     }
 }
 
-$('createMeetingBtn').addEventListener('click', async () => {
+function cameraErrorText(err) {
+  const n = err && err.name;
+  if (n === 'NotAllowedError' || n === 'PermissionDeniedError') return 'تم رفض الإذن. اسمح بالكاميرا والمايك من إعدادات المتصفح (أيقونة القفل بجانب العنوان) ثم أعد المحاولة.';
+  if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'لم يتم العثور على كاميرا أو مايك في هذا الجهاز.';
+  if (n === 'NotReadableError' || n === 'TrackStartError') return 'الجهاز مستخدم من تطبيق أو تبويب آخر. أغلقه وأعد المحاولة.';
+  if (n === 'SecurityError' || (location.protocol !== 'https:' && location.hostname !== 'localhost')) return 'الكاميرا تعمل فقط عبر HTTPS.';
+  return (err && err.message) ? err.message : 'خطأ غير معروف';
+}
+
+// نطلب إذن الكاميرا فور ضغط المستخدم (قبل انتظار الخادم)، لأن بعض المتصفحات تشترط
+// أن يكون الطلب قريباً من نقرة المستخدم، ولأن الانتظار الطويل قبل ظهور نافذة الإذن يربك المستخدم
+async function preflightMedia() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    s.getTracks().forEach(t => t.stop());
+  } catch (e) {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: true });
+      s.getTracks().forEach(t => t.stop());
+      addMsg("⚠️ المايك: " + cameraErrorText(e), 'bot');
+    } catch (e2) {
+      addMsg("⚠️ الكاميرا: " + cameraErrorText(e2), 'bot');
+    }
+  }
+}
+
+async function enterMeeting(code, name, lang) {
+  myName = name; myLang = lang; langA.value = myLang;
+  currentRoomCode = code; hasJoinedOnce = false; shouldReconnect = true;
+  ['meetingJoinOverlay', 'landingOverlay', 'friendsOverlay'].forEach(id => { const el = $(id); if (el) el.style.display = 'none'; });
+  setModeUI('meeting'); roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting"; chatEl.innerHTML = '';
+  wakeServer();
+  await preflightMedia();
+  connectWebSocket(code);
+  connectLiveKit(code, name);
+}
+
+$('createMeetingBtn').addEventListener('click', () => {
     const name = $('meetPlayerName').value.trim(); if (!name) return alert("Enter your name");
     const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
-    myName = name; myLang = $('meetPlayerLang').value; langA.value = myLang;
-    $('meetingJoinOverlay').style.display = 'none'; setModeUI('meeting'); roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting"; chatEl.innerHTML = '';
-    connectWebSocket(code); connectLiveKit(code, name); 
+    enterMeeting(code, name, $('meetPlayerLang').value);
 });
 
 $('joinMeetingBtn').addEventListener('click', () => {
     const name = $('meetPlayerName').value.trim(); const code = $('joinMeetingCodeInput').value.trim().toUpperCase();
     if (!name) return alert("Enter your name"); if (!code) return alert("Enter meeting code");
-    myName = name; myLang = $('meetPlayerLang').value; langA.value = myLang;
-    $('meetingJoinOverlay').style.display = 'none'; setModeUI('meeting'); roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting"; chatEl.innerHTML = '';
-    connectWebSocket(code); connectLiveKit(code, name);
+    enterMeeting(code, name, $('meetPlayerLang').value);
 });
 
 $('createRoomBtn').addEventListener('click', async () => {
@@ -1363,6 +1461,224 @@ function renderPlaylist() {
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
 bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
+
+// ==========================================
+// الأصدقاء (Firestore) - يُحمَّل بعد تسجيل الدخول دون تعطيل الشاشة الأولى
+// ==========================================
+const FR_TEXT = {
+  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع',
+        self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد. شارك كودك أو أضف كود صديق.',
+        accept: 'قبول', decline: 'رفض', call: 'اجتماع', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل',
+        rules: 'تعذر الوصول إلى قاعدة البيانات. تأكد من تفعيل Firestore ونشر قواعد الأمان (firestore.rules).', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...' },
+  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour',
+        self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant. Partagez votre code ou ajoutez un code.",
+        accept: 'Accepter', decline: 'Refuser', call: 'Réunion', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer',
+        rules: "Base de données inaccessible. Vérifiez que Firestore est activé et que les règles (firestore.rules) sont publiées.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...' },
+  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back',
+        self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet. Share your code or add a friend code.',
+        accept: 'Accept', decline: 'Decline', call: 'Meeting', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore',
+        rules: 'Cannot reach the database. Make sure Firestore is enabled and the security rules (firestore.rules) are published.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...' }
+};
+const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
+
+let db = null, friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
+let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
+
+const frMsgEl = $('frMsg');
+function setFrMsg(t) { frMsgEl.textContent = t || ''; }
+function myDisplayName() { return (currentUser && (currentUser.displayName || (currentUser.email || 'user').split('@')[0])) || 'User'; }
+function genFriendCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
+}
+function frErrText(e) {
+  const c = e && e.code;
+  if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules');
+  return (e && e.message) || String(e);
+}
+
+function applyFriendsLang() {
+  $('frTitle').textContent = frT('friends'); $('btnFriendsLabel').textContent = frT('friends');
+  $('frMyCodeLabel').textContent = frT('myCode'); $('frAddInput').placeholder = frT('codePh');
+  $('frReqTitle').textContent = frT('requests'); $('frListTitle').textContent = frT('list'); $('frBackBtn').textContent = frT('back');
+  $('inviteJoin').textContent = frT('join'); $('inviteDecline').textContent = frT('ignore');
+}
+applyFriendsLang();
+const _origChangeAuthLang = changeAuthLang;
+changeAuthLang = function (lang) { _origChangeAuthLang(lang); applyFriendsLang(); renderFriendsUI(); };
+
+function frBtn(label, bg, onClick) {
+  const b = document.createElement('button');
+  b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`;
+  b.addEventListener('click', onClick); return b;
+}
+function frRow(name) {
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:center; gap:6px; background:#0f172a; border-radius:8px; padding:6px 8px;';
+  const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;';
+  row.appendChild(n); return row;
+}
+
+function renderFriendsUI() {
+  const badge = $('friendsBadge');
+  badge.style.display = requestsCache.length ? 'block' : 'none'; badge.textContent = requestsCache.length;
+  $('frRequestsBox').style.display = requestsCache.length ? 'block' : 'none';
+  const reqEl = $('frRequests'); reqEl.innerHTML = '';
+  requestsCache.forEach(r => {
+    const row = frRow(r.fromName || '?');
+    row.appendChild(frBtn(frT('accept'), '#10b981', () => acceptRequest(r)));
+    row.appendChild(frBtn(frT('decline'), '#475569', () => declineRequest(r)));
+    reqEl.appendChild(row);
+  });
+  const listEl = $('frList'); listEl.innerHTML = '';
+  if (!friendsCache.length) {
+    const e = document.createElement('div'); e.textContent = frT('empty'); e.style.cssText = 'font-size:12px; color:#64748b; text-align:center; padding:8px;'; listEl.appendChild(e);
+  }
+  friendsCache.forEach(f => {
+    const row = frRow(f.name || '?');
+    row.appendChild(frBtn('📞 ' + frT('call'), '#1d4ed8', () => callFriend(f)));
+    row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
+    listEl.appendChild(row);
+  });
+  if (myFriendCode) $('frMyCode').textContent = myFriendCode;
+}
+
+async function ensureMyCode() {
+  const uref = db.collection('users').doc(currentUser.uid);
+  const snap = await uref.get();
+  if (snap.exists && snap.data().code) { myFriendCode = snap.data().code; return; }
+  for (let i = 0; i < 5; i++) {
+    const code = genFriendCode(); const cref = db.collection('codes').doc(code);
+    try {
+      await db.runTransaction(async tx => {
+        const c = await tx.get(cref);
+        if (c.exists) throw new Error('taken');
+        tx.set(cref, { uid: currentUser.uid, name: myDisplayName() });
+        tx.set(uref, { code, name: myDisplayName() }, { merge: true });
+      });
+      myFriendCode = code; return;
+    } catch (e) { if (e.message !== 'taken') throw e; }
+  }
+  throw new Error('Could not allocate a friend code');
+}
+
+function initFriends() {
+  if (friendsReady) return Promise.resolve();
+  if (friendsInitPromise) return friendsInitPromise;
+  friendsInitPromise = (async () => {
+    try {
+      await loadFirestore();
+      db = firebase.firestore();
+      await ensureMyCode();
+      const me = currentUser.uid;
+      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => {
+        friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI();
+      }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => {
+        requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI();
+      }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('invites').where('to', '==', me).onSnapshot(s => {
+        s.docChanges().forEach(ch => {
+          if (ch.type !== 'added') return;
+          const inv = { id: ch.doc.id, ...ch.doc.data() };
+          if (Date.now() - (inv.createdAt || 0) > 120000) { ch.doc.ref.delete().catch(() => {}); return; }
+          showInvite(inv);
+        });
+      }, e => { lastFriendsError = e; }));
+      friendsReady = true; lastFriendsError = null; renderFriendsUI();
+    } catch (e) {
+      console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e;
+    }
+  })();
+  friendsInitPromise.catch(() => {});
+  return friendsInitPromise;
+}
+
+function teardownFriends() {
+  friendsUnsubs.forEach(u => { try { u(); } catch (e) {} });
+  friendsUnsubs = []; friendsReady = false; friendsInitPromise = null; myFriendCode = null;
+  friendsCache = []; requestsCache = []; currentInvite = null; $('inviteToast').style.display = 'none'; renderFriendsUI();
+}
+
+async function sendFriendRequest(raw) {
+  const code = (raw || '').trim().toUpperCase(); if (!code) return;
+  if (code === myFriendCode) return setFrMsg(frT('self'));
+  try {
+    const c = await db.collection('codes').doc(code).get();
+    if (!c.exists) return setFrMsg(frT('notfound'));
+    const to = c.data().uid;
+    if (friendsCache.some(f => f.uid === to)) return setFrMsg(frT('already'));
+    const incoming = requestsCache.find(r => r.from === to);
+    if (incoming) { await acceptRequest(incoming); return; }
+    await db.collection('friend_requests').doc(currentUser.uid + '_' + to).set({ from: currentUser.uid, fromName: myDisplayName(), to, createdAt: Date.now() });
+    setFrMsg(frT('sent')); $('frAddInput').value = '';
+  } catch (e) { setFrMsg(frErrText(e)); }
+}
+
+async function acceptRequest(r) {
+  try {
+    const me = currentUser.uid, other = r.from, now = Date.now();
+    const batch = db.batch();
+    batch.set(db.collection('users').doc(other).collection('friends').doc(me), { uid: me, name: myDisplayName(), since: now });
+    batch.set(db.collection('users').doc(me).collection('friends').doc(other), { uid: other, name: r.fromName || '?', since: now });
+    batch.delete(db.collection('friend_requests').doc(r.id));
+    await batch.commit();
+  } catch (e) { setFrMsg(frErrText(e)); }
+}
+async function declineRequest(r) { try { await db.collection('friend_requests').doc(r.id).delete(); } catch (e) { setFrMsg(frErrText(e)); } }
+
+async function removeFriend(f) {
+  if (!confirm(frT('confirmRemove'))) return;
+  try {
+    const me = currentUser.uid;
+    const batch = db.batch();
+    batch.delete(db.collection('users').doc(me).collection('friends').doc(f.uid));
+    batch.delete(db.collection('users').doc(f.uid).collection('friends').doc(me));
+    await batch.commit();
+  } catch (e) { setFrMsg(frErrText(e)); }
+}
+
+async function callFriend(f) {
+  const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  try {
+    await db.collection('invites').add({ from: currentUser.uid, fromName: myDisplayName(), to: f.uid, room: code, createdAt: Date.now() });
+  } catch (e) { setFrMsg(frErrText(e)); return; }
+  const name = ($('meetPlayerName').value || myDisplayName()).trim();
+  enterMeeting(code, name, $('meetPlayerLang').value);
+}
+
+function showInvite(inv) {
+  currentInvite = inv;
+  $('inviteText').textContent = frT('invite')(inv.fromName || '?');
+  $('inviteToast').style.display = 'block';
+}
+async function dismissInvite(deleteDoc = true) {
+  const inv = currentInvite; currentInvite = null; $('inviteToast').style.display = 'none';
+  if (inv && deleteDoc) { try { await db.collection('invites').doc(inv.id).delete(); } catch (e) {} }
+}
+$('inviteDecline').addEventListener('click', () => dismissInvite());
+$('inviteJoin').addEventListener('click', async () => {
+  const inv = currentInvite; if (!inv) return;
+  await dismissInvite();
+  if (appMode !== 'none') { backBtn.click(); await new Promise(r => setTimeout(r, 500)); }
+  enterMeeting(inv.room, ($('meetPlayerName').value || myDisplayName()).trim(), $('meetPlayerLang').value);
+});
+
+$('btnFriends').addEventListener('click', async () => {
+  $('landingOverlay').style.display = 'none'; $('friendsOverlay').style.display = 'flex';
+  applyFriendsLang(); renderFriendsUI();
+  if (!friendsReady) {
+    setFrMsg(frT('wait'));
+    try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); }
+  } else { setFrMsg(''); }
+});
+$('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
+$('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
+$('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
+$('frCopyCode').addEventListener('click', () => {
+  if (!myFriendCode) return;
+  navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode));
+});
 renderPlaylist(); 
 </script>
 </body>
