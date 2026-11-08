@@ -604,6 +604,7 @@ let pc = null, localStream = null;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
 let iceCandidatesQueue = []; 
 let isCameraOn = true;
+let isWebRtcMicOn = true; // للتحكم في مايك المكالمة (الغرف والاجتماعات)
 
 let livekitRoom = null;
 
@@ -921,6 +922,7 @@ async function connectLiveKit(roomCode, participantName) {
             }
             try {
                 await livekitRoom.localParticipant.setMicrophoneEnabled(true);
+                isWebRtcMicOn = true;
             } catch (err) {
                 console.warn("Mic error:", err);
                 addMsg("⚠️ المايك: " + cameraErrorText(err), 'bot');
@@ -1203,10 +1205,10 @@ function speakBrowser(text, lang, myId) {
 async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
-      // تفعيل الكاميرا والمايك معاً (مثل الهاتف)
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream; videoContainer.style.display = 'block';
       isCameraOn = true; toggleCamBtn.classList.remove('off');
+      isWebRtcMicOn = true;
     } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك. يرجى السماح بالوصول.', 'bot'); return; }
   }
   if (!pc) {
@@ -1316,6 +1318,25 @@ if (SR) {
   const startMic = (speaker) => {
     unlockAudio();
     
+    // في الغرف والاجتماعات: الزر يعمل ككتم وتشغيل للصوت فقط (مثل الواتساب)
+    if (appMode === 'remote' || appMode === 'meeting') {
+        isWebRtcMicOn = !isWebRtcMicOn;
+        if (appMode === 'remote' && localStream) {
+            localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
+        }
+        if (appMode === 'meeting' && livekitRoom) {
+            livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn);
+        }
+        const btn = (remoteMicBtn || floatingMicBtn);
+        if (btn) {
+            btn.classList.toggle('recording', !isWebRtcMicOn);
+            btn.style.background = isWebRtcMicOn ? '#10b981' : '#ef4444';
+        }
+        setStatus(isWebRtcMicOn ? '🎤 Mic ON' : '🔇 Mic OFF');
+        return;
+    }
+    
+    // في Face-to-Face: الزر يعمل لتشغيل محرك التعرف على الصوت
     if (isMicIntendedOn && activeSpeaker === speaker) {
         isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.stop(); } catch(e){}
         if (finalTranscriptBuffer.trim()) { processVoice(finalTranscriptBuffer.trim()); finalTranscriptBuffer = ""; }
@@ -1357,7 +1378,7 @@ function buildSystemPrompt(targetLang, sourceLang) {
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   
-  // تم إصلاح الشات بوت ليعمل دائماً ويرد حتى لو كانت الترجمة مغلقة
+  // يعمل الشات بوت دائماً ويرد حتى لو كانت الترجمة مغلقة
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
