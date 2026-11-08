@@ -401,9 +401,6 @@
 <script>
 'use strict';
 
-// ==========================================
-// Firebase Configuration
-// ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
   authDomain: "chat-core-app.firebaseapp.com",
@@ -1206,10 +1203,11 @@ function speakBrowser(text, lang, myId) {
 async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      // تفعيل الكاميرا والمايك معاً (مثل الهاتف)
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream; videoContainer.style.display = 'block';
       isCameraOn = true; toggleCamBtn.classList.remove('off');
-    } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا. يرجى السماح بالوصول.', 'bot'); return; }
+    } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك. يرجى السماح بالوصول.', 'bot'); return; }
   }
   if (!pc) {
     const iceServers = [
@@ -1221,7 +1219,11 @@ async function startVideoCall(isCaller = false) {
     ];
     pc = new RTCPeerConnection({ iceServers: iceServers });
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    pc.ontrack = (event) => { remoteVideo.srcObject = event.streams[0]; remoteVideo.play().catch(e => console.log("Autoplay blocked:", e)); setStatus('✅ تم الاتصال بالكاميرا بنجاح!'); };
+    pc.ontrack = (event) => { 
+        remoteVideo.srcObject = event.streams[0]; 
+        remoteVideo.play().catch(e => console.log("Autoplay blocked:", e)); 
+        setStatus('✅ تم الاتصال بالكاميرا والصوت بنجاح!'); 
+    };
     pc.onicecandidate = (event) => { if (event.candidate && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); } };
     pc.oniceconnectionstatechange = () => { if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') { setStatus('⚠️ انقطع اتصال الفيديو.'); } };
   }
@@ -1355,12 +1357,7 @@ function buildSystemPrompt(targetLang, sourceLang) {
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   
-  // إذا كانت اللغات متطابقة والمترجم يعمل، اعرض فقط (لا ترجمة، لا AI)
-  if (isTranslatorMode && sourceLang === targetLang) {
-      addMsg(text, speaker === 'A' ? 'user-b' : 'user-a', targetLang);
-      return; 
-  }
-
+  // تم إصلاح الشات بوت ليعمل دائماً ويرد حتى لو كانت الترجمة مغلقة
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
