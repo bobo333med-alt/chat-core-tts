@@ -496,14 +496,16 @@ const savedLang = localStorage.getItem('authLang') || 'ar';
 changeAuthLang(savedLang);
 
 // ==========================================
-// App Logic
+// App Logic (URL Updated)
 // ==========================================
-const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
-const TTS_URL = "https://vibe-core-0m1r.onrender.com/tts";
-const ROOM_CREATE_URL = "https://vibe-core-0m1r.onrender.com/rooms/create";
-const TOKEN_URL = "https://vibe-core-0m1r.onrender.com/get-token";
-const TRANSCRIBE_URL = "https://vibe-core-0m1r.onrender.com/transcribe";
-const WS_BASE = SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://').replace('/chat', '');
+const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
+const SERVER_URL = BASE_SERVER_URL + "/chat";
+const TTS_URL = BASE_SERVER_URL + "/tts";
+const ROOM_CREATE_URL = BASE_SERVER_URL + "/rooms/create";
+const TOKEN_URL = BASE_SERVER_URL + "/get-token";
+const TRANSCRIBE_URL = BASE_SERVER_URL + "/transcribe";
+
+const WS_BASE = BASE_SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 const REQUEST_TIMEOUT_MS = 60000; 
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
@@ -521,8 +523,7 @@ function loadScript(src) {
 const loadLiveKit = () => window.LivekitClient ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js');
 const loadFirestore = () => (firebase.firestore ? Promise.resolve() : loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js'));
 
-const SERVER_BASE = SERVER_URL.replace('/chat', '');
-function wakeServer() { try { fetch(SERVER_BASE + '/', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} }
+function wakeServer() { try { fetch(BASE_SERVER_URL + '/health', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} }
 wakeServer();
 
 const $ = id => document.getElementById(id);
@@ -559,7 +560,7 @@ let isWebRtcMicOn = true;
 
 let livekitRoom = null;
 
-// State for independent translation pipeline
+// Translation Pipeline state
 let isMicIntendedOn = false;
 let isRecording = false;
 let audioRecorder = null;
@@ -567,6 +568,7 @@ let recordTimer = null;
 let audioContext = null;
 let analyser = null;
 let dataArray = null;
+let isTranslatorStarting = false; 
 
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 
@@ -841,16 +843,23 @@ function handleParticipantDisconnected(participant) { let box = document.getElem
 
 async function connectLiveKit(roomCode, participantName) {
     try {
-        setStatus("Loading video engine...");
+        setStatus("جاري تجهيز الفيديو...");
         await loadLiveKit();
-        setStatus("Getting token...");
+        
+        setStatus("⏳ جاري الاتصال بالسيرفر (قد يستغرق دقيقة إذا كان نائماً)...");
         const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 70000);
+        
         const res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_name: roomCode, participant_name: participantName }), signal: controller.signal });
         clearTimeout(timeout);
-        if (!res.ok) throw new Error("Token fetch failed");
+        
+        if (!res.ok) { 
+            let errMsg = "فشل الاتصال بالسيرفر"; 
+            try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){}
+            throw new Error(errMsg); 
+        }
         const { token, url } = await res.json();
 
-        setStatus("Connecting to LiveKit...");
+        setStatus("جاري الاتصال بالاجتماع...");
         if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
         videoGrid.innerHTML = '';
         livekitRoom = new LivekitClient.Room({ adaptiveStream: true, dynacast: true });
@@ -860,20 +869,25 @@ async function connectLiveKit(roomCode, participantName) {
         livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
         
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
-            setStatus("✅ Connected to Meeting");
+            setStatus("✅ متصل بالاجتماع");
             try { await livekitRoom.localParticipant.setCameraEnabled(true); isCameraOn = true; toggleCamBtn.classList.remove('off'); } catch (err) { console.warn("Camera error", err); }
             try { await livekitRoom.localParticipant.setMicrophoneEnabled(true); isWebRtcMicOn = true; } catch (err) { console.warn("Mic error", err); }
             try { await livekitRoom.startAudio(); } catch(e) {}
             
-            // Autoplay fix for LiveKit
             if (!livekitRoom.canPlaybackAudio) {
                 addMsg("⚠️ اضغط على الشاشة لتفعيل الصوت.", "bot");
                 document.body.addEventListener('click', () => { if(livekitRoom) livekitRoom.startAudio(); }, { once: true });
             }
+
+            // Start translation ONLY after connection and track publication
+            if (isTranslatorMode && !isRecording) {
+                setTimeout(startVoiceTranslation, 1500);
+            }
         });
 
-        livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => { setStatus("Disconnected"); addMsg("⚠️ تم قطع الاتصال بالاجتماع.", "bot"); });
-        livekitRoom.on(LivekitClient.RoomEvent.Reconnecting, () => setStatus("Reconnecting..."));
+        livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => { setStatus("انقطع الاتصال"); addMsg("⚠️ تم قطع الاتصال بالاجتماع.", "bot"); });
+        livekitRoom.on(LivekitClient.RoomEvent.Reconnecting, () => setStatus("جاري إعادة الاتصال..."));
+        livekitRoom.on(LivekitClient.RoomEvent.MediaDevicesError, (e) => { console.error(e); addMsg("⚠️ خطأ في أجهزة الوسائط (كاميرا/مايك).", "bot"); });
 
         livekitRoom.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
              if (publication.track.kind === 'video') {
@@ -892,7 +906,8 @@ async function connectLiveKit(roomCode, participantName) {
         await livekitRoom.connect(url, token);
     } catch (e) {
         console.error(e);
-        addMsg("⚠️ Failed to join meeting: " + e.message, 'bot'); setStatus("Meeting Error");
+        if (e.name === 'AbortError') { addMsg("⚠️ الخادم يستغرق وقتاً طويلاً للاستجابة (Cold Start). يرجى المحاولة مرة أخرى.", 'bot'); setStatus("فشل الاتصال"); } 
+        else { addMsg("⚠️ فشل الانضمام للاجتماع: " + e.message, 'bot'); setStatus("خطأ في الاجتماع"); }
     }
 }
 
@@ -916,14 +931,12 @@ async function startVideoCall(isCaller = false) {
     pc.ontrack = (event) => { 
         remoteVideo.srcObject = event.streams[0]; 
         remoteVideo.play().catch(e => {
-            // Autoplay blocked by Chrome
             tapToPlayOverlay.style.display = 'flex';
         }); 
         setStatus('✅ تم الاتصال بالفيديو!'); 
     };
     pc.onicecandidate = (event) => { if (event.candidate && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); } };
     
-    // Auto-reconnect video if dropped
     pc.oniceconnectionstatechange = () => { 
         if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') { 
             setStatus('⚠️ إعادة الاتصال بالفيديو...'); 
@@ -961,19 +974,26 @@ function initVAD(track) {
 }
 
 function hasVoiceActivity() {
-    if (!analyser) return true; // Fallback if VAD fails
+    if (!analyser) return true; 
     analyser.getByteFrequencyData(dataArray);
     let sum = 0;
     for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-    return (sum / dataArray.length) > 15; // Threshold to prevent hallucination
+    return (sum / dataArray.length) > 15; 
 }
 
 async function startVoiceTranslation() {
+    if (isTranslatorStarting) return;
+    isTranslatorStarting = true;
+
     if (appMode === 'meeting' && livekitRoom) await livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
     if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
     
     const track = getMicTrack();
-    if (!track) { addMsg("⚠️ لم يتم العثور على المايك.", 'bot'); return; }
+    if (!track) { 
+        // Do not spam. Just return and wait for next connection if needed.
+        isTranslatorStarting = false;
+        return; 
+    }
     
     initVAD(track);
     isMicIntendedOn = true;
@@ -985,12 +1005,12 @@ async function startVoiceTranslation() {
     const startChunk = () => {
         if (!isMicIntendedOn) return;
         const currentTrack = getMicTrack();
-        if (!currentTrack) return;
+        if (!currentTrack) { isTranslatorStarting = false; return; }
         
         const stream = new MediaStream([currentTrack]);
         let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
         
-        try { audioRecorder = new MediaRecorder(stream, { mimeType }); } catch(e) { return; }
+        try { audioRecorder = new MediaRecorder(stream, { mimeType }); } catch(e) { isTranslatorStarting = false; return; }
 
         let chunks = [];
         audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -999,11 +1019,8 @@ async function startVoiceTranslation() {
             const blob = new Blob(chunks, { type: audioRecorder.mimeType });
             chunks = [];
             
-            // ONLY SEND IF VOICE ACTIVITY DETECTED (Fixes Hallucination)
             if (hasVoiceActivity()) {
                 sendAudioToServer(blob);
-            } else {
-                console.log("Silence detected, skipping chunk to prevent hallucination.");
             }
             
             if (isMicIntendedOn) startChunk(); 
@@ -1018,6 +1035,7 @@ async function startVoiceTranslation() {
 function stopVoiceTranslation() {
     isMicIntendedOn = false;
     isRecording = false;
+    isTranslatorStarting = false;
     clearTimeout(recordTimer);
     if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
     audioRecorder = null;
@@ -1054,7 +1072,6 @@ async function enterMeeting(code, name, lang) {
   
   connectWebSocket(code);
   await connectLiveKit(code, name);
-  if (isTranslatorMode) setTimeout(startVoiceTranslation, 2000); // Start translation after LiveKit connects
 }
 
 $('createMeetingBtn').addEventListener('click', () => {
@@ -1093,7 +1110,6 @@ function enterRemoteRoom(code) {
   setTranslatorMode(isTranslatorMode);
 
   connectWebSocket(code);
-  // Translation in remote mode starts once video call starts (requires local stream)
 }
 
 function connectWebSocket(code) {
