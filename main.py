@@ -129,7 +129,7 @@ async def lifespan(app):
     yield
     task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="7.2", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="8.0", lifespan=lifespan)
 
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
@@ -342,11 +342,15 @@ async def tts_endpoint(req: TTSRequest):
 async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar")):
     if not GROQ_KEYS: raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
     
-    suffix = os.path.splitext(file.filename)[1] or ".webm" # تقبل المقاطع الصوتية
+    contents = await file.read()
     
+    # Backend safeguard against tiny empty chunks (prevents hallucination)
+    if len(contents) < 1500:
+        return {"original": "", "translated": ""}
+
+    suffix = os.path.splitext(file.filename)[1] or ".webm"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
         temp_path = temp_file.name
-        contents = await file.read()
         temp_file.write(contents)
     
     try:
@@ -360,8 +364,8 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
             )
         
         original_text = transcript_response.strip()
-        if not original_text:
-            return {"original": "لم يتم التعرف على أي كلام.", "translated": "لم يتم التعرف على أي كلام."}
+        if not original_text or len(original_text) < 2:
+            return {"original": "", "translated": ""}
             
         translated_text = await translate_for_room(original_text, "auto", target_lang)
         return {"original": original_text, "translated": translated_text}
