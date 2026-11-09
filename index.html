@@ -11,7 +11,6 @@
   html, body { height: 100%; overflow: hidden; }
   body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; display: flex; flex-direction: column; padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); height: 100dvh; transition: opacity 0.3s; }
   
-  /* Auth Screen Styles */
   #authOverlay { position: fixed; inset: 0; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; }
   .auth-lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 5px; }
   .lang-btn { background: #334155; border: 1px solid #475569; color: #fff; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
@@ -31,7 +30,6 @@
   .divider { display: flex; align-items: center; margin: 15px 0; color: #64748b; font-size: 12px; }
   .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid #334155; margin: 0 10px; }
 
-  /* App Layout & Elements */
   .top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
   .top-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 12px; border-radius: 10px; width: 95%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
   .user-section { display: flex; align-items: center; gap: 4px; }
@@ -157,7 +155,6 @@
 </head>
 <body>
 
-<!-- Auth Screen Overlay -->
 <div id="authOverlay">
   <div class="auth-lang-switch">
     <button class="lang-btn active" onclick="changeAuthLang('ar')">AR</button>
@@ -188,7 +185,6 @@
   <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
 </button>
 
-<!-- Landing Page (Option Selection) -->
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
   <p style="color:#94a3b8; font-size:13px; margin-bottom:10px;">اختر وضع التشغيل</p>
@@ -201,7 +197,6 @@
   <button class="mode-btn" id="btnLogout" style="background: #ef4444; margin-top: 20px;">🚪 تسجيل الخروج</button>
 </div>
 
-<!-- Friends Overlay -->
 <div class="overlay" id="friendsOverlay" style="display:none;">
   <h2>👥 <span id="frTitle">الأصدقاء</span></h2>
   <div class="join-form" style="max-width:340px;">
@@ -225,7 +220,6 @@
   </div>
 </div>
 
-<!-- Friend chat overlay -->
 <div class="overlay" id="chatOverlay" style="display:none; justify-content:flex-start; gap:8px; padding:10px;">
   <div style="width:100%; max-width:420px; display:flex; align-items:center; gap:8px; flex-shrink:0;">
     <button id="chBack" style="background:#475569; color:#fff; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-weight:bold;">←</button>
@@ -240,7 +234,6 @@
   </div>
 </div>
 
-<!-- Invite toast -->
 <div id="inviteToast" style="display:none; position:fixed; top:14px; left:50%; transform:translateX(-50%); width:92%; max-width:360px; background:#1e293b; border:1px solid #f59e0b; border-radius:12px; padding:12px; z-index:9999990; box-shadow:0 6px 20px rgba(0,0,0,.5); font-size:13px;">
   <div id="inviteText" style="margin-bottom:8px;"></div>
   <div style="display:flex; gap:8px;">
@@ -289,7 +282,6 @@
   </div>
 </div>
 
-<!-- Remote Bar with Translation Toggle instead of Lock -->
 <div id="remoteBar">
   <button id="transToggleBtnRoom" class="toggle-btn active" style="font-size: 11px; padding: 6px 10px;">🌐 ON</button>
   <div class="room-info">
@@ -658,7 +650,6 @@ const updateMeetForm = () => {
 $('meetPlayerLang').addEventListener('change', updateMeetForm);
 updateMeetForm();
 
-// --- إدارة زر الترجمة ---
 function setTranslatorMode(isOn) {
     isTranslatorMode = isOn;
     localStorage.setItem('translatorMode', isOn);
@@ -1479,4 +1470,297 @@ videoUpload.addEventListener('change', async (e) => {
   try {
     const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
     if (!res.ok) throw new Error('Server error');
-    const data =
+    const data = await res.json();
+    addMsg(data.original, 'user-b', 'AUTO'); addMsg(data.translated, 'bot', targetLang);
+    speak(data.translated, targetLang); setStatus('✅ تمت الترجمة بنجاح!');
+  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); } 
+  finally { setBusy(false); e.target.value = ''; }
+});
+
+async function handleImage(e) {
+  const file = e.target.files[0]; if (!file) return;
+  isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const compressed = await compressImage(ev.target.result);
+    if (appMode === 'remote' || appMode === 'meeting') {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed }));
+            addMsg('', 'user-a', myLang, compressed); 
+        }
+        isCompressing = false; sendBtn.disabled = isSending; setStatus('');
+    } else {
+        attachedFileText = null; attachedImageBase64 = compressed;
+        imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
+        isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+galleryUpload.addEventListener('change', handleImage);
+cameraUpload.addEventListener('change', handleImage);
+cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.'); });
+
+audioUpload.addEventListener('change', (e) => {
+  const files = e.target.files;
+  for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
+  renderPlaylist(); e.target.value = '';
+});
+function renderPlaylist() {
+  musicList.innerHTML = '';
+  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
+  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause';
+  pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
+  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
+  playlist.forEach((song, index) => {
+    const div = document.createElement('div'); div.className = 'music-item';
+    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
+    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
+    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
+    div.appendChild(name); div.appendChild(del);
+    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
+    div.onclick = () => { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); } else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); } };
+    musicList.appendChild(div);
+  });
+}
+function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
+bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
+bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
+
+// ==========================================
+// الأصدقاء (Firestore)
+// ==========================================
+const FR_TEXT = {
+  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع',
+        self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد. شارك كودك أو أضف كود صديق.',
+        accept: 'قبول', decline: 'رفض', call: 'اجتماع', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل',
+        rules: 'تعذر الوصول إلى قاعدة البيانات. تأكد من تفعيل Firestore ونشر قواعد الأمان (firestore.rules).', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...' },
+  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour',
+        self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant. Partagez votre code ou ajoutez un code.",
+        accept: 'Accepter', decline: 'Refuser', call: 'Réunion', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer',
+        rules: "Base de données inaccessible. Vérifiez que Firestore est activé et que les règles (firestore.rules) sont publiées.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...' },
+  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back',
+        self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet. Share your code or add a friend code.',
+        accept: 'Accept', decline: 'Decline', call: 'Meeting', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore',
+        rules: 'Cannot reach the database. Make sure Firestore is enabled and the security rules (firestore.rules) are published.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...' }
+};
+const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
+
+let db = null, friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
+let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
+let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [], chatTranslations = {};
+
+const frMsgEl = $('frMsg');
+function setFrMsg(t) { frMsgEl.textContent = t || ''; }
+function myDisplayName() { return (currentUser && (currentUser.displayName || (currentUser.email || 'user').split('@')[0])) || 'User'; }
+function genFriendCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
+}
+function frErrText(e) {
+  const c = e && e.code;
+  if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules');
+  return (e && e.message) || String(e);
+}
+
+function applyFriendsLang() {
+  $('frTitle').textContent = frT('friends'); $('btnFriendsLabel').textContent = frT('friends');
+  $('frMyCodeLabel').textContent = frT('myCode'); $('frAddInput').placeholder = frT('codePh');
+  $('frReqTitle').textContent = frT('requests'); $('frListTitle').textContent = frT('list'); $('frBackBtn').textContent = frT('back');
+  $('inviteJoin').textContent = frT('join'); $('inviteDecline').textContent = frT('ignore');
+}
+applyFriendsLang();
+const _origChangeAuthLang = changeAuthLang;
+changeAuthLang = function (lang) { _origChangeAuthLang(lang); applyFriendsLang(); renderFriendsUI(); };
+
+function frBtn(label, bg, onClick) {
+  const b = document.createElement('button');
+  b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`;
+  b.addEventListener('click', onClick); return b;
+}
+function frRow(name) {
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:center; gap:6px; background:#0f172a; border-radius:8px; padding:6px 8px;';
+  const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;';
+  row.appendChild(n); return row;
+}
+
+function renderFriendsUI() {
+  const badge = $('friendsBadge');
+  const totalUnread = currentUser ? Object.values(chatsByFriend).reduce((n, c) => n + (c['unread_' + currentUser.uid] || 0), 0) : 0;
+  const badgeCount = requestsCache.length + totalUnread;
+  badge.style.display = badgeCount ? 'block' : 'none'; badge.textContent = badgeCount;
+  $('frRequestsBox').style.display = requestsCache.length ? 'block' : 'none';
+  const reqEl = $('frRequests'); reqEl.innerHTML = '';
+  requestsCache.forEach(r => {
+    const row = frRow(r.fromName || '?');
+    row.appendChild(frBtn(frT('accept'), '#10b981', () => acceptRequest(r)));
+    row.appendChild(frBtn(frT('decline'), '#475569', () => declineRequest(r)));
+    reqEl.appendChild(row);
+  });
+  const listEl = $('frList'); listEl.innerHTML = '';
+  if (!friendsCache.length) {
+    const e = document.createElement('div'); e.textContent = frT('empty'); e.style.cssText = 'font-size:12px; color:#64748b; text-align:center; padding:8px;'; listEl.appendChild(e);
+  }
+  friendsCache.forEach(f => {
+    const row = frRow(f.name || '?');
+    const ch = chatsByFriend[f.uid]; const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
+    row.appendChild(frBtn('💬' + (un ? ' ' + un : ''), un ? '#ef4444' : '#0ea5e9', () => openChat(f)));
+    row.appendChild(frBtn('📞', '#1d4ed8', () => callFriend(f)));
+    row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
+    listEl.appendChild(row);
+  });
+  if (myFriendCode) $('frMyCode').textContent = myFriendCode;
+}
+
+async function ensureMyCode() {
+  const uref = db.collection('users').doc(currentUser.uid);
+  const snap = await uref.get();
+  if (snap.exists && snap.data().code) { myFriendCode = snap.data().code; return; }
+  for (let i = 0; i < 5; i++) {
+    const code = genFriendCode(); const cref = db.collection('codes').doc(code);
+    try {
+      await db.runTransaction(async tx => {
+        const c = await tx.get(cref);
+        if (c.exists) throw new Error('taken');
+        tx.set(cref, { uid: currentUser.uid, name: myDisplayName() });
+        tx.set(uref, { code, name: myDisplayName() }, { merge: true });
+      });
+      myFriendCode = code; return;
+    } catch (e) { if (e.message !== 'taken') throw e; }
+  }
+  throw new Error('Could not allocate a friend code');
+}
+
+function initFriends() {
+  if (friendsReady) return Promise.resolve();
+  if (friendsInitPromise) return friendsInitPromise;
+  friendsInitPromise = (async () => {
+    try {
+      await loadFirestore();
+      db = firebase.firestore();
+      await ensureMyCode();
+      const me = currentUser.uid;
+      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => {
+        friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI();
+      }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => {
+        requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI();
+      }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('invites').where('to', '==', me).onSnapshot(s => {
+        s.docChanges().forEach(ch => {
+          if (ch.type !== 'added') return;
+          const inv = { id: ch.doc.id, ...ch.doc.data() };
+          if (Date.now() - (inv.createdAt || 0) > 120000) { ch.doc.ref.delete().catch(() => {}); return; }
+          showInvite(inv);
+        });
+      }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('chats').where('members', 'array-contains', me).onSnapshot(s => {
+        s.docs.forEach(d => {
+          const data = d.data({ serverTimestamps: 'estimate' });
+          const other = (data.members || []).find(m => m !== me);
+          if (other) chatsByFriend[other] = { id: d.id, ...data };
+        });
+        markDelivered(s); renderFriendsUI();
+        if (chatOpenWith) { renderChatMsgs(); markRead(); }
+      }, e => { lastFriendsError = e; }));
+      friendsReady = true; lastFriendsError = null; renderFriendsUI();
+    } catch (e) {
+      console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e;
+    }
+  })();
+  friendsInitPromise.catch(() => {});
+  return friendsInitPromise;
+}
+
+function teardownFriends() {
+  friendsUnsubs.forEach(u => { try { u(); } catch (e) {} });
+  friendsUnsubs = []; friendsReady = false; friendsInitPromise = null; myFriendCode = null;
+  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
+  chatsByFriend = {}; chatOpenWith = null; chatMsgsCache = []; chatTranslations = {}; $('chatOverlay').style.display = 'none';
+  friendsCache = []; requestsCache = []; currentInvite = null; $('inviteToast').style.display = 'none'; renderFriendsUI();
+}
+
+async function sendFriendRequest(raw) {
+  const code = (raw || '').trim().toUpperCase(); if (!code) return;
+  if (code === myFriendCode) return setFrMsg(frT('self'));
+  try {
+    const c = await db.collection('codes').doc(code).get();
+    if (!c.exists) return setFrMsg(frT('notfound'));
+    const to = c.data().uid;
+    if (friendsCache.some(f => f.uid === to)) return setFrMsg(frT('already'));
+    const incoming = requestsCache.find(r => r.from === to);
+    if (incoming) { await acceptRequest(incoming); return; }
+    await db.collection('friend_requests').doc(currentUser.uid + '_' + to).set({ from: currentUser.uid, fromName: myDisplayName(), to, createdAt: Date.now() });
+    setFrMsg(frT('sent')); $('frAddInput').value = '';
+  } catch (e) { setFrMsg(frErrText(e)); }
+}
+
+async function acceptRequest(r) {
+  try {
+    const me = currentUser.uid, other = r.from, now = Date.now();
+    const batch = db.batch();
+    batch.set(db.collection('users').doc(other).collection('friends').doc(me), { uid: me, name: myDisplayName(), since: now });
+    batch.set(db.collection('users').doc(me).collection('friends').doc(other), { uid: other, name: r.fromName || '?', since: now });
+    batch.delete(db.collection('friend_requests').doc(r.id));
+    await batch.commit();
+  } catch (e) { setFrMsg(frErrText(e)); }
+}
+async function declineRequest(r) { try { await db.collection('friend_requests').doc(r.id).delete(); } catch (e) { setFrMsg(frErrText(e)); } }
+
+async function removeFriend(f) {
+  if (!confirm(frT('confirmRemove'))) return;
+  try {
+    const me = currentUser.uid;
+    const batch = db.batch();
+    batch.delete(db.collection('users').doc(me).collection('friends').doc(f.uid));
+    batch.delete(db.collection('users').doc(f.uid).collection('friends').doc(me));
+    await batch.commit();
+  } catch (e) { setFrMsg(frErrText(e)); }
+}
+
+async function callFriend(f) {
+  const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  try {
+    await db.collection('invites').add({ from: currentUser.uid, fromName: myDisplayName(), to: f.uid, room: code, createdAt: Date.now() });
+  } catch (e) { setFrMsg(frErrText(e)); return; }
+  const name = ($('meetPlayerName').value || myDisplayName()).trim();
+  enterMeeting(code, name, $('meetPlayerLang').value);
+}
+
+function showInvite(inv) {
+  currentInvite = inv;
+  $('inviteText').textContent = frT('invite')(inv.fromName || '?');
+  $('inviteToast').style.display = 'block';
+}
+async function dismissInvite(deleteDoc = true) {
+  const inv = currentInvite; currentInvite = null; $('inviteToast').style.display = 'none';
+  if (inv && deleteDoc) { try { await db.collection('invites').doc(inv.id).delete(); } catch (e) {} }
+}
+$('inviteDecline').addEventListener('click', () => dismissInvite());
+$('inviteJoin').addEventListener('click', async () => {
+  const inv = currentInvite; if (!inv) return;
+  await dismissInvite();
+  if (appMode !== 'none') { backBtn.click(); await new Promise(r => setTimeout(r, 500)); }
+  enterMeeting(inv.room, ($('meetPlayerName').value || myDisplayName()).trim(), $('meetPlayerLang').value);
+});
+
+$('btnFriends').addEventListener('click', async () => {
+  $('landingOverlay').style.display = 'none'; $('friendsOverlay').style.display = 'flex';
+  applyFriendsLang(); renderFriendsUI();
+  if (!friendsReady) {
+    setFrMsg(frT('wait'));
+    try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); }
+  } else { setFrMsg(''); }
+});
+$('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
+$('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
+$('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
+$('frCopyCode').addEventListener('click', () => {
+  if (!myFriendCode) return;
+  navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode));
+});
+renderPlaylist(); 
+</script>
+</body>
+</html>
