@@ -129,7 +129,7 @@ async def lifespan(app):
     yield
     task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="8.0", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="8.1", lifespan=lifespan)
 
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
@@ -276,22 +276,26 @@ async def create_room_endpoint():
 @app.post("/get-token")
 async def get_token_endpoint(req: MeetingTokenRequest):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
+        logger.error("get-token failed: LiveKit keys missing")
         raise HTTPException(500, detail="LiveKit keys not configured")
     
     unique_identity = f"{req.participant_name}#{secrets.token_hex(3)}"
 
-    token = api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET) \
-        .with_identity(unique_identity) \
-        .with_name(req.participant_name) \
-        .with_grants(api.VideoGrants(
-            room_join=True, 
-            room=req.room_name,
-            can_publish=True,
-            can_subscribe=True,
-            can_publish_data=True
-        ))
-    
-    return {"token": token.to_jwt(), "url": LIVEKIT_URL}
+    try:
+        token = api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET) \
+            .with_identity(unique_identity) \
+            .with_name(req.participant_name) \
+            .with_grants(api.VideoGrants(
+                room_join=True, 
+                room=req.room_name,
+                can_publish=True,
+                can_subscribe=True,
+                can_publish_data=True
+            ))
+        return {"token": token.to_jwt(), "url": LIVEKIT_URL}
+    except Exception as e:
+        logger.error(f"get-token error: {e}")
+        raise HTTPException(500, detail=str(e))
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
