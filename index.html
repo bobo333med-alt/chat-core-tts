@@ -230,15 +230,13 @@
   <div style="width:100%; max-width:420px; display:flex; align-items:center; gap:8px; flex-shrink:0;">
     <button id="chBack" style="background:#475569; color:#fff; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-weight:bold;">←</button>
     <strong id="chName" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px;"></strong>
-    <button id="chCall" title="Meeting" style="background:#1d4ed8; color:#fff; border:none; border-radius:8px; padding:8px 10px; cursor:pointer;">📞</button>
-    <button id="chAuto" title="Auto-translate incoming messages" style="background:#334155; color:#fff; border:none; border-radius:8px; padding:8px 10px; cursor:pointer; font-size:12px; font-weight:bold;">🌐</button>
     <select id="chLang" class="lang-select" style="width:92px; height:30px; font-size:10px;" title="Translate to"></select>
   </div>
-  <div id="chMsgs" style="flex:1; min-height:0; width:100%; max-width:420px; overflow-y:auto; background:#1e293b; border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
+  <div id="chMsgs" style="flex:1; width:100%; max-width:420px; overflow-y:auto; background:#1e293b; border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:6px;"></div>
   <div id="chStatus" style="min-height:14px; font-size:11px; color:#fbbf24; width:100%; max-width:420px; text-align:center;"></div>
-  <div style="display:flex; gap:6px; width:100%; max-width:420px; flex-shrink:0; align-items:center; padding-bottom:env(safe-area-inset-bottom);">
-    <input type="text" id="chInput" maxlength="2000" autocomplete="off" style="flex:1; order:0; padding:12px 14px; border-radius:22px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:14px; outline:none;">
-    <button id="chSend" style="background:#1d4ed8; color:#fff; border:none; border-radius:50%; width:42px; height:42px; cursor:pointer; font-size:16px; flex-shrink:0;">➤</button>
+  <div style="display:flex; gap:6px; width:100%; max-width:420px; flex-shrink:0; padding-bottom:env(safe-area-inset-bottom);">
+    <input type="text" id="chInput" maxlength="2000" style="padding-left:12px;">
+    <button id="chSend" style="background:#1d4ed8; color:#fff; border:none; border-radius:50%; width:42px; height:42px; cursor:pointer; font-size:16px;">➤</button>
   </div>
 </div>
 
@@ -843,16 +841,6 @@ function handleTrackSubscribed(track, publication, participant) {
 function handleTrackUnsubscribed(track, publication, participant) { track.detach().forEach(el => el.remove()); }
 function handleParticipantDisconnected(participant) { let box = document.getElementById('participant-' + participant.identity); if (box) box.remove(); }
 
-// يحوّل خطأ الكاميرا/المايك إلى سبب مفهوم بدل أن يختفي في الـ console
-function mediaErrorText(err) {
-    const n = err && err.name;
-    if (n === 'NotAllowedError' || n === 'PermissionDeniedError') return 'تم رفض الإذن. اسمح بالكاميرا والمايك من إعدادات المتصفح (أيقونة القفل بجانب العنوان) ثم أعد الدخول.';
-    if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'لم يتم العثور على كاميرا أو مايك في هذا الجهاز.';
-    if (n === 'NotReadableError' || n === 'TrackStartError') return 'الجهاز مستخدم من تطبيق أو تبويب آخر. أغلقه وأعد المحاولة.';
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost') return 'الكاميرا تعمل فقط عبر HTTPS.';
-    return (err && err.message) ? err.message : 'خطأ غير معروف';
-}
-
 async function connectLiveKit(roomCode, participantName) {
     try {
         setStatus("جاري تجهيز الفيديو...");
@@ -882,10 +870,8 @@ async function connectLiveKit(roomCode, participantName) {
         
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ متصل بالاجتماع");
-            try { await livekitRoom.localParticipant.setCameraEnabled(true); isCameraOn = true; toggleCamBtn.classList.remove('off'); }
-            catch (err) { console.warn("Camera error", err); isCameraOn = false; toggleCamBtn.classList.add('off'); addMsg("⚠️ الكاميرا: " + mediaErrorText(err), "bot"); }
-            try { await livekitRoom.localParticipant.setMicrophoneEnabled(true); isWebRtcMicOn = true; }
-            catch (err) { console.warn("Mic error", err); addMsg("⚠️ المايك: " + mediaErrorText(err), "bot"); }
+            try { await livekitRoom.localParticipant.setCameraEnabled(true); isCameraOn = true; toggleCamBtn.classList.remove('off'); } catch (err) { console.warn("Camera error", err); }
+            try { await livekitRoom.localParticipant.setMicrophoneEnabled(true); isWebRtcMicOn = true; } catch (err) { console.warn("Mic error", err); }
             try { await livekitRoom.startAudio(); } catch(e) {}
             
             if (!livekitRoom.canPlaybackAudio) {
@@ -1077,8 +1063,7 @@ async function sendAudioToServer(blob) {
 async function enterMeeting(code, name, lang) {
   myName = name; myLang = lang; langA.value = myLang;
   currentRoomCode = code; hasJoinedOnce = false; shouldReconnect = true;
-  closeChat(false);
-  ['meetingJoinOverlay', 'landingOverlay', 'friendsOverlay', 'chatOverlay'].forEach(id => { const el = $(id); if (el) el.style.display = 'none'; });
+  ['meetingJoinOverlay', 'landingOverlay', 'friendsOverlay'].forEach(id => { const el = $(id); if (el) el.style.display = 'none'; });
   setModeUI('meeting'); roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting"; chatEl.innerHTML = '';
   wakeServer();
   
@@ -1551,12 +1536,6 @@ function initFriends() {
           showInvite(inv);
         });
       }, e => { lastFriendsError = e; }));
-      // مستمع واحد لكل المحادثات: يعطي العدّاد وآخر رسالة وحالتي التسليم والقراءة دون مستمع لكل صديق
-      friendsUnsubs.push(db.collection('chats').where('members', 'array-contains', me).onSnapshot(s => {
-        s.docs.forEach(d => { const data = d.data(); const other = (data.members || []).find(m => m !== me); if (other) chatsByFriend[other] = { id: d.id, ...data }; });
-        markDelivered(); renderFriendsUI();
-        if (chatOpenWith) { renderChatMsgs(); markRead(); }
-      }, e => { lastFriendsError = e; }));
       friendsReady = true; lastFriendsError = null; renderFriendsUI();
     } catch (e) { console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e; }
   })();
@@ -1631,151 +1610,7 @@ $('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.displ
 $('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
 $('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
 $('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode)); });
-// ==========================================
-// محادثات الأصدقاء: محفوظة في Firestore، ✓ مُرسلة / ✓✓ وصلت / ✓✓ أزرق قُرئت، وترجمة بنقرة أو تلقائية
-// chats/{uidA_uidB}                : members, lastText, lastAt, lastFrom, unread_<uid>, delivered_<uid>, read_<uid>
-// chats/{uidA_uidB}/messages/{id}  : from, text, at
-// كل الأرقام الزمنية في delivered_/read_ مأخوذة من ساعة المُرسِل (at) فلا يفسدها اختلاف ساعات الأجهزة.
-// ==========================================
-const CHAT_LANGS = [['ar','العربية'],['fr','Français'],['en','English'],['de','Deutsch'],['tr','Türkçe'],['it','Italiano'],['zh','中文'],['ru','Русский'],['es','Español'],['pt','Português'],['nl','Nederlands'],['no','Norsk']];
-const chatIdFor = (a, b) => [a, b].sort().join('_');
-let chatAuto = false;
-try { chatAuto = localStorage.getItem('chatAuto') === '1'; } catch (e) {}
-const deliveredSent = new Set();
-
-function setChStatus(t) { $('chStatus').textContent = t || ''; }
-
-function fillChatLangs() {
-  const sel = $('chLang'); if (sel.options.length) return;
-  CHAT_LANGS.forEach(([c, n]) => { const o = document.createElement('option'); o.value = c; o.textContent = n; sel.appendChild(o); });
-  let saved = null; try { saved = localStorage.getItem('chatLang'); } catch (e) {}
-  sel.value = saved || (CHAT_LANGS.some(l => l[0] === currentAuthLang) ? currentAuthLang : 'en');
-}
-
-function openChat(f) {
-  if (!db || !currentUser) return;
-  fillChatLangs();
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-  chatOpenWith = f; chatMsgsCache = []; chatTranslations = {};
-  $('chatOverlay').style.height = '';
-  $('chName').textContent = f.name || '?';
-  $('chMsgs').innerHTML = ''; setChStatus('');
-  $('chAuto').style.background = chatAuto ? '#10b981' : '#334155';
-  $('friendsOverlay').style.display = 'none'; $('chatOverlay').style.display = 'flex';
-  const cid = chatIdFor(currentUser.uid, f.uid);
-  chatUnsub = db.collection('chats').doc(cid).collection('messages').orderBy('at', 'desc').limit(150).onSnapshot(s => {
-    chatMsgsCache = s.docs.map(d => ({ id: d.id, pending: d.metadata.hasPendingWrites, ...d.data() })).reverse();
-    renderChatMsgs(true); markRead();
-  }, e => { setChStatus(frErrText(e)); });
-  setTimeout(() => { try { $('chInput').focus(); } catch (e) {} }, 100);
-}
-
-function closeChat(showFriends = true) {
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-  chatOpenWith = null; chatMsgsCache = []; chatTranslations = {};
-  $('chatOverlay').style.display = 'none';
-  if (showFriends) { $('friendsOverlay').style.display = 'flex'; renderFriendsUI(); }
-}
-
-function tickFor(m, chat, otherUid) {
-  if (m.pending) return ['🕓', '#94a3b8'];
-  const read = chat ? (chat['read_' + otherUid] || 0) : 0, deliv = chat ? (chat['delivered_' + otherUid] || 0) : 0;
-  if (m.at <= read) return ['✓✓', '#38bdf8'];
-  if (m.at <= deliv) return ['✓✓', '#94a3b8'];
-  return ['✓', '#94a3b8'];
-}
-
-function renderChatMsgs(forceBottom) {
-  if (!chatOpenWith || !currentUser) return;
-  const box = $('chMsgs'), me = currentUser.uid, other = chatOpenWith.uid, chat = chatsByFriend[other];
-  const nearBottom = forceBottom || (box.scrollHeight - box.scrollTop - box.clientHeight < 80);
-  const target = $('chLang').value;
-  box.innerHTML = '';
-  chatMsgsCache.forEach(m => {
-    const mine = m.from === me, key = m.id + '|' + target;
-    if (!mine && chatAuto && !(key in chatTranslations)) requestChatTranslation(m, target);
-    const bubble = document.createElement('div');
-    bubble.style.cssText = `max-width:82%; padding:7px 10px; border-radius:12px; font-size:14px; line-height:1.4; word-break:break-word; align-self:${mine ? 'flex-end' : 'flex-start'}; background:${mine ? '#1d4ed8' : '#334155'};`;
-    const txt = document.createElement('div'); txt.dir = 'auto'; txt.textContent = m.text || ''; bubble.appendChild(txt);
-    const tr = chatTranslations[key];
-    if (tr) { const t = document.createElement('div'); t.dir = 'auto'; t.textContent = tr; t.style.cssText = 'margin-top:5px; padding-top:5px; border-top:1px dashed rgba(255,255,255,.35); font-size:13px; opacity:.9;' + (tr === '…' ? ' font-style:italic;' : ''); bubble.appendChild(t); }
-    const meta = document.createElement('div'); meta.style.cssText = 'display:flex; gap:8px; justify-content:flex-end; align-items:center; margin-top:3px; font-size:10px; color:#cbd5e1;';
-    if (!mine) { const b = document.createElement('button'); b.textContent = '🌐'; b.title = 'Translate'; b.style.cssText = 'background:transparent; border:none; color:#fff; cursor:pointer; font-size:12px; padding:0;'; b.addEventListener('click', () => toggleChatTranslation(m)); meta.appendChild(b); }
-    const time = document.createElement('span'); time.textContent = new Date(m.at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); meta.appendChild(time);
-    if (mine) { const [sym, col] = tickFor(m, chat, other); const t = document.createElement('span'); t.textContent = sym; t.style.cssText = 'color:' + col + '; font-weight:bold;'; meta.appendChild(t); }
-    bubble.appendChild(meta); box.appendChild(bubble);
-  });
-  if (nearBottom) box.scrollTop = box.scrollHeight;
-}
-
-// يطلب ترجمة رسالة واحدة من خادمك (نفس نقطة /chat التي يستعملها المترجم)؛ لا يعيد الرسم قبل أن يصل الرد
-function requestChatTranslation(m, target) {
-  const key = m.id + '|' + target; chatTranslations[key] = '…';
-  const sys = `You are a professional translator. Translate the user's message naturally into ${langNameFor(target)}. If it is already in ${langNameFor(target)}, return it unchanged. Output ONLY the translated text.`;
-  fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'system', content: sys }, { role: 'user', content: m.text || '' }], is_vision: false, is_translation: true, session_id: SESSION_ID }) }, 70000)
-    .then(async res => { const data = await res.json(); if (!res.ok) throw new Error(data.detail || res.status); chatTranslations[key] = String(data.reply || '').trim() || null; })
-    .catch(e => { chatTranslations[key] = null; setChStatus('⚠️ ' + (e && e.message ? e.message : e)); })
-    .finally(() => { if (chatOpenWith) renderChatMsgs(); });
-}
-
-function toggleChatTranslation(m) {
-  const target = $('chLang').value, key = m.id + '|' + target;
-  if (chatTranslations[key]) { chatTranslations[key] = null; renderChatMsgs(); return; }  // إخفاء (null يمنع إعادة الترجمة التلقائية)
-  requestChatTranslation(m, target); renderChatMsgs();
-}
-
-// وصلت: عندما يرى جهازي رسالة جديدة من الصديق (والمحادثة مغلقة) أكتب delivered بقيمة وقت رسالته
-function markDelivered() {
-  if (!db || !currentUser) return; const me = currentUser.uid;
-  Object.values(chatsByFriend).forEach(c => {
-    if (!c.lastFrom || c.lastFrom === me || !c.lastAt) return;
-    if ((c['delivered_' + me] || 0) >= c.lastAt) return;
-    const k = c.id + '|' + c.lastAt; if (deliveredSent.has(k)) return; deliveredSent.add(k);
-    db.collection('chats').doc(c.id).update({ ['delivered_' + me]: c.lastAt }).catch(() => deliveredSent.delete(k));
-  });
-}
-
-// قُرئت: والمحادثة مفتوحة وظاهرة، أصفّر العدّاد وأكتب read = وقت آخر رسالة وصلتني من الصديق
-function markRead() {
-  if (!db || !currentUser || !chatOpenWith || document.hidden) return;
-  const me = currentUser.uid, other = chatOpenWith.uid, chat = chatsByFriend[other]; if (!chat) return;
-  const incoming = chatMsgsCache.filter(m => m.from === other && !m.pending); if (!incoming.length) return;
-  const latest = Math.max(...incoming.map(m => m.at || 0));
-  const upd = {};
-  if ((chat['read_' + me] || 0) < latest) { upd['read_' + me] = latest; upd['delivered_' + me] = Math.max(latest, chat['delivered_' + me] || 0); }
-  if ((chat['unread_' + me] || 0) > 0) upd['unread_' + me] = 0;
-  if (!Object.keys(upd).length) return;
-  db.collection('chats').doc(chat.id).update(upd).catch(() => {});
-}
-document.addEventListener('visibilitychange', () => { if (!document.hidden) markRead(); });
-
-async function sendChatMessage() {
-  const f = chatOpenWith, input = $('chInput'), text = input.value.trim();
-  if (!f || !text || !currentUser) return;
-  input.value = '';
-  const me = currentUser.uid, cref = db.collection('chats').doc(chatIdFor(me, f.uid)), mref = cref.collection('messages').doc(), at = Date.now();
-  const batch = db.batch();
-  batch.set(mref, { from: me, text, at });
-  batch.set(cref, { members: [me, f.uid], lastText: text.slice(0, 80), lastAt: at, lastFrom: me, ['unread_' + f.uid]: firebase.firestore.FieldValue.increment(1) }, { merge: true });
-  try { await batch.commit(); setChStatus(''); } catch (e) { setChStatus(frErrText(e)); if (!input.value) input.value = text; }
-}
-
-$('chBack').addEventListener('click', () => closeChat(true));
-$('chSend').addEventListener('click', sendChatMessage);
-$('chInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendChatMessage(); } });
-$('chCall').addEventListener('click', () => { const f = chatOpenWith; if (f) callFriend(f); });
-$('chAuto').addEventListener('click', () => {
-  chatAuto = !chatAuto; try { localStorage.setItem('chatAuto', chatAuto ? '1' : '0'); } catch (e) {}
-  $('chAuto').style.background = chatAuto ? '#10b981' : '#334155'; renderChatMsgs();
-});
-$('chLang').addEventListener('change', () => { try { localStorage.setItem('chatLang', $('chLang').value); } catch (e) {} renderChatMsgs(); });
-// لوحة المفاتيح على الهاتف: نُصغّر المحادثة إلى المساحة المرئية حتى لا يختفي حقل الكتابة خلفها
-if (window.visualViewport) {
-  const fit = () => { const o = $('chatOverlay'); if (o.style.display === 'none') return; o.style.height = window.visualViewport.height + 'px'; o.style.bottom = 'auto'; const b = $('chMsgs'); b.scrollTop = b.scrollHeight; };
-  window.visualViewport.addEventListener('resize', fit);
-}
-
-renderPlaylist();
+renderPlaylist(); 
 </script>
 </body>
 </html>
