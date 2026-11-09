@@ -342,16 +342,17 @@ async def tts_endpoint(req: TTSRequest):
 async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar")):
     if not GROQ_KEYS: raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
     
-    suffix = os.path.splitext(file.filename)[1] or ".mp4"
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    try:
+    suffix = os.path.splitext(file.filename)[1] or ".webm" # تقبل المقاطع الصوتية
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+        temp_path = temp_file.name
         contents = await file.read()
-        with open(temp_file.name, "wb") as f:
-            f.write(contents)
-        
+        temp_file.write(contents)
+    
+    try:
         key = next_groq_key()
         client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
-        with open(temp_file.name, "rb") as audio_file:
+        with open(temp_path, "rb") as audio_file:
             transcript_response = await client.audio.transcriptions.create(
                 model="whisper-large-v3",
                 file=audio_file,
@@ -368,7 +369,8 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
         logger.error(f"Transcribe error: {e}")
         raise HTTPException(500, detail=f"فشل استخراج النص: {str(e)}")
     finally:
-        os.remove(temp_file.name)
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 @app.websocket("/ws/{room_code}")
 async def ws_endpoint(websocket: WebSocket, room_code: str):
