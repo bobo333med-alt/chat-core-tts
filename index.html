@@ -54,10 +54,14 @@
   #closeFullscreen, #closeVideoFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
   .inner-white-dot { width: 14px; height: 14px; background: #fff; border-radius: 50%; }
   #closeFullscreen { top: 80px; right: 20px; } #closeVideoFullscreen { top: 20px; right: 20px; }
+  
   #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; transition: all 0.3s; z-index: 500; }
   #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
   #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #fff; background: #1e293b; z-index: 2; pointer-events: auto; }
   #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; pointer-events: none; }
+  
+  #tapToPlayOverlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7); color: #fff; z-index: 10; align-items: center; justify-content: center; flex-direction: column; font-weight: bold; font-size: 16px; cursor: pointer; }
+  
   body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100vw; z-index: 99999; margin: 0; border-radius: 0; }
   body.video-maximized #remoteVideo { object-fit: cover; }
   body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
@@ -113,7 +117,6 @@
   
   .toggle-btn { background: #ef4444 !important; color: white !important; font-weight: bold; transition: 0.3s; }
   .toggle-btn.active { background: #10b981 !important; }
-
   .btn-back { background: #e57373 !important; color: white !important; }
   
   body.remote-mode #extraControls, body.meeting-mode #extraControls { justify-content: space-between; padding: 0 10px; }
@@ -143,7 +146,7 @@
   #btnLocal { background: #6366f1; } #btnRemote { background: #10b981; } #btnMeeting { background: #1d4ed8; }
   #btnMeeting .plus-icon { font-size: 24px; font-weight: bold; margin-bottom: 3px; }
   .join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-  .join-form input, .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
+  .join-form input[type="text"], .join-form select { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 14px; width: 100%; outline: none; }
   .join-form input:focus { border-color: #0ea5e9; }
   .join-form button { padding: 12px; border-radius: 8px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 14px; }
   #createRoomBtn, #createMeetingBtn { background: #10b981; }
@@ -151,6 +154,9 @@
   #joinRow { display: flex; gap: 8px; }
   #joinCodeInput, #joinMeetingCodeInput { flex: 1; text-transform: uppercase; text-align: center; letter-spacing: 2px; }
   #backToLandingBtn, #backToLandingFromMeetBtn { background: transparent; border: none; color: #94a3b8; cursor: pointer; margin-top: 5px; font-size: 13px; text-decoration: underline; }
+  
+  .checkbox-row { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 13px; color: #94a3b8; cursor: pointer; }
+  .checkbox-row input { width: 16px; height: 16px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -252,6 +258,10 @@
       <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
       <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
     </select>
+    <label class="checkbox-row">
+      <input type="checkbox" id="remoteTransCheck" checked>
+      🌐 تفعيل ترجمة الصوت
+    </label>
     <button id="createRoomBtn">➕ Create Room</button>
     <div id="orText" style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
     <div id="joinRow">
@@ -272,6 +282,10 @@
       <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
       <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
     </select>
+    <label class="checkbox-row">
+      <input type="checkbox" id="meetingTransCheck" checked>
+      🌐 تفعيل ترجمة الصوت
+    </label>
     <button id="createMeetingBtn">➕ Create Meeting</button>
     <div style="text-align:center; color:#94a3b8; font-size:12px; margin:5px 0;">Or</div>
     <div id="joinRow">
@@ -329,6 +343,7 @@
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
   <div id="videoStatus">📡 متصل بالكاميرا</div>
+  <div id="tapToPlayOverlay">▶️ اضغط لتشغيل الفيديو</div>
   <button id="closeVideoFullscreen" title="إغلاق"><div class="inner-white-dot"></div></button>
 </div>
 
@@ -410,40 +425,19 @@ let currentUser = null;
 let currentAuthLang = 'ar';
 
 const AUTH_TRANS = {
-    'ar': {
-        loginTitle: 'تسجيل الدخول', registerTitle: 'إنشاء حساب جديد',
-        email: 'البريد الإلكتروني', pass: 'كلمة المرور',
-        btnLogin: 'دخول', btnRegister: 'تسجيل',
-        toggleToReg: 'إنشاء حساب جديد', toggleToLogin: 'لديك حساب بالفعل؟ سجل دخولك',
-        or: 'أو', google: 'تسجيل الدخول بواسطة Google', github: 'تسجيل الدخول بواسطة GitHub', twitter: 'تسجيل الدخول بواسطة X'
-    },
-    'fr': {
-        loginTitle: 'Connexion', registerTitle: 'Créer un compte',
-        email: 'Adresse e-mail', pass: 'Mot de passe',
-        btnLogin: 'Se connecter', btnRegister: "S'inscrire",
-        toggleToReg: 'Créer un compte', toggleToLogin: 'Déjà un compte ? Connectez-vous',
-        or: 'Ou', google: 'Continuer avec Google', github: 'Continuer avec GitHub', twitter: 'Continuer avec X'
-    },
-    'en': {
-        loginTitle: 'Login', registerTitle: 'Create Account',
-        email: 'Email Address', pass: 'Password',
-        btnLogin: 'Login', btnRegister: 'Register',
-        toggleToReg: 'Create Account', toggleToLogin: 'Already have an account? Login',
-        or: 'Or', google: 'Continue with Google', github: 'Continue with GitHub', twitter: 'Continue with X'
-    }
+    'ar': { loginTitle: 'تسجيل الدخول', registerTitle: 'إنشاء حساب جديد', email: 'البريد الإلكتروني', pass: 'كلمة المرور', btnLogin: 'دخول', btnRegister: 'تسجيل', toggleToReg: 'إنشاء حساب جديد', toggleToLogin: 'لديك حساب بالفعل؟ سجل دخولك', or: 'أو', google: 'تسجيل الدخول بواسطة Google', github: 'تسجيل الدخول بواسطة GitHub', twitter: 'تسجيل الدخول بواسطة X' },
+    'fr': { loginTitle: 'Connexion', registerTitle: 'Créer un compte', email: 'Adresse e-mail', pass: 'Mot de passe', btnLogin: 'Se connecter', btnRegister: "S'inscrire", toggleToReg: 'Créer un compte', toggleToLogin: 'Déjà un compte ? Connectez-vous', or: 'Ou', google: 'Continuer avec Google', github: 'Continuer avec GitHub', twitter: 'Continuer avec X' },
+    'en': { loginTitle: 'Login', registerTitle: 'Create Account', email: 'Email Address', pass: 'Password', btnLogin: 'Login', btnRegister: 'Register', toggleToReg: 'Create Account', toggleToLogin: 'Already have an account? Login', or: 'Or', google: 'Continue with Google', github: 'Continue with GitHub', twitter: 'Continue with X' }
 };
 
 function changeAuthLang(lang) {
     currentAuthLang = lang;
     localStorage.setItem('authLang', lang);
-    
     const htmlRoot = document.getElementById('htmlRoot');
     htmlRoot.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
     htmlRoot.setAttribute('lang', lang);
-    
     document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
     Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase()).classList.add('active');
-
     const t = AUTH_TRANS[lang];
     document.getElementById('authTitle').textContent = isLoginMode ? t.loginTitle : t.registerTitle;
     document.getElementById('authEmail').placeholder = t.email;
@@ -456,64 +450,32 @@ function changeAuthLang(lang) {
     document.getElementById('btnAuthTwitter').textContent = '🐦 ' + t.twitter;
 }
 
-function toggleAuthMode() {
-    isLoginMode = !isLoginMode;
-    changeAuthLang(currentAuthLang); 
-    document.getElementById('authError').textContent = '';
-}
-
-function showAuthError(msg) {
-    document.getElementById('authError').textContent = msg;
-}
+function toggleAuthMode() { isLoginMode = !isLoginMode; changeAuthLang(currentAuthLang); document.getElementById('authError').textContent = ''; }
+function showAuthError(msg) { document.getElementById('authError').textContent = msg; }
 
 function handleEmailAuth() {
     const email = document.getElementById('authEmail').value;
     const password = document.getElementById('authPassword').value;
     if(!email || !password) return showAuthError("Please fill all fields");
-    
     showAuthError("");
     document.getElementById('authSubmitBtn').textContent = "...";
-
     if(isLoginMode) {
-        auth.signInWithEmailAndPassword(email, password).catch(err => {
-            showAuthError(err.message);
-            changeAuthLang(currentAuthLang);
-        });
+        auth.signInWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
     } else {
-        auth.createUserWithEmailAndPassword(email, password).catch(err => {
-            showAuthError(err.message);
-            changeAuthLang(currentAuthLang);
-        });
+        auth.createUserWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
     }
 }
 
-function loginWithGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithRedirect(provider).catch(err => showAuthError(err.message));
-}
+function loginWithGoogle() { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithRedirect(provider).catch(err => showAuthError(err.message)); }
+function loginWithGithub() { const provider = new firebase.auth.GithubAuthProvider(); auth.signInWithRedirect(provider).catch(err => showAuthError(err.message)); }
+function loginWithTwitter() { const provider = new firebase.auth.TwitterAuthProvider(); auth.signInWithRedirect(provider).catch(err => showAuthError(err.message)); }
+function logoutUser() { auth.signOut().then(() => { window.location.reload(); }); }
 
-function loginWithGithub() {
-    const provider = new firebase.auth.GithubAuthProvider();
-    auth.signInWithRedirect(provider).catch(err => showAuthError(err.message));
-}
-
-function loginWithTwitter() {
-    const provider = new firebase.auth.TwitterAuthProvider();
-    auth.signInWithRedirect(provider).catch(err => showAuthError(err.message));
-}
-
-function logoutUser() {
-    auth.signOut().then(() => { window.location.reload(); });
-}
-
-auth.getRedirectResult().then((result) => {
-    if (result.credential) { console.log("Logged in via redirect"); }
-}).catch((error) => { showAuthError(error.message); });
+auth.getRedirectResult().then((result) => { if (result.credential) { console.log("Logged in via redirect"); } }).catch((error) => { showAuthError(error.message); });
 
 auth.onAuthStateChanged(user => {
     const authOverlay = document.getElementById('authOverlay');
     const landingOverlay = document.getElementById('landingOverlay');
-    
     if (user) {
         currentUser = user;
         authOverlay.style.display = 'none';
@@ -549,10 +511,8 @@ const _scriptPromises = {};
 function loadScript(src) {
   if (!_scriptPromises[src]) {
     _scriptPromises[src] = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = src; s.async = true;
-      s.onload = resolve;
-      s.onerror = () => { delete _scriptPromises[src]; reject(new Error('Failed to load ' + src)); };
+      const s = document.createElement('script'); s.src = src; s.async = true;
+      s.onload = resolve; s.onerror = () => { delete _scriptPromises[src]; reject(new Error('Failed to load ' + src)); };
       document.head.appendChild(s);
     });
   }
@@ -573,7 +533,7 @@ const clearBtn = $('clearBtn'), statusEl = $('status');
 const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
 const backBtn = $('backBtn');
 const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount');
-const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen');
+const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen'), tapToPlayOverlay = $('tapToPlayOverlay');
 const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
 const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuVideo = $('menuVideo');
 const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
@@ -599,17 +559,14 @@ let isWebRtcMicOn = true;
 
 let livekitRoom = null;
 
+// State for independent translation pipeline
 let isMicIntendedOn = false;
 let isRecording = false;
-let silenceTimer = null;
-let finalTranscriptBuffer = "";
-let isProcessingAudio = false;
-let lastSentText = "";
-let lastSentTime = 0;
-
-// Audio Recorder variables for Rooms/Meetings translation
 let audioRecorder = null;
 let recordTimer = null;
+let audioContext = null;
+let analyser = null;
+let dataArray = null;
 
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 
@@ -618,11 +575,6 @@ function showAppUI() {
         const el = document.getElementById(id);
         if(el) el.style.display = (id === 'inputRow' || id === 'chatContainer' || id === 'topHeader' || id === 'extraControls' || id === 'avatar-wrap') ? 'flex' : 'block';
     });
-    document.getElementById('inputRow').style.display = 'flex';
-    document.getElementById('topHeader').style.display = 'flex';
-    document.getElementById('extraControls').style.display = 'flex';
-    document.getElementById('avatar-wrap').style.display = 'flex';
-    document.getElementById('chatContainer').style.display = 'flex';
 }
 
 const UI_TEXT = {
@@ -657,23 +609,15 @@ updateMeetForm();
 function setTranslatorMode(isOn) {
     isTranslatorMode = isOn;
     localStorage.setItem('translatorMode', isOn);
-    
     const textRoom = isTranslatorMode ? '🌐 ON' : '🌐 OFF';
     const textLocal = isTranslatorMode ? '🌐 Translator ON' : '🌐 Translator OFF';
+    if (transToggleBtnRoom) { transToggleBtnRoom.textContent = textRoom; transToggleBtnRoom.classList.toggle('active', isOn); }
+    if (transToggleBtnLocal) { transToggleBtnLocal.textContent = textLocal; transToggleBtnLocal.classList.toggle('active', isOn); }
     
-    if (transToggleBtnRoom) {
-        transToggleBtnRoom.textContent = textRoom;
-        transToggleBtnRoom.classList.toggle('active', isOn);
-    }
-    if (transToggleBtnLocal) {
-        transToggleBtnLocal.textContent = textLocal;
-        transToggleBtnLocal.classList.toggle('active', isOn);
-    }
-    
-    if (appMode === 'remote' || appMode === 'meeting') {
-        if (isRecording) {
-            stopVoiceTranslation();
-        }
+    if (isOn && (appMode === 'remote' || appMode === 'meeting') && !isRecording) {
+        startVoiceTranslation();
+    } else if (!isOn && isRecording) {
+        stopVoiceTranslation();
     }
     resetStatus();
 }
@@ -749,18 +693,8 @@ function fetchWithTimeout(url, options, timeoutMs) {
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-SA', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
 
-function cleanTextForTTS(text) {
-  if (!text) return "";
-  return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-function removeRepeatedWords(text) {
-  if (!text) return "";
-  let cleaned = text;
-  cleaned = cleaned.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1');
-  cleaned = cleaned.replace(/\b(\w+)[,.]?\s+\1\b/gi, '$1');
-  return cleaned.trim();
-}
+function cleanTextForTTS(text) { if (!text) return ""; return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim(); }
+function removeRepeatedWords(text) { if (!text) return ""; let cleaned = text; cleaned = cleaned.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1'); cleaned = cleaned.replace(/\b(\w+)[,.]?\s+\1\b/gi, '$1'); return cleaned.trim(); }
 
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
@@ -784,6 +718,7 @@ function setModeUI(mode) {
   uploadBtn.style.display = 'none'; voiceSelect.style.display = 'none';
   videoContainer.style.display = 'none'; meetingGridContainer.style.display = 'none';
   $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
+  tapToPlayOverlay.style.display = 'none';
 
   if (mode === 'local') {
     document.body.classList.remove('remote-mode', 'meeting-mode');
@@ -838,7 +773,14 @@ backBtn.addEventListener('click', async () => {
   }
 });
 
-videoContainer.addEventListener('click', (e) => { if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target)) return; document.body.classList.toggle('video-maximized'); });
+tapToPlayOverlay.addEventListener('click', () => {
+    remoteVideo.muted = false;
+    remoteVideo.play().then(() => {
+        tapToPlayOverlay.style.display = 'none';
+    }).catch(e => console.log(e));
+});
+
+videoContainer.addEventListener('click', (e) => { if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target) || e.target === tapToPlayOverlay) return; document.body.classList.toggle('video-maximized'); });
 localVideo.addEventListener('click', (e) => { e.stopPropagation(); });
 closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
 
@@ -859,10 +801,7 @@ avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen |
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
 
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
-stopAudioBtn.addEventListener('click', () => { 
-    stopAudio(); 
-    if (isRecording) { stopVoiceTranslation(); } 
-});
+stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isRecording) { stopVoiceTranslation(); setTranslatorMode(false); } });
 
 toggleCamBtn.addEventListener('click', async () => {
     isCameraOn = !isCameraOn;
@@ -870,18 +809,13 @@ toggleCamBtn.addEventListener('click', async () => {
     toggleCamBtn.innerHTML = isCameraOn 
         ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
         : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
-    
-    if (localStream) { 
-        const videoTrack = localStream.getVideoTracks()[0]; 
-        if (videoTrack) { videoTrack.enabled = isCameraOn; }
-    }
-    
-    if (livekitRoom) { 
-        try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } 
-        catch (e) { console.warn(e); if (isCameraOn) addMsg("⚠️ تعذر تشغيل الكاميرا. قد تكون مستخدمة من تطبيق آخر.", "bot"); } 
-    }
+    if (localStream) { const videoTrack = localStream.getVideoTracks()[0]; if (videoTrack) { videoTrack.enabled = isCameraOn; } }
+    if (livekitRoom) { try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); } }
 });
 
+// ==========================================
+// LiveKit & WebRTC (The Phone Pipeline)
+// ==========================================
 function handleTrackSubscribed(track, publication, participant) {
     if (track.kind === 'video' || track.kind === 'audio') {
         let boxId = 'participant-' + participant.identity;
@@ -909,17 +843,17 @@ async function connectLiveKit(roomCode, participantName) {
     try {
         setStatus("Loading video engine...");
         await loadLiveKit();
-        setStatus("Getting token... (قد يستغرق الخادم حتى دقيقة إن كان نائماً)");
+        setStatus("Getting token...");
         const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 70000);
         const res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_name: roomCode, participant_name: participantName }), signal: controller.signal });
         clearTimeout(timeout);
-        if (!res.ok) { let errMsg = "Token fetch failed"; try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){} throw new Error(errMsg); }
+        if (!res.ok) throw new Error("Token fetch failed");
         const { token, url } = await res.json();
 
         setStatus("Connecting to LiveKit...");
         if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
         videoGrid.innerHTML = '';
-        livekitRoom = new LivekitClient.Room();
+        livekitRoom = new LivekitClient.Room({ adaptiveStream: true, dynacast: true });
         
         livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
         livekitRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
@@ -927,28 +861,19 @@ async function connectLiveKit(roomCode, participantName) {
         
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ Connected to Meeting");
-            try {
-                await livekitRoom.localParticipant.setCameraEnabled(true);
-                isCameraOn = true; toggleCamBtn.classList.remove('off');
-            } catch (err) {
-                console.warn("Camera error:", err);
-                isCameraOn = false; toggleCamBtn.classList.add('off');
-                addMsg("⚠️ الكاميرا: " + cameraErrorText(err), 'bot');
-            }
-            try {
-                await livekitRoom.localParticipant.setMicrophoneEnabled(true);
-                isWebRtcMicOn = true;
-            } catch (err) {
-                console.warn("Mic error:", err);
-                addMsg("⚠️ المايك: " + cameraErrorText(err), 'bot');
-            }
+            try { await livekitRoom.localParticipant.setCameraEnabled(true); isCameraOn = true; toggleCamBtn.classList.remove('off'); } catch (err) { console.warn("Camera error", err); }
+            try { await livekitRoom.localParticipant.setMicrophoneEnabled(true); isWebRtcMicOn = true; } catch (err) { console.warn("Mic error", err); }
             try { await livekitRoom.startAudio(); } catch(e) {}
+            
+            // Autoplay fix for LiveKit
+            if (!livekitRoom.canPlaybackAudio) {
+                addMsg("⚠️ اضغط على الشاشة لتفعيل الصوت.", "bot");
+                document.body.addEventListener('click', () => { if(livekitRoom) livekitRoom.startAudio(); }, { once: true });
+            }
         });
 
         livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => { setStatus("Disconnected"); addMsg("⚠️ تم قطع الاتصال بالاجتماع.", "bot"); });
         livekitRoom.on(LivekitClient.RoomEvent.Reconnecting, () => setStatus("Reconnecting..."));
-        livekitRoom.on(LivekitClient.RoomEvent.Reconnected, () => setStatus("✅ Reconnected"));
-        livekitRoom.on(LivekitClient.RoomEvent.MediaDevicesError, (e) => { console.error(e); addMsg("⚠️ خطأ في أجهزة الوسائط (كاميرا/مايك).", "bot"); });
 
         livekitRoom.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
              if (publication.track.kind === 'video') {
@@ -964,48 +889,157 @@ async function connectLiveKit(roomCode, participantName) {
                  box.insertBefore(videoEl, box.firstChild);
              }
         });
-
-        livekitRoom.on(LivekitClient.RoomEvent.LocalTrackUnpublished, (publication, participant) => {
-             if (publication.track && publication.track.kind === 'video') {
-                 let box = document.getElementById('participant-' + participant.identity);
-                 if (box) { const videoEl = box.querySelector('video'); if (videoEl) videoEl.remove(); }
-             }
-        });
-
         await livekitRoom.connect(url, token);
     } catch (e) {
         console.error(e);
-        if (e.name === 'AbortError') { addMsg("⚠️ الخادم يستغرق وقتاً طويلاً للاستجابة. يرجى المحاولة مرة أخرى.", 'bot'); setStatus("Connection timeout"); } 
-        else { addMsg("⚠️ Failed to join meeting: " + e.message, 'bot'); setStatus("Meeting Error"); }
+        addMsg("⚠️ Failed to join meeting: " + e.message, 'bot'); setStatus("Meeting Error");
     }
 }
 
-function cameraErrorText(err) {
-  const n = err && err.name;
-  if (n === 'NotAllowedError' || n === 'PermissionDeniedError') return 'تم رفض الإذن. اسمح بالكاميرا والمايك من إعدادات المتصفح (أيقونة القفل بجانب العنوان) ثم أعد المحاولة.';
-  if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'لم يتم العثور على كاميرا أو مايك في هذا الجهاز.';
-  if (n === 'NotReadableError' || n === 'TrackStartError') return 'الجهاز مستخدم من تطبيق أو تبويب آخر. أغلقه وأعد المحاولة.';
-  if (n === 'SecurityError' || (location.protocol !== 'https:' && location.hostname !== 'localhost')) return 'الكاميرا تعمل فقط عبر HTTPS.';
-  return (err && err.message) ? err.message : 'خطأ غير معروف';
-}
-
-async function preflightMedia() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-  try {
-    const s = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
-    });
-    s.getTracks().forEach(t => t.stop());
-  } catch (e) {
+async function startVideoCall(isCaller = false) {
+  if (!localStream) {
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true });
-      s.getTracks().forEach(t => t.stop());
-      addMsg("⚠️ المايك: " + cameraErrorText(e), 'bot');
-    } catch (e2) {
-      addMsg("⚠️ الكاميرا: " + cameraErrorText(e2), 'bot');
-    }
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      localVideo.srcObject = localStream; videoContainer.style.display = 'block';
+      isCameraOn = true; toggleCamBtn.classList.remove('off');
+      isWebRtcMicOn = true;
+    } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك.', 'bot'); return; }
   }
+  if (!pc) {
+    const iceServers = [
+      { urls: 'stun:stun.relay.metered.ca:80' },
+      { urls: 'turn:global.relay.metered.ca:80', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
+      { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
+    ];
+    pc = new RTCPeerConnection({ iceServers: iceServers });
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    pc.ontrack = (event) => { 
+        remoteVideo.srcObject = event.streams[0]; 
+        remoteVideo.play().catch(e => {
+            // Autoplay blocked by Chrome
+            tapToPlayOverlay.style.display = 'flex';
+        }); 
+        setStatus('✅ تم الاتصال بالفيديو!'); 
+    };
+    pc.onicecandidate = (event) => { if (event.candidate && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); } };
+    
+    // Auto-reconnect video if dropped
+    pc.oniceconnectionstatechange = () => { 
+        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') { 
+            setStatus('⚠️ إعادة الاتصال بالفيديو...'); 
+            pc.restartIce();
+            if(isCaller) pc.createOffer({iceRestart: true}).then(offer => { pc.setLocalDescription(offer); ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); });
+        } 
+    };
+  }
+  if (isCaller) {
+    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); setStatus('📡 جاري طلب الاتصال...');
+  }
+}
+
+// ==========================================
+// TRANSLATION PIPELINE (MediaRecorder + VAD)
+// ==========================================
+function getMicTrack() {
+    if (appMode === 'remote' && localStream) return localStream.getAudioTracks()[0];
+    if (appMode === 'meeting' && livekitRoom) {
+        const pub = livekitRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.Microphone);
+        if (pub && pub.track) return pub.track.mediaStreamTrack;
+    }
+    return null;
+}
+
+function initVAD(track) {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume();
+    const source = audioContext.createMediaStreamSource(new MediaStream([track]));
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+}
+
+function hasVoiceActivity() {
+    if (!analyser) return true; // Fallback if VAD fails
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    return (sum / dataArray.length) > 15; // Threshold to prevent hallucination
+}
+
+async function startVoiceTranslation() {
+    if (appMode === 'meeting' && livekitRoom) await livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
+    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
+    
+    const track = getMicTrack();
+    if (!track) { addMsg("⚠️ لم يتم العثور على المايك.", 'bot'); return; }
+    
+    initVAD(track);
+    isMicIntendedOn = true;
+    isRecording = true;
+    if (remoteMicBtn) remoteMicBtn.classList.add('recording');
+    if (floatingMicBtn) floatingMicBtn.classList.add('recording');
+    setStatus('🎤 Listening & Translating...');
+    
+    const startChunk = () => {
+        if (!isMicIntendedOn) return;
+        const currentTrack = getMicTrack();
+        if (!currentTrack) return;
+        
+        const stream = new MediaStream([currentTrack]);
+        let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+        
+        try { audioRecorder = new MediaRecorder(stream, { mimeType }); } catch(e) { return; }
+
+        let chunks = [];
+        audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        audioRecorder.onstop = () => {
+            if (chunks.length === 0) return;
+            const blob = new Blob(chunks, { type: audioRecorder.mimeType });
+            chunks = [];
+            
+            // ONLY SEND IF VOICE ACTIVITY DETECTED (Fixes Hallucination)
+            if (hasVoiceActivity()) {
+                sendAudioToServer(blob);
+            } else {
+                console.log("Silence detected, skipping chunk to prevent hallucination.");
+            }
+            
+            if (isMicIntendedOn) startChunk(); 
+        };
+        
+        audioRecorder.start();
+        recordTimer = setTimeout(() => { if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop(); }, 3500); 
+    };
+    startChunk();
+}
+
+function stopVoiceTranslation() {
+    isMicIntendedOn = false;
+    isRecording = false;
+    clearTimeout(recordTimer);
+    if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
+    audioRecorder = null;
+    if (remoteMicBtn) remoteMicBtn.classList.remove('recording');
+    if (floatingMicBtn) floatingMicBtn.classList.remove('recording');
+    resetStatus();
+}
+
+async function sendAudioToServer(blob) {
+    const formData = new FormData();
+    formData.append('file', blob, 'audio.webm');
+    formData.append('target_lang', myLang);
+    try {
+        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.original && data.original.length > 2 && data.original !== "لم يتم التعرف على أي كلام.") {
+                addMsg(`You: ${data.original}`, 'user-a', myLang);
+                sendRemoteMessage(data.original);
+            }
+        }
+    } catch(e) { console.warn('Audio upload failed', e); }
 }
 
 async function enterMeeting(code, name, lang) {
@@ -1014,9 +1048,13 @@ async function enterMeeting(code, name, lang) {
   ['meetingJoinOverlay', 'landingOverlay', 'friendsOverlay'].forEach(id => { const el = $(id); if (el) el.style.display = 'none'; });
   setModeUI('meeting'); roomCodeLabel.textContent = code; onlineCount.textContent = "Meeting"; chatEl.innerHTML = '';
   wakeServer();
-  await preflightMedia();
+  
+  isTranslatorMode = $('meetingTransCheck').checked;
+  setTranslatorMode(isTranslatorMode);
+  
   connectWebSocket(code);
-  connectLiveKit(code, name);
+  await connectLiveKit(code, name);
+  if (isTranslatorMode) setTimeout(startVoiceTranslation, 2000); // Start translation after LiveKit connects
 }
 
 $('createMeetingBtn').addEventListener('click', () => {
@@ -1024,7 +1062,6 @@ $('createMeetingBtn').addEventListener('click', () => {
     const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
     enterMeeting(code, name, $('meetPlayerLang').value);
 });
-
 $('joinMeetingBtn').addEventListener('click', () => {
     const name = $('meetPlayerName').value.trim(); const code = $('joinMeetingCodeInput').value.trim().toUpperCase();
     if (!name) return alert("Enter your name"); if (!code) return alert("Enter meeting code");
@@ -1050,7 +1087,13 @@ $('joinRoomBtn').addEventListener('click', () => {
 function enterRemoteRoom(code) {
   currentRoomCode = code; hasJoinedOnce = false; shouldReconnect = true;
   $('remoteJoinOverlay').style.display = 'none'; setModeUI('remote'); roomCodeLabel.textContent = code; onlineCount.textContent = '1/4'; chatEl.innerHTML = '';
-  setStatus(`Connecting to ${code}...`); connectWebSocket(code);
+  setStatus(`Connecting to ${code}...`); 
+  
+  isTranslatorMode = $('remoteTransCheck').checked;
+  setTranslatorMode(isTranslatorMode);
+
+  connectWebSocket(code);
+  // Translation in remote mode starts once video call starts (requires local stream)
 }
 
 function connectWebSocket(code) {
@@ -1075,7 +1118,6 @@ function handleWsMessage(ev) {
       if (appMode === 'meeting') onlineCount.textContent = `${data.users.length} online`;
       addMsg(`✅ Joined room ${currentRoomCode}`, 'bot');
       if (appMode === 'remote' && data.users.length > 1) { startVideoCall(true); }
-      else if (appMode === 'remote') { addMsg('⏳ Waiting for other user to join...', 'bot'); }
       break;
     case 'user_joined':
       addMsg(`👤 ${data.name} joined`, 'bot');
@@ -1085,10 +1127,7 @@ function handleWsMessage(ev) {
     case 'translated':
       if (data.is_mine) return;
       addMsg(`${data.from_name}: ${data.original}`, 'user-b', data.from_lang);
-      
-      if (data.no_tts) {
-          // No TTS
-      } else if (isTranslatorMode) {
+      if (isTranslatorMode && !data.no_tts) {
           if (data.translated && data.translated !== data.original) { addMsg(`→ ${data.translated}`, 'bot', myLang); speak(data.translated, myLang); } 
           else { speak(data.original, myLang); }
       }
@@ -1130,22 +1169,14 @@ function sendRemoteMessage(text) {
 function startPing() { stopPing(); pingInterval = setInterval(() => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:'ping'})); }, 30000); }
 function stopPing() { if (pingInterval) clearInterval(pingInterval); }
 
+// ==========================================
+// Face-to-Face & General Logic
+// ==========================================
 function setAvatarState(playing) {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') {
     if (playing) avatarVideo.play().catch(()=>{});
     else avatarVideo.pause();
   }
-}
-
-function unlockMics() {
-  activeSpeaker = null; isRecording = false; isMicIntendedOn = false;
-  micA.disabled = false; micB.disabled = false; 
-  if (remoteMicBtn) remoteMicBtn.disabled = false;
-  if (floatingMicBtn) floatingMicBtn.disabled = false;
-  micA.classList.remove('recording'); micB.classList.remove('recording'); 
-  if (remoteMicBtn) remoteMicBtn.classList.remove('recording'); 
-  if (floatingMicBtn) floatingMicBtn.classList.remove('recording'); 
-  if (!isBotTalking) resetStatus();
 }
 
 function stopAudio() {
@@ -1158,27 +1189,17 @@ function stopAudio() {
 
 async function speak(text, lang) {
   stopAudio(); isBotTalking = true;
-
   if (isRecording) { try { recognition.stop(); } catch(e){} isRecording = false; }
-
   const cleanText = cleanTextForTTS(text);
-  if (!cleanText) { 
-      isBotTalking = false;
-      if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} }
-      else unlockMics(); 
-      return; 
-  }
+  if (!cleanText) { isBotTalking = false; if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} } return; }
 
-  const myId = ++currentSpeechId; setStatus('Speaking...');
-  setAvatarState(true);
+  const myId = ++currentSpeechId; setStatus('Speaking...'); setAvatarState(true);
   
   const resumeMic = () => {
       isBotTalking = false; setAvatarState(false);
       if (isMicIntendedOn) {
-          setTimeout(() => {
-              if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} }
-          }, 800); 
-      } else { unlockMics(); }
+          setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} } }, 800); 
+      }
   };
 
   try {
@@ -1186,20 +1207,16 @@ async function speak(text, lang) {
     if (res.ok) {
       const blob = await res.blob(); if (myId !== currentSpeechId) return;
       currentAudio = new Audio(URL.createObjectURL(blob));
-      currentAudio.onended = resumeMic;
-      currentAudio.onerror = () => { speakBrowser(cleanText, lang, myId); };
+      currentAudio.onended = resumeMic; currentAudio.onerror = () => { speakBrowser(cleanText, lang, myId); };
       await currentAudio.play(); return;
     }
   } catch (e) { console.warn('Server TTS failed'); }
-  
   speakBrowser(cleanText, lang, myId);
 }
 
 function speakBrowser(text, lang, myId) {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text); 
-  u.lang = localeFor(lang);
-  
+  const u = new SpeechSynthesisUtterance(text); u.lang = localeFor(lang);
   const voiceType = voiceSelect.value;
   if (voiceType === 'man') { u.pitch = 0.5; u.rate = 0.9; } 
   else if (voiceType === 'woman') { u.pitch = 1.0; u.rate = 1.0; } 
@@ -1209,155 +1226,10 @@ function speakBrowser(text, lang, myId) {
   const resumeMic = () => {
       if (myId === currentSpeechId) { 
           isBotTalking = false; setAvatarState(false); 
-          if (isMicIntendedOn) { 
-              setTimeout(() => {
-                  if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} }
-              }, 800);
-          } else unlockMics(); 
+          if (isMicIntendedOn) { setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} } }, 800); } 
       } 
   };
-
   u.onend = resumeMic; u.onerror = resumeMic; speechSynthesis.speak(u);
-}
-
-async function startVideoCall(isCaller = false) {
-  if (!localStream) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
-      });
-      localVideo.srcObject = localStream; videoContainer.style.display = 'block';
-      isCameraOn = true; toggleCamBtn.classList.remove('off');
-      isWebRtcMicOn = true;
-      if (isTranslatorMode) {
-          localStream.getAudioTracks().forEach(t => t.enabled = false);
-          isWebRtcMicOn = false;
-      }
-    } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك. يرجى السماح بالوصول.', 'bot'); return; }
-  }
-  if (!pc) {
-    const iceServers = [
-      { urls: 'stun:stun.relay.metered.ca:80' },
-      { urls: 'turn:global.relay.metered.ca:80', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
-      { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
-      { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
-      { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
-    ];
-    pc = new RTCPeerConnection({ iceServers: iceServers });
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    pc.ontrack = (event) => { 
-        remoteVideo.srcObject = event.streams[0]; 
-        remoteVideo.play().catch(e => console.log("Autoplay blocked:", e)); 
-        setStatus('✅ تم الاتصال بالكاميرا والصوت بنجاح!'); 
-    };
-    pc.onicecandidate = (event) => { if (event.candidate && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); } };
-    pc.oniceconnectionstatechange = () => { if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') { setStatus('⚠️ انقطع اتصال الفيديو.'); } };
-  }
-  if (isCaller) {
-    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); setStatus('📡 جاري طلب الاتصال بالكاميرا...');
-  }
-}
-
-// ==========================================
-// VOICE TRANSLATION VIA MEDIARECORDER (Rooms & Meetings)
-// ==========================================
-function getMicTrack() {
-    if (appMode === 'remote' && localStream) {
-        return localStream.getAudioTracks()[0];
-    } else if (appMode === 'meeting' && livekitRoom) {
-        const pub = livekitRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.Microphone);
-        if (pub && pub.track) return pub.track.mediaStreamTrack;
-    }
-    return null;
-}
-
-async function startVoiceTranslation() {
-    if (appMode === 'meeting' && livekitRoom) {
-        await livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
-    }
-    if (appMode === 'remote' && localStream) {
-        localStream.getAudioTracks().forEach(t => t.enabled = true);
-    }
-    
-    const track = getMicTrack();
-    if (!track) {
-        addMsg("⚠️ لم يتم العثور على المايك. تأكد من تفعيل الكاميرا والمايك أولاً.", 'bot');
-        return;
-    }
-    
-    isMicIntendedOn = true;
-    isRecording = true;
-    if (remoteMicBtn) remoteMicBtn.classList.add('recording');
-    if (floatingMicBtn) floatingMicBtn.classList.add('recording');
-    setStatus('🎤 Listening & Translating...');
-    
-    const startChunk = () => {
-        if (!isMicIntendedOn) return;
-        const currentTrack = getMicTrack();
-        if (!currentTrack) return;
-        
-        const stream = new MediaStream([currentTrack]);
-        
-        let mimeType = 'audio/webm';
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
-        else if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
-        else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
-        
-        try {
-            audioRecorder = new MediaRecorder(stream, { mimeType });
-        } catch(e) {
-            console.warn('MediaRecorder error', e);
-            addMsg("⚠️ المتصفح لا يدعم تسجيل الصوت للترجمة.", 'bot');
-            return;
-        }
-
-        let chunks = [];
-        audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-        audioRecorder.onstop = () => {
-            if (chunks.length === 0) return;
-            const blob = new Blob(chunks, { type: audioRecorder.mimeType });
-            chunks = [];
-            sendAudioToServer(blob);
-            if (isMicIntendedOn) startChunk(); // Restart loop
-        };
-        
-        audioRecorder.start();
-        recordTimer = setTimeout(() => {
-            if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
-        }, 3500); // 3.5 seconds for faster response
-    };
-    
-    startChunk();
-}
-
-function stopVoiceTranslation() {
-    isMicIntendedOn = false;
-    isRecording = false;
-    clearTimeout(recordTimer);
-    if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
-    audioRecorder = null;
-    if (remoteMicBtn) remoteMicBtn.classList.remove('recording');
-    if (floatingMicBtn) floatingMicBtn.classList.remove('recording');
-    resetStatus();
-}
-
-async function sendAudioToServer(blob) {
-    const formData = new FormData();
-    const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm';
-    formData.append('file', blob, 'audio.' + ext);
-    formData.append('target_lang', myLang);
-    try {
-        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.original && data.original !== "لم يتم التعرف على أي كلام.") {
-                addMsg(`You: ${data.original}`, 'user-a', myLang);
-                sendRemoteMessage(data.original);
-            }
-        }
-    } catch(e) { console.warn('Audio upload failed', e); }
 }
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1365,30 +1237,21 @@ let recognition = null;
 
 if (SR) {
   recognition = new SR();
-  recognition.continuous = true; 
-  recognition.interimResults = true; 
+  recognition.continuous = true; recognition.interimResults = true; 
 
   const processVoice = (text) => {
     const clean = removeRepeatedWords(text).trim();
     if (!clean) return;
-
     const now = Date.now();
     if (clean === lastSentText && (now - lastSentTime) < 3000) return; 
-    lastSentText = clean;
-    lastSentTime = now;
-
+    lastSentText = clean; lastSentTime = now;
     const isA = activeSpeaker === 'A';
-    if (appMode === 'remote' || appMode === 'meeting') {
-        // This is handled by MediaRecorder now. This block is for Face-to-Face only.
-    } else {
-        addMsg(clean, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
-        ask(clean, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
-    }
+    addMsg(clean, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
+    ask(clean, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
   };
 
   recognition.onresult = (e) => {
     if (isProcessingAudio) return; 
-    
     let interim = "";
     for (let i = e.resultIndex; i < e.results.length; ++i) {
       if (e.results[i].isFinal) {
@@ -1397,31 +1260,21 @@ if (SR) {
             let cleanBuffer = finalTranscriptBuffer.toLowerCase().replace(/[.,?!]/g, '').trim();
             let cleanNewPart = newPart.toLowerCase().replace(/[.,?!]/g, '').trim();
             if (cleanNewPart.length > 0) {
-                if (cleanBuffer.endsWith(cleanNewPart) || finalTranscriptBuffer.includes(newPart + " ")) {
-                    // تجاهل
-                } else if (cleanNewPart.startsWith(cleanBuffer) && cleanBuffer.length > 0) {
-                    finalTranscriptBuffer = newPart + " ";
-                } else {
+                if (!cleanBuffer.endsWith(cleanNewPart) && !finalTranscriptBuffer.includes(newPart + " ")) {
                     finalTranscriptBuffer += newPart + " ";
                 }
             }
         }
-      } else {
-        interim += e.results[i][0].transcript;
-      }
+      } else { interim += e.results[i][0].transcript; }
     }
-    
     setStatus(`🎤 Listening... ${finalTranscriptBuffer.slice(-30)}${interim}`);
-
     clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
       if (finalTranscriptBuffer.trim()) {
         const textToSend = finalTranscriptBuffer.trim();
-        finalTranscriptBuffer = ""; 
-        isProcessingAudio = true; 
+        finalTranscriptBuffer = ""; isProcessingAudio = true; 
         try { recognition.stop(); } catch(e){} 
-        processVoice(textToSend);
-        resetStatus();
+        processVoice(textToSend); resetStatus();
       }
     }, 2500); 
   };
@@ -1441,40 +1294,27 @@ if (SR) {
 
   const startMic = (speaker) => {
     unlockAudio();
-    
-    if (appMode === 'remote' || appMode === 'meeting') {
-        if (isTranslatorMode) {
-            if (isMicIntendedOn) {
-                stopVoiceTranslation();
-            } else {
-                stopAudio(); 
-                startVoiceTranslation();
-            }
-        } else {
-            setWebRtcMic(!isWebRtcMicOn);
-        }
-        return;
-    }
-    
     if (isMicIntendedOn && activeSpeaker === speaker) {
         isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.stop(); } catch(e){}
         if (finalTranscriptBuffer.trim()) { processVoice(finalTranscriptBuffer.trim()); finalTranscriptBuffer = ""; }
         unlockMics(); return;
     }
-
     if (isMicIntendedOn) { try { recognition.stop(); } catch(e){} }
     stopAudio(); activeSpeaker = speaker; setAvatarState(true); isMicIntendedOn = true; isRecording = true; finalTranscriptBuffer = "";
-    
     if (speaker === 'A') { recognition.lang = localeFor(langA.value); micA.classList.add('recording'); micB.disabled = true; setStatus('🎤 Listening (You)...'); } 
     else if (speaker === 'B') { recognition.lang = localeFor(langB.value); micB.classList.add('recording'); micA.disabled = true; setStatus('🎤 Listening (Friend)...'); } 
-    else { recognition.lang = localeFor(myLang); if (remoteMicBtn) remoteMicBtn.classList.add('recording'); if (floatingMicBtn) floatingMicBtn.classList.add('recording'); setStatus('🎤 Listening...'); }
     try { recognition.start(); } catch (e) {}
   };
   
   micA.addEventListener('click', () => startMic('A'));
   micB.addEventListener('click', () => startMic('B'));
-  if (remoteMicBtn) remoteMicBtn.addEventListener('click', () => startMic('R'));
-  if (floatingMicBtn) floatingMicBtn.addEventListener('click', () => startMic('R'));
+}
+
+function unlockMics() {
+  activeSpeaker = null; isRecording = false; isMicIntendedOn = false;
+  micA.disabled = false; micB.disabled = false; 
+  micA.classList.remove('recording'); micB.classList.remove('recording'); 
+  resetStatus();
 }
 
 sendBtn.addEventListener('click', () => {
@@ -1483,20 +1323,15 @@ sendBtn.addEventListener('click', () => {
   else { if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; } }
 });
 
-inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); }
-});
+inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
 
 function buildSystemPrompt(targetLang, sourceLang) {
-  if (isTranslatorMode) {
-    return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. If the input contains repeated words or stuttering (e.g., "fruits fruits fruits" or "hello hello"), ignore the repetition and translate the meaning only once. Output ONLY the translated text. DO NOT add conversational words, explanations, or quotes.`;
-  }
-  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}. DO NOT use markdown or bold text like **.`;
+  if (isTranslatorMode) return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text.`;
+  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
-  
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
   let finalText = text || '';
@@ -1505,10 +1340,7 @@ async function ask(text, sourceLang, targetLang, speaker) {
   messages.push({ role: 'user', content: userContent });
 
   try {
-    const res = await fetchWithTimeout(SERVER_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID })
-    }, REQUEST_TIMEOUT_MS);
+    const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail);
     addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
@@ -1532,20 +1364,9 @@ removeAvatarBtn.addEventListener('click', (e) => {
   if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
 });
 
-mediaBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); musicMenu.style.display = 'none';
-  if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none';
-  else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; }
-});
-musicBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); actionMenu.style.display = 'none';
-  if (musicMenu.style.display === 'block') musicMenu.style.display = 'none';
-  else { const rect = musicBtn.getBoundingClientRect(); musicMenu.style.display = 'block'; musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; musicMenu.style.left = Math.max(10, rect.left - 80) + 'px'; }
-});
-document.addEventListener('click', (e) => {
-  if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none';
-  if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none';
-});
+mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = 'none'; if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none'; else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; } });
+musicBtn.addEventListener('click', (e) => { e.stopPropagation(); actionMenu.style.display = 'none'; if (musicMenu.style.display === 'block') musicMenu.style.display = 'none'; else { const rect = musicBtn.getBoundingClientRect(); musicMenu.style.display = 'block'; musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; musicMenu.style.left = Math.max(10, rect.left - 80) + 'px'; } });
+document.addEventListener('click', (e) => { if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; });
 
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
@@ -1553,8 +1374,8 @@ menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; v
 
 videoUpload.addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
-  if (appMode === 'remote' || appMode === 'meeting') return alert('عذراً، إرسال الفيديوهات غير مدعوم حالياً. يرجى استخدام الصور.');
-  if (file.size > 25 * 1024 * 1024) return alert('حجم الملف كبير جداً! يجب أن يكون أقل من 25 ميجابايت.');
+  if (appMode === 'remote' || appMode === 'meeting') return alert('عذراً، إرسال الفيديوهات غير مدعوم حالياً.');
+  if (file.size > 25 * 1024 * 1024) return alert('حجم الملف كبير جداً!');
   const targetLang = langB.value;
   addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
   setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
@@ -1576,10 +1397,7 @@ async function handleImage(e) {
   reader.onload = async ev => {
     const compressed = await compressImage(ev.target.result);
     if (appMode === 'remote' || appMode === 'meeting') {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed }));
-            addMsg('', 'user-a', myLang, compressed); 
-        }
+        if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed })); addMsg('', 'user-a', myLang, compressed); }
         isCompressing = false; sendBtn.disabled = isSending; setStatus('');
     } else {
         attachedFileText = null; attachedImageBase64 = compressed;
@@ -1623,21 +1441,11 @@ bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('paus
 // الأصدقاء (Firestore)
 // ==========================================
 const FR_TEXT = {
-  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع',
-        self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد. شارك كودك أو أضف كود صديق.',
-        accept: 'قبول', decline: 'رفض', call: 'اجتماع', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل',
-        rules: 'تعذر الوصول إلى قاعدة البيانات. تأكد من تفعيل Firestore ونشر قواعد الأمان (firestore.rules).', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...' },
-  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour',
-        self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant. Partagez votre code ou ajoutez un code.",
-        accept: 'Accepter', decline: 'Refuser', call: 'Réunion', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer',
-        rules: "Base de données inaccessible. Vérifiez que Firestore est activé et que les règles (firestore.rules) sont publiées.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...' },
-  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back',
-        self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet. Share your code or add a friend code.',
-        accept: 'Accept', decline: 'Decline', call: 'Meeting', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore',
-        rules: 'Cannot reach the database. Make sure Firestore is enabled and the security rules (firestore.rules) are published.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...' }
+  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد.', accept: 'قبول', decline: 'رفض', call: 'اجتماع', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...' },
+  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', call: 'Réunion', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer', rules: "Base de données inaccessible.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...' },
+  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet.', accept: 'Accept', decline: 'Decline', call: 'Meeting', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...' }
 };
 const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
-
 let db = null, friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
 let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
 let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [], chatTranslations = {};
@@ -1645,15 +1453,8 @@ let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [
 const frMsgEl = $('frMsg');
 function setFrMsg(t) { frMsgEl.textContent = t || ''; }
 function myDisplayName() { return (currentUser && (currentUser.displayName || (currentUser.email || 'user').split('@')[0])) || 'User'; }
-function genFriendCode() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
-}
-function frErrText(e) {
-  const c = e && e.code;
-  if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules');
-  return (e && e.message) || String(e);
-}
+function genFriendCode() { const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes); return Array.from(bytes, b => alphabet[b % alphabet.length]).join(''); }
+function frErrText(e) { const c = e && e.code; if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules'); return (e && e.message) || String(e); }
 
 function applyFriendsLang() {
   $('frTitle').textContent = frT('friends'); $('btnFriendsLabel').textContent = frT('friends');
@@ -1665,17 +1466,8 @@ applyFriendsLang();
 const _origChangeAuthLang = changeAuthLang;
 changeAuthLang = function (lang) { _origChangeAuthLang(lang); applyFriendsLang(); renderFriendsUI(); };
 
-function frBtn(label, bg, onClick) {
-  const b = document.createElement('button');
-  b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`;
-  b.addEventListener('click', onClick); return b;
-}
-function frRow(name) {
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex; align-items:center; gap:6px; background:#0f172a; border-radius:8px; padding:6px 8px;';
-  const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;';
-  row.appendChild(n); return row;
-}
+function frBtn(label, bg, onClick) { const b = document.createElement('button'); b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`; b.addEventListener('click', onClick); return b; }
+function frRow(name) { const row = document.createElement('div'); row.style.cssText = 'display:flex; align-items:center; gap:6px; background:#0f172a; border-radius:8px; padding:6px 8px;'; const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;'; row.appendChild(n); return row; }
 
 function renderFriendsUI() {
   const badge = $('friendsBadge');
@@ -1684,16 +1476,9 @@ function renderFriendsUI() {
   badge.style.display = badgeCount ? 'block' : 'none'; badge.textContent = badgeCount;
   $('frRequestsBox').style.display = requestsCache.length ? 'block' : 'none';
   const reqEl = $('frRequests'); reqEl.innerHTML = '';
-  requestsCache.forEach(r => {
-    const row = frRow(r.fromName || '?');
-    row.appendChild(frBtn(frT('accept'), '#10b981', () => acceptRequest(r)));
-    row.appendChild(frBtn(frT('decline'), '#475569', () => declineRequest(r)));
-    reqEl.appendChild(row);
-  });
+  requestsCache.forEach(r => { const row = frRow(r.fromName || '?'); row.appendChild(frBtn(frT('accept'), '#10b981', () => acceptRequest(r))); row.appendChild(frBtn(frT('decline'), '#475569', () => declineRequest(r))); reqEl.appendChild(row); });
   const listEl = $('frList'); listEl.innerHTML = '';
-  if (!friendsCache.length) {
-    const e = document.createElement('div'); e.textContent = frT('empty'); e.style.cssText = 'font-size:12px; color:#64748b; text-align:center; padding:8px;'; listEl.appendChild(e);
-  }
+  if (!friendsCache.length) { const e = document.createElement('div'); e.textContent = frT('empty'); e.style.cssText = 'font-size:12px; color:#64748b; text-align:center; padding:8px;'; listEl.appendChild(e); }
   friendsCache.forEach(f => {
     const row = frRow(f.name || '?');
     const ch = chatsByFriend[f.uid]; const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
@@ -1711,15 +1496,7 @@ async function ensureMyCode() {
   if (snap.exists && snap.data().code) { myFriendCode = snap.data().code; return; }
   for (let i = 0; i < 5; i++) {
     const code = genFriendCode(); const cref = db.collection('codes').doc(code);
-    try {
-      await db.runTransaction(async tx => {
-        const c = await tx.get(cref);
-        if (c.exists) throw new Error('taken');
-        tx.set(cref, { uid: currentUser.uid, name: myDisplayName() });
-        tx.set(uref, { code, name: myDisplayName() }, { merge: true });
-      });
-      myFriendCode = code; return;
-    } catch (e) { if (e.message !== 'taken') throw e; }
+    try { await db.runTransaction(async tx => { const c = await tx.get(cref); if (c.exists) throw new Error('taken'); tx.set(cref, { uid: currentUser.uid, name: myDisplayName() }); tx.set(uref, { code, name: myDisplayName() }, { merge: true }); }); myFriendCode = code; return; } catch (e) { if (e.message !== 'taken') throw e; }
   }
   throw new Error('Could not allocate a friend code');
 }
@@ -1733,12 +1510,8 @@ function initFriends() {
       db = firebase.firestore();
       await ensureMyCode();
       const me = currentUser.uid;
-      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => {
-        friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI();
-      }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => {
-        requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI();
-      }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => { friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => { requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
       friendsUnsubs.push(db.collection('invites').where('to', '==', me).onSnapshot(s => {
         s.docChanges().forEach(ch => {
           if (ch.type !== 'added') return;
@@ -1747,19 +1520,8 @@ function initFriends() {
           showInvite(inv);
         });
       }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('chats').where('members', 'array-contains', me).onSnapshot(s => {
-        s.docs.forEach(d => {
-          const data = d.data({ serverTimestamps: 'estimate' });
-          const other = (data.members || []).find(m => m !== me);
-          if (other) chatsByFriend[other] = { id: d.id, ...data };
-        });
-        markDelivered(s); renderFriendsUI();
-        if (chatOpenWith) { renderChatMsgs(); markRead(); }
-      }, e => { lastFriendsError = e; }));
       friendsReady = true; lastFriendsError = null; renderFriendsUI();
-    } catch (e) {
-      console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e;
-    }
+    } catch (e) { console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e; }
   })();
   friendsInitPromise.catch(() => {});
   return friendsInitPromise;
@@ -1813,45 +1575,25 @@ async function removeFriend(f) {
 
 async function callFriend(f) {
   const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  try {
-    await db.collection('invites').add({ from: currentUser.uid, fromName: myDisplayName(), to: f.uid, room: code, createdAt: Date.now() });
-  } catch (e) { setFrMsg(frErrText(e)); return; }
+  try { await db.collection('invites').add({ from: currentUser.uid, fromName: myDisplayName(), to: f.uid, room: code, createdAt: Date.now() }); } catch (e) { setFrMsg(frErrText(e)); return; }
   const name = ($('meetPlayerName').value || myDisplayName()).trim();
   enterMeeting(code, name, $('meetPlayerLang').value);
 }
 
-function showInvite(inv) {
-  currentInvite = inv;
-  $('inviteText').textContent = frT('invite')(inv.fromName || '?');
-  $('inviteToast').style.display = 'block';
-}
-async function dismissInvite(deleteDoc = true) {
-  const inv = currentInvite; currentInvite = null; $('inviteToast').style.display = 'none';
-  if (inv && deleteDoc) { try { await db.collection('invites').doc(inv.id).delete(); } catch (e) {} }
-}
+function showInvite(inv) { currentInvite = inv; $('inviteText').textContent = frT('invite')(inv.fromName || '?'); $('inviteToast').style.display = 'block'; }
+async function dismissInvite(deleteDoc = true) { const inv = currentInvite; currentInvite = null; $('inviteToast').style.display = 'none'; if (inv && deleteDoc) { try { await db.collection('invites').doc(inv.id).delete(); } catch (e) {} } }
 $('inviteDecline').addEventListener('click', () => dismissInvite());
-$('inviteJoin').addEventListener('click', async () => {
-  const inv = currentInvite; if (!inv) return;
-  await dismissInvite();
-  if (appMode !== 'none') { backBtn.click(); await new Promise(r => setTimeout(r, 500)); }
-  enterMeeting(inv.room, ($('meetPlayerName').value || myDisplayName()).trim(), $('meetPlayerLang').value);
-});
+$('inviteJoin').addEventListener('click', async () => { const inv = currentInvite; if (!inv) return; await dismissInvite(); if (appMode !== 'none') { backBtn.click(); await new Promise(r => setTimeout(r, 500)); } enterMeeting(inv.room, ($('meetPlayerName').value || myDisplayName()).trim(), $('meetPlayerLang').value); });
 
 $('btnFriends').addEventListener('click', async () => {
   $('landingOverlay').style.display = 'none'; $('friendsOverlay').style.display = 'flex';
   applyFriendsLang(); renderFriendsUI();
-  if (!friendsReady) {
-    setFrMsg(frT('wait'));
-    try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); }
-  } else { setFrMsg(''); }
+  if (!friendsReady) { setFrMsg(frT('wait')); try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); } } else { setFrMsg(''); }
 });
 $('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 $('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
 $('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
-$('frCopyCode').addEventListener('click', () => {
-  if (!myFriendCode) return;
-  navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode));
-});
+$('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode)); });
 renderPlaylist(); 
 </script>
 </body>
