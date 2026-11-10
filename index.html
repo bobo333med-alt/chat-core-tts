@@ -566,9 +566,6 @@ let isRecording = false;
 let audioRecorder = null;
 let recordTimer = null;
 
-// ==========================================
-// UI Logic
-// ==========================================
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 
 function showAppUI() {
@@ -631,22 +628,10 @@ function setTranslatorMode(isOn) {
     if (appMode === 'remote' || appMode === 'meeting') {
         if (isOn) {
             // SWITCH TO TRANSLATOR APP
-            if (appMode === 'remote' && localStream) {
-                localStream.getAudioTracks().forEach(t => t.enabled = false); // Mute phone
-            }
-            if (appMode === 'meeting' && livekitRoom) {
-                livekitRoom.localParticipant.setMicrophoneEnabled(false).catch(()=>{}); // Mute phone
-            }
-            startVoiceTranslation();
+            startVoiceTranslation(); // This handles muting the phone internally while keeping the stream alive
         } else {
             // SWITCH TO PHONE APP
-            stopVoiceTranslation();
-            if (appMode === 'remote' && localStream) {
-                localStream.getAudioTracks().forEach(t => t.enabled = true); // Unmute phone
-            }
-            if (appMode === 'meeting' && livekitRoom) {
-                livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{}); // Unmute phone
-            }
+            stopVoiceTranslation(); // This unmutes the phone
         }
     }
     resetStatus();
@@ -980,7 +965,7 @@ async function startVideoCall(isCaller = false) {
 }
 
 // ==========================================
-// TRANSLATION PIPELINE (Pure Audio Record)
+// TRANSLATION PIPELINE (Cloned Stream + AudioWorklet)
 // ==========================================
 function getMicTrack() {
     if (appMode === 'remote' && localStream) return localStream.getAudioTracks()[0];
@@ -992,11 +977,7 @@ function getMicTrack() {
 }
 
 async function startVoiceTranslation() {
-    if (isRecording) return; // Guard
-    
-    // Ensure phone audio is definitely muted for translator mode
-    if (appMode === 'meeting' && livekitRoom) await livekitRoom.localParticipant.setMicrophoneEnabled(false).catch(()=>{});
-    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
+    if (isRecording) return;
     
     const originalTrack = getMicTrack();
     if (!originalTrack) { 
@@ -1004,16 +985,21 @@ async function startVoiceTranslation() {
         return; 
     }
     
+    // Clone the track FIRST so we can mute the original without killing the recorder
+    const clonedTrack = originalTrack.clone();
+    const stream = new MediaStream([clonedTrack]);
+    
+    // Now mute the phone
+    if (appMode === 'meeting' && livekitRoom) await livekitRoom.localParticipant.setMicrophoneEnabled(false).catch(()=>{});
+    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
+
     isMicIntendedOn = true;
     isRecording = true;
     setStatus('🎤 Listening & Translating...');
     
     const startChunk = () => {
         if (!isMicIntendedOn) return;
-        const currentTrack = getMicTrack();
-        if (!currentTrack) return;
         
-        const stream = new MediaStream([currentTrack]);
         let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
         
         try { audioRecorder = new MediaRecorder(stream, { mimeType }); } catch(e) { return; }
@@ -1025,7 +1011,7 @@ async function startVoiceTranslation() {
             const blob = new Blob(chunks, { type: audioRecorder.mimeType });
             chunks = [];
             
-            // Send all audio, no VAD blocking to ensure it works
+            // Send all audio to ensure no text is lost
             sendAudioToServer(blob);
             
             if (isMicIntendedOn) startChunk(); 
@@ -1043,6 +1029,11 @@ function stopVoiceTranslation() {
     clearTimeout(recordTimer);
     if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
     audioRecorder = null;
+
+    // Unmute the phone
+    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
+    if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
+
     resetStatus();
 }
 
@@ -1370,7 +1361,6 @@ async function ask(text, sourceLang, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// ... Rest of file upload and friends logic remains the same ...
 uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
 videoAvatarUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
