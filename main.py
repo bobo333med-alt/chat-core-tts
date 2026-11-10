@@ -154,7 +154,7 @@ GROQ_BASE = "https://api.groq.com/openai/v1"
 
 OXEN_TEXT_MODELS = ["claude-sonnet-4-6", "gemini-3-1-flash-lite-preview"]
 OXEN_VISION_MODELS = ["qwen/qwen3.8-27b"]
-GROQ_TEXT_MODELS = ["llama-3.1-8b-instant", "openai/gpt-oss-120b"]
+GROQ_TEXT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 GROQ_VISION_MODELS = ["qwen/qwen3.8-27b"]
 
 TTS_ENABLED = os.environ.get("TTS_ENABLED", "0") == "1"
