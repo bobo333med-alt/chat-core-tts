@@ -569,7 +569,7 @@ let audioContext = null;
 let analyser = null;
 let dataArray = null;
 let isTranslatorStarting = false; 
-let clonedDestination = null; // The cloned track destination
+let clonedDestination = null; 
 
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 
@@ -944,7 +944,7 @@ async function startVideoCall(isCaller = false) {
 }
 
 // ==========================================
-// TRANSLATION PIPELINE (Cloned Stream + AudioWorklet + VAD)
+// TRANSLATION PIPELINE (Cloned Stream + VAD)
 // ==========================================
 function getMicTrack() {
     if (appMode === 'remote' && localStream) return localStream.getAudioTracks()[0];
@@ -968,37 +968,20 @@ async function startVoiceTranslation() {
         return; 
     }
     
-    // Initialize AudioContext and Cloned Stream Pipeline
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioContext.state === 'suspended') await audioContext.resume();
 
-    // Create Source from the original microphone track (does NOT stop it)
     const sourceNode = audioContext.createMediaStreamSource(new MediaStream([originalTrack]));
     
-    // Add Filters for Echo & Far-Field improvement
-    const filter = audioContext.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 3000;
-
-    const compressor = audioContext.createDynamicsCompressor();
-    compressor.threshold.value = -50;
-    compressor.knee.value = 40;
-    compressor.ratio.value = 12;
-
-    // VAD Analyser
+    // We removed the heavy filters (Biquad & Compressor) as they were killing the volume on Android.
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 512;
     dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-    // Destination (This is the "Cloned Stream" we will record)
     clonedDestination = audioContext.createMediaStreamDestination();
 
-    // Connect Nodes: Source -> Filter -> Compressor -> Analyser -> Cloned Destination
-    sourceNode.connect(filter);
-    filter.connect(compressor);
-    compressor.connect(analyser);
+    sourceNode.connect(analyser);
     analyser.connect(clonedDestination);
 
     isMicIntendedOn = true;
@@ -1041,8 +1024,10 @@ function hasVoiceActivity() {
     analyser.getByteFrequencyData(dataArray);
     let sum = 0;
     for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-    // Threshold to prevent sending silent chunks (hallucination fix)
-    return (sum / dataArray.length) > 15; 
+    let avg = sum / dataArray.length;
+    console.log("VAD Level:", avg); // To debug if mic is sending data
+    // LOWERED THRESHOLD FROM 15 TO 5
+    return avg > 5; 
 }
 
 function stopVoiceTranslation() {
@@ -1053,7 +1038,6 @@ function stopVoiceTranslation() {
     if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
     audioRecorder = null;
     
-    // Do NOT close audioContext here if we want to reuse it, but it's safer to reset for next session
     if (audioContext && audioContext.state !== 'closed') {
         audioContext.close().catch(()=>{});
         audioContext = null;
