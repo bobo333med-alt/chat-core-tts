@@ -129,7 +129,7 @@ async def lifespan(app):
     yield
     task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="10.0", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="11.0", lifespan=lifespan)
 
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
@@ -154,7 +154,8 @@ GROQ_BASE = "https://api.groq.com/openai/v1"
 
 OXEN_TEXT_MODELS = ["claude-sonnet-4-6", "gemini-3-1-flash-lite-preview"]
 OXEN_VISION_MODELS = ["qwen/qwen3.8-27b"]
-GROQ_TEXT_MODELS = ["llama-3.1-8b-instant", "openai/gpt-oss-120b"]
+# 💡 هنا التغيير: استخدمنا النموذج الأذكى 70B بدلاً من 8B
+GROQ_TEXT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 GROQ_VISION_MODELS = ["qwen/qwen3.8-27b"]
 
 TTS_ENABLED = os.environ.get("TTS_ENABLED", "0") == "1"
@@ -367,11 +368,11 @@ async def tts_endpoint(req: TTSRequest):
             return Response(content=r.content, media_type="audio/mpeg")
     except httpx.HTTPError:
         raise HTTPException(502, detail="خطأ شبكة TTS")
-        # ============================================================
+
+# ============================================================
 # /transcribe — تحصين شامل ضد الهلوسة
 # ============================================================
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
-    """Whisper بإعدادات صارمة (verbose_json) — لعرض الثقة."""
     key = next_groq_key()
     client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
     lang_code = language if language in LANG_NAMES else "ar"
@@ -388,7 +389,6 @@ async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
     return resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
 
 def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
-    """4 فلاتر ضد الهلوسة."""
     text = (result.get("text") or "").strip()
     if not text or len(text) < 2:
         return True, "empty"
