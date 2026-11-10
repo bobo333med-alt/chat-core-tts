@@ -496,7 +496,7 @@ const savedLang = localStorage.getItem('authLang') || 'ar';
 changeAuthLang(savedLang);
 
 // ==========================================
-// App Logic (URL Updated)
+// App Logic
 // ==========================================
 const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
 const SERVER_URL = BASE_SERVER_URL + "/chat";
@@ -549,7 +549,7 @@ $('btnLogout').addEventListener('click', logoutUser);
 
 let appMode = 'none';
 let chatHistory = [], activeSpeaker = null, isSending = false, isCompressing = false;
-let isTranslatorMode = localStorage.getItem('translatorMode') !== 'false'; 
+let isTranslatorMode = false; 
 let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
 let pc = null, localStream = null;
@@ -565,12 +565,10 @@ let isMicIntendedOn = false;
 let isRecording = false;
 let audioRecorder = null;
 let recordTimer = null;
-let audioContext = null;
-let analyser = null;
-let dataArray = null;
-let isTranslatorStarting = false; 
-let clonedDestination = null; 
 
+// ==========================================
+// UI Logic
+// ==========================================
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 
 function showAppUI() {
@@ -609,18 +607,47 @@ const updateMeetForm = () => {
 $('meetPlayerLang').addEventListener('change', updateMeetForm);
 updateMeetForm();
 
-function setTranslatorMode(isOn) {
-    isTranslatorMode = isOn;
-    localStorage.setItem('translatorMode', isOn);
+function updateTranslatorUI() {
     const textRoom = isTranslatorMode ? '🌐 ON' : '🌐 OFF';
     const textLocal = isTranslatorMode ? '🌐 Translator ON' : '🌐 Translator OFF';
-    if (transToggleBtnRoom) { transToggleBtnRoom.textContent = textRoom; transToggleBtnRoom.classList.toggle('active', isOn); }
-    if (transToggleBtnLocal) { transToggleBtnLocal.textContent = textLocal; transToggleBtnLocal.classList.toggle('active', isOn); }
+    if (transToggleBtnRoom) { transToggleBtnRoom.textContent = textRoom; transToggleBtnRoom.classList.toggle('active', isTranslatorMode); }
+    if (transToggleBtnLocal) { transToggleBtnLocal.textContent = textLocal; transToggleBtnLocal.classList.toggle('active', isTranslatorMode); }
     
-    if (isOn && (appMode === 'remote' || appMode === 'meeting') && !isRecording) {
-        startVoiceTranslation();
-    } else if (!isOn && isRecording) {
-        stopVoiceTranslation();
+    // Update Mic Button (The Switch)
+    if (remoteMicBtn) { 
+        remoteMicBtn.classList.toggle('recording', !isTranslatorMode); // Red for phone, Green for translation
+        remoteMicBtn.style.background = isTranslatorMode ? '#10b981' : '#ef4444'; 
+    }
+    if (floatingMicBtn) { 
+        floatingMicBtn.classList.toggle('recording', !isTranslatorMode); 
+        floatingMicBtn.style.background = isTranslatorMode ? '#10b981' : '#ef4444'; 
+    }
+}
+
+function setTranslatorMode(isOn) {
+    isTranslatorMode = isOn;
+    updateTranslatorUI();
+    
+    if (appMode === 'remote' || appMode === 'meeting') {
+        if (isOn) {
+            // SWITCH TO TRANSLATOR APP
+            if (appMode === 'remote' && localStream) {
+                localStream.getAudioTracks().forEach(t => t.enabled = false); // Mute phone
+            }
+            if (appMode === 'meeting' && livekitRoom) {
+                livekitRoom.localParticipant.setMicrophoneEnabled(false).catch(()=>{}); // Mute phone
+            }
+            startVoiceTranslation();
+        } else {
+            // SWITCH TO PHONE APP
+            stopVoiceTranslation();
+            if (appMode === 'remote' && localStream) {
+                localStream.getAudioTracks().forEach(t => t.enabled = true); // Unmute phone
+            }
+            if (appMode === 'meeting' && livekitRoom) {
+                livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{}); // Unmute phone
+            }
+        }
     }
     resetStatus();
 }
@@ -629,10 +656,9 @@ if (transToggleBtnRoom) transToggleBtnRoom.addEventListener('click', () => setTr
 if (transToggleBtnLocal) transToggleBtnLocal.addEventListener('click', () => setTranslatorMode(!isTranslatorMode));
 
 function setStatus(s) { statusEl.textContent = s; }
-function resetStatus() { setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (appMode === 'meeting' ? `Meeting ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'))); }
-resetStatus();
-setTranslatorMode(isTranslatorMode);
-
+function resetStatus() { 
+    setStatus(appMode === 'remote' ? `Room ${currentRoomCode}` : (appMode === 'meeting' ? `Meeting ${currentRoomCode}` : (isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'))); 
+}
 function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -741,7 +767,7 @@ $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').s
 $('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
 backBtn.addEventListener('click', async () => {
-  if (isMicIntendedOn) { stopVoiceTranslation(); }
+  if (isTranslatorMode) { setTranslatorMode(false); } // Turn off translation first
   stopAudio();
 
   if (appMode === 'remote' || appMode === 'meeting') {
@@ -789,7 +815,7 @@ avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen |
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
 
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
-stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isRecording) { stopVoiceTranslation(); setTranslatorMode(false); } });
+stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isRecording) { stopVoiceTranslation(); } });
 
 toggleCamBtn.addEventListener('click', async () => {
     isCameraOn = !isCameraOn;
@@ -857,7 +883,13 @@ async function connectLiveKit(roomCode, participantName) {
         livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
             setStatus("✅ متصل بالاجتماع");
             try { await livekitRoom.localParticipant.setCameraEnabled(true); isCameraOn = true; toggleCamBtn.classList.remove('off'); } catch (err) { console.warn("Camera error", err); }
-            try { await livekitRoom.localParticipant.setMicrophoneEnabled(true); isWebRtcMicOn = true; } catch (err) { console.warn("Mic error", err); }
+            
+            // Initial state: If translator is ON, mute phone. If OFF, unmute.
+            try { 
+                await livekitRoom.localParticipant.setMicrophoneEnabled(!isTranslatorMode); 
+                isWebRtcMicOn = !isTranslatorMode;
+            } catch (err) { console.warn("Mic error", err); }
+            
             try { await livekitRoom.startAudio(); } catch(e) {}
             
             if (!livekitRoom.canPlaybackAudio) {
@@ -865,8 +897,9 @@ async function connectLiveKit(roomCode, participantName) {
                 document.body.addEventListener('click', () => { if(livekitRoom) livekitRoom.startAudio(); }, { once: true });
             }
 
-            if (isTranslatorMode && !isRecording) {
-                setTimeout(startVoiceTranslation, 1500);
+            // Start translation if it was checked in the UI
+            if (isTranslatorMode) {
+                setTimeout(startVoiceTranslation, 1000);
             }
         });
 
@@ -905,9 +938,12 @@ async function startVideoCall(isCaller = false) {
       });
       localVideo.srcObject = localStream; videoContainer.style.display = 'block';
       isCameraOn = true; toggleCamBtn.classList.remove('off');
-      isWebRtcMicOn = true;
       
-      if (isTranslatorMode && !isRecording) {
+      // Initial state for phone
+      isWebRtcMicOn = !isTranslatorMode;
+      localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
+      
+      if (isTranslatorMode) {
           setTimeout(startVoiceTranslation, 1000);
       }
     } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك.', 'bot'); return; }
@@ -944,7 +980,7 @@ async function startVideoCall(isCaller = false) {
 }
 
 // ==========================================
-// TRANSLATION PIPELINE (Cloned Stream + VAD)
+// TRANSLATION PIPELINE (Pure Audio Record)
 // ==========================================
 function getMicTrack() {
     if (appMode === 'remote' && localStream) return localStream.getAudioTracks()[0];
@@ -956,48 +992,31 @@ function getMicTrack() {
 }
 
 async function startVoiceTranslation() {
-    if (isTranslatorStarting) return;
-    isTranslatorStarting = true;
-
-    if (appMode === 'meeting' && livekitRoom) await livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
-    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
+    if (isRecording) return; // Guard
+    
+    // Ensure phone audio is definitely muted for translator mode
+    if (appMode === 'meeting' && livekitRoom) await livekitRoom.localParticipant.setMicrophoneEnabled(false).catch(()=>{});
+    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
     
     const originalTrack = getMicTrack();
     if (!originalTrack) { 
-        isTranslatorStarting = false;
+        addMsg("⚠️ لم يتم العثور على المايك.", 'bot');
         return; 
     }
     
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioContext.state === 'suspended') await audioContext.resume();
-
-    const sourceNode = audioContext.createMediaStreamSource(new MediaStream([originalTrack]));
-    
-    // We removed the heavy filters (Biquad & Compressor) as they were killing the volume on Android.
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 512;
-    dataArray = new Uint8Array(analyser.frequencyBinCount);
-    clonedDestination = audioContext.createMediaStreamDestination();
-
-    sourceNode.connect(analyser);
-    analyser.connect(clonedDestination);
-
     isMicIntendedOn = true;
     isRecording = true;
-    if (remoteMicBtn) remoteMicBtn.classList.add('recording');
-    if (floatingMicBtn) floatingMicBtn.classList.add('recording');
     setStatus('🎤 Listening & Translating...');
     
     const startChunk = () => {
         if (!isMicIntendedOn) return;
-        if (!clonedDestination || !clonedDestination.stream) { isTranslatorStarting = false; return; }
+        const currentTrack = getMicTrack();
+        if (!currentTrack) return;
         
-        const stream = clonedDestination.stream;
+        const stream = new MediaStream([currentTrack]);
         let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
         
-        try { audioRecorder = new MediaRecorder(stream, { mimeType }); } catch(e) { isTranslatorStarting = false; return; }
+        try { audioRecorder = new MediaRecorder(stream, { mimeType }); } catch(e) { return; }
 
         let chunks = [];
         audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -1006,9 +1025,8 @@ async function startVoiceTranslation() {
             const blob = new Blob(chunks, { type: audioRecorder.mimeType });
             chunks = [];
             
-            if (hasVoiceActivity()) {
-                sendAudioToServer(blob);
-            }
+            // Send all audio, no VAD blocking to ensure it works
+            sendAudioToServer(blob);
             
             if (isMicIntendedOn) startChunk(); 
         };
@@ -1019,33 +1037,12 @@ async function startVoiceTranslation() {
     startChunk();
 }
 
-function hasVoiceActivity() {
-    if (!analyser) return true; 
-    analyser.getByteFrequencyData(dataArray);
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-    let avg = sum / dataArray.length;
-    console.log("VAD Level:", avg); // To debug if mic is sending data
-    // LOWERED THRESHOLD FROM 15 TO 5
-    return avg > 5; 
-}
-
 function stopVoiceTranslation() {
     isMicIntendedOn = false;
     isRecording = false;
-    isTranslatorStarting = false;
     clearTimeout(recordTimer);
     if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
     audioRecorder = null;
-    
-    if (audioContext && audioContext.state !== 'closed') {
-        audioContext.close().catch(()=>{});
-        audioContext = null;
-    }
-    clonedDestination = null;
-
-    if (remoteMicBtn) remoteMicBtn.classList.remove('recording');
-    if (floatingMicBtn) floatingMicBtn.classList.remove('recording');
     resetStatus();
 }
 
@@ -1073,7 +1070,7 @@ async function enterMeeting(code, name, lang) {
   wakeServer();
   
   isTranslatorMode = $('meetingTransCheck').checked;
-  setTranslatorMode(isTranslatorMode);
+  updateTranslatorUI();
   
   connectWebSocket(code);
   await connectLiveKit(code, name);
@@ -1112,7 +1109,7 @@ function enterRemoteRoom(code) {
   setStatus(`Connecting to ${code}...`); 
   
   isTranslatorMode = $('remoteTransCheck').checked;
-  setTranslatorMode(isTranslatorMode);
+  updateTranslatorUI();
 
   connectWebSocket(code);
 }
@@ -1210,7 +1207,7 @@ function stopAudio() {
 
 async function speak(text, lang) {
   stopAudio(); isBotTalking = true;
-  if (isRecording) { try { recognition.stop(); } catch(e){} isRecording = false; }
+  if (isRecording) { try { recognition.abort(); } catch(e){} isRecording = false; }
   const cleanText = cleanTextForTTS(text);
   if (!cleanText) { isBotTalking = false; if (isMicIntendedOn) { isRecording = true; try { recognition.start(); } catch(e){} } return; }
 
@@ -1219,7 +1216,7 @@ async function speak(text, lang) {
   const resumeMic = () => {
       isBotTalking = false; setAvatarState(false);
       if (isMicIntendedOn) {
-          setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} } }, 800); 
+          setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} } }, 1500); 
       }
   };
 
@@ -1247,7 +1244,9 @@ function speakBrowser(text, lang, myId) {
   const resumeMic = () => {
       if (myId === currentSpeechId) { 
           isBotTalking = false; setAvatarState(false); 
-          if (isMicIntendedOn) { setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} } }, 800); } 
+          if (isMicIntendedOn) { 
+              setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { isRecording = true; try { recognition.start(); } catch(e){} } }, 1500); 
+          } 
       } 
   };
   u.onend = resumeMic; u.onerror = resumeMic; speechSynthesis.speak(u);
@@ -1294,7 +1293,7 @@ if (SR) {
       if (finalTranscriptBuffer.trim()) {
         const textToSend = finalTranscriptBuffer.trim();
         finalTranscriptBuffer = ""; isProcessingAudio = true; 
-        try { recognition.stop(); } catch(e){} 
+        try { recognition.abort(); } catch(e){} 
         processVoice(textToSend); resetStatus();
       }
     }, 2500); 
@@ -1309,18 +1308,19 @@ if (SR) {
   recognition.onend = () => {
     isProcessingAudio = false;
     if (isMicIntendedOn && !isBotTalking && appMode !== 'remote' && appMode !== 'meeting') {
-        setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { try { recognition.start(); } catch(e) {} } }, 500); 
+        // Safe restart loop for Face-to-Face
+        setTimeout(() => { if (isMicIntendedOn && !isBotTalking) { try { recognition.start(); } catch(e) {} } }, 1000); 
     } else if (!isMicIntendedOn) { unlockMics(); }
   };
 
   const startMic = (speaker) => {
     unlockAudio();
     if (isMicIntendedOn && activeSpeaker === speaker) {
-        isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.stop(); } catch(e){}
+        isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.abort(); } catch(e){}
         if (finalTranscriptBuffer.trim()) { processVoice(finalTranscriptBuffer.trim()); finalTranscriptBuffer = ""; }
         unlockMics(); return;
     }
-    if (isMicIntendedOn) { try { recognition.stop(); } catch(e){} }
+    if (isMicIntendedOn) { try { recognition.abort(); } catch(e){} }
     stopAudio(); activeSpeaker = speaker; setAvatarState(true); isMicIntendedOn = true; isRecording = true; finalTranscriptBuffer = "";
     if (speaker === 'A') { recognition.lang = localeFor(langA.value); micA.classList.add('recording'); micB.disabled = true; setStatus('🎤 Listening (You)...'); } 
     else if (speaker === 'B') { recognition.lang = localeFor(langB.value); micB.classList.add('recording'); micA.disabled = true; setStatus('🎤 Listening (Friend)...'); } 
@@ -1370,6 +1370,7 @@ async function ask(text, sourceLang, targetLang, speaker) {
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
+// ... Rest of file upload and friends logic remains the same ...
 uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
 videoAvatarUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
