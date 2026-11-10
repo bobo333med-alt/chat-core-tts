@@ -560,7 +560,7 @@ let isWebRtcMicOn = true;
 
 let livekitRoom = null;
 
-// Translation Pipeline state
+// Translation Pipeline state (Isolated)
 let isMicIntendedOn = false;
 let isRecording = false;
 let audioRecorder = null;
@@ -569,6 +569,7 @@ let audioContext = null;
 let analyser = null;
 let dataArray = null;
 let isTranslatorStarting = false; 
+let clonedDestination = null; // The cloned track destination
 
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 
@@ -622,21 +623,6 @@ function setTranslatorMode(isOn) {
         stopVoiceTranslation();
     }
     resetStatus();
-}
-
-function setWebRtcMic(enabled) {
-    isWebRtcMicOn = enabled;
-    if (appMode === 'remote' && localStream) {
-        localStream.getAudioTracks().forEach(t => t.enabled = enabled);
-    }
-    if (appMode === 'meeting' && livekitRoom) {
-        livekitRoom.localParticipant.setMicrophoneEnabled(enabled).catch(()=>{});
-    }
-    const btn = (remoteMicBtn || floatingMicBtn);
-    if (btn) {
-        btn.classList.toggle('recording', !enabled);
-        btn.style.background = enabled ? '#10b981' : '#ef4444';
-    }
 }
 
 if (transToggleBtnRoom) transToggleBtnRoom.addEventListener('click', () => setTranslatorMode(!isTranslatorMode));
@@ -879,7 +865,6 @@ async function connectLiveKit(roomCode, participantName) {
                 document.body.addEventListener('click', () => { if(livekitRoom) livekitRoom.startAudio(); }, { once: true });
             }
 
-            // Start translation ONLY after connection and track publication
             if (isTranslatorMode && !isRecording) {
                 setTimeout(startVoiceTranslation, 1500);
             }
@@ -906,7 +891,7 @@ async function connectLiveKit(roomCode, participantName) {
         await livekitRoom.connect(url, token);
     } catch (e) {
         console.error(e);
-        if (e.name === 'AbortError') { addMsg("⚠️ الخادم يستغرق وقتاً طويلاً للاستجابة (Cold Start). يرجى المحاولة مرة أخرى.", 'bot'); setStatus("فشل الاتصال"); } 
+        if (e.name === 'AbortError') { addMsg("⚠️ الخادم يستغرق وقتاً طويلاً للاستجابة. يرجى المحاولة مرة أخرى.", 'bot'); setStatus("فشل الاتصال"); } 
         else { addMsg("⚠️ فشل الانضمام للاجتماع: " + e.message, 'bot'); setStatus("خطأ في الاجتماع"); }
     }
 }
@@ -914,10 +899,17 @@ async function connectLiveKit(roomCode, participantName) {
 async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      localStream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+      });
       localVideo.srcObject = localStream; videoContainer.style.display = 'block';
       isCameraOn = true; toggleCamBtn.classList.remove('off');
       isWebRtcMicOn = true;
+      
+      if (isTranslatorMode && !isRecording) {
+          setTimeout(startVoiceTranslation, 1000);
+      }
     } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك.', 'bot'); return; }
   }
   if (!pc) {
@@ -952,7 +944,7 @@ async function startVideoCall(isCaller = false) {
 }
 
 // ==========================================
-// TRANSLATION PIPELINE (MediaRecorder + VAD)
+// TRANSLATION PIPELINE (Cloned Stream + AudioWorklet + VAD)
 // ==========================================
 function getMicTrack() {
     if (appMode === 'remote' && localStream) return localStream.getAudioTracks()[0];
@@ -963,24 +955,6 @@ function getMicTrack() {
     return null;
 }
 
-function initVAD(track) {
-    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioContext.state === 'suspended') audioContext.resume();
-    const source = audioContext.createMediaStreamSource(new MediaStream([track]));
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 512;
-    source.connect(analyser);
-    dataArray = new Uint8Array(analyser.frequencyBinCount);
-}
-
-function hasVoiceActivity() {
-    if (!analyser) return true; 
-    analyser.getByteFrequencyData(dataArray);
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-    return (sum / dataArray.length) > 15; 
-}
-
 async function startVoiceTranslation() {
     if (isTranslatorStarting) return;
     isTranslatorStarting = true;
@@ -988,14 +962,45 @@ async function startVoiceTranslation() {
     if (appMode === 'meeting' && livekitRoom) await livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
     if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
     
-    const track = getMicTrack();
-    if (!track) { 
-        // Do not spam. Just return and wait for next connection if needed.
+    const originalTrack = getMicTrack();
+    if (!originalTrack) { 
         isTranslatorStarting = false;
         return; 
     }
     
-    initVAD(track);
+    // Initialize AudioContext and Cloned Stream Pipeline
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') await audioContext.resume();
+
+    // Create Source from the original microphone track (does NOT stop it)
+    const sourceNode = audioContext.createMediaStreamSource(new MediaStream([originalTrack]));
+    
+    // Add Filters for Echo & Far-Field improvement
+    const filter = audioContext.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 3000;
+
+    const compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = -50;
+    compressor.knee.value = 40;
+    compressor.ratio.value = 12;
+
+    // VAD Analyser
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    // Destination (This is the "Cloned Stream" we will record)
+    clonedDestination = audioContext.createMediaStreamDestination();
+
+    // Connect Nodes: Source -> Filter -> Compressor -> Analyser -> Cloned Destination
+    sourceNode.connect(filter);
+    filter.connect(compressor);
+    compressor.connect(analyser);
+    analyser.connect(clonedDestination);
+
     isMicIntendedOn = true;
     isRecording = true;
     if (remoteMicBtn) remoteMicBtn.classList.add('recording');
@@ -1004,10 +1009,9 @@ async function startVoiceTranslation() {
     
     const startChunk = () => {
         if (!isMicIntendedOn) return;
-        const currentTrack = getMicTrack();
-        if (!currentTrack) { isTranslatorStarting = false; return; }
+        if (!clonedDestination || !clonedDestination.stream) { isTranslatorStarting = false; return; }
         
-        const stream = new MediaStream([currentTrack]);
+        const stream = clonedDestination.stream;
         let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
         
         try { audioRecorder = new MediaRecorder(stream, { mimeType }); } catch(e) { isTranslatorStarting = false; return; }
@@ -1032,6 +1036,15 @@ async function startVoiceTranslation() {
     startChunk();
 }
 
+function hasVoiceActivity() {
+    if (!analyser) return true; 
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    // Threshold to prevent sending silent chunks (hallucination fix)
+    return (sum / dataArray.length) > 15; 
+}
+
 function stopVoiceTranslation() {
     isMicIntendedOn = false;
     isRecording = false;
@@ -1039,6 +1052,14 @@ function stopVoiceTranslation() {
     clearTimeout(recordTimer);
     if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
     audioRecorder = null;
+    
+    // Do NOT close audioContext here if we want to reuse it, but it's safer to reset for next session
+    if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close().catch(()=>{});
+        audioContext = null;
+    }
+    clonedDestination = null;
+
     if (remoteMicBtn) remoteMicBtn.classList.remove('recording');
     if (floatingMicBtn) floatingMicBtn.classList.remove('recording');
     resetStatus();
