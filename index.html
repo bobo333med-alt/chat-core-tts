@@ -157,9 +157,7 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
   </div>
 </div>
 
-<button id="floatingMicBtn" title="Talk">
-  <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-</button>
+<button id="floatingMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
 
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
@@ -433,9 +431,7 @@ auth.onAuthStateChanged(user => {
 });
 const savedLang = localStorage.getItem('authLang') || 'ar';
 changeAuthLang(savedLang);
-  // ==========================================
-// App Logic
-// ==========================================
+
 const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
 const SERVER_URL = BASE_SERVER_URL + "/chat";
 const TTS_URL = BASE_SERVER_URL + "/tts";
@@ -495,14 +491,12 @@ let isCameraOn = true;
 let isWebRtcMicOn = true;
 let livekitRoom = null;
 
-// Translation Pipeline state
 let isManualTranslating = false;
 let audioRecorder = null;
 let recordTimer = null;
 let translationStartTime = 0;
 let translationAudioCtx = null;
 
-// Face-to-face vars
 let finalTranscriptBuffer = '';
 let lastSentText = '';
 let lastSentTime = 0;
@@ -510,8 +504,6 @@ let isProcessingAudio = false;
 let silenceTimer = null;
 let isMicIntendedOn = false;
 let isRecording = false;
-
-// RTC vars
 let myIsCaller = false;
 let _rtcInitiated = false;
 let _chLangPopulated = false;
@@ -715,7 +707,6 @@ backBtn.addEventListener('click', async () => {
     $('landingOverlay').style.display = 'flex';
   }
 });
-
 tapToPlayOverlay.addEventListener('click', () => {
   remoteVideo.muted = false;
   remoteVideo.play().then(() => { tapToPlayOverlay.style.display = 'none'; }).catch(e => console.log(e));
@@ -868,21 +859,13 @@ async function startVideoCall(isCaller = false) {
   }
 }
 
-// ==========================================
-// MANUAL TRANSLATION (Improved: AEC + RMS + duration)
-// ==========================================
 async function startManualTranslation() {
   if (isManualTranslating) return;
   try {
     const transStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true, noiseSuppression: true, autoGainControl: true,
-        channelCount: 1, sampleRate: 48000
-      }
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
     });
     const rawTrack = transStream.getAudioTracks()[0];
-
-    // High-pass filter + RMS monitor
     translationAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = translationAudioCtx.createMediaStreamSource(new MediaStream([rawTrack]));
     const hp = translationAudioCtx.createBiquadFilter();
@@ -891,16 +874,13 @@ async function startManualTranslation() {
     analyser.fftSize = 512;
     const destination = translationAudioCtx.createMediaStreamDestination();
     source.connect(hp); hp.connect(analyser); analyser.connect(destination);
-
     const filteredTrack = destination.stream.getAudioTracks()[0];
     const rmsBuffer = new Float32Array(analyser.fftSize);
     let rmsMax = 0;
-
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
     let chunks = [];
     audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
     const rmsInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
@@ -909,7 +889,6 @@ async function startManualTranslation() {
         if (rms > rmsMax) rmsMax = rms;
       } catch(e){}
     }, 100);
-
     audioRecorder.onstop = async () => {
       clearInterval(rmsInterval);
       try { rawTrack.stop(); } catch(e){}
@@ -918,7 +897,7 @@ async function startManualTranslation() {
       const durationMs = Date.now() - translationStartTime;
       if (chunks.length === 0) return;
       if (durationMs < 400) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
-      if (rmsMax < 0.008) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
+      if (rmsMax < 0.015) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
       const blob = new Blob(chunks, { type: audioRecorder.mimeType });
       setStatus('⏳ Translating...');
       const formData = new FormData();
@@ -938,7 +917,6 @@ async function startManualTranslation() {
       } catch(e) { console.warn('Audio upload failed', e); }
       resetStatus();
     };
-
     audioRecorder.start();
     translationStartTime = Date.now();
     isManualTranslating = true;
@@ -958,9 +936,6 @@ function stopManualTranslation() {
   updateTranslatorUI();
 }
 
-// ==========================================
-// Face-to-Face
-// ==========================================
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
@@ -1041,9 +1016,12 @@ sendBtn.addEventListener('click', () => {
 inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
 
 function buildSystemPrompt(targetLang, sourceLang) {
-  if (isTranslatorMode) return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text.`;
-  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
+  if (isTranslatorMode) {
+    return `You are a highly accurate translation engine. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. You must output ONLY the translated text in ${langNameFor(targetLang)}. Do NOT repeat the original text. Do NOT explain.`;
+  }
+  return `You are Chat-Core, a helpful assistant. You must reply ONLY in ${langNameFor(targetLang)}. Never use any other language.`;
 }
+
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   setBusy(true); setStatus('Processing...');
@@ -1056,543 +1034,17 @@ async function ask(text, sourceLang, targetLang, speaker) {
     const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail);
-    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
-    resetStatus(); speak(data.reply.trim(), targetLang || langA.value);
+    
+    let replyText = data.reply.trim();
+    if (isTranslatorMode && replyText === text) {
+       replyText = "⚠️ Translation failed. Please try again.";
+    }
+
+    addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
+    resetStatus(); speak(replyText, targetLang || langA.value);
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
-
-// ==========================================
-// Uploads & Media
-// ==========================================
-uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
-videoAvatarUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
-  currentAvatarObjectUrl = URL.createObjectURL(file);
-  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block'; avatarVideo.src = currentAvatarObjectUrl;
-  if (isBotTalking || isRecording) avatarVideo.play().catch(()=>{});
-  removeAvatarBtn.style.display = 'block';
-});
-removeAvatarBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
-  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block'; removeAvatarBtn.style.display = 'none';
-  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
-});
-mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = 'none'; if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none'; else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; } });
-musicBtn.addEventListener('click', (e) => { e.stopPropagation(); actionMenu.style.display = 'none'; if (musicMenu.style.display === 'block') musicMenu.style.display = 'none'; else { const rect = musicBtn.getBoundingClientRect(); musicMenu.style.display = 'block'; musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; musicMenu.style.left = Math.max(10, rect.left - 80) + 'px'; } });
-document.addEventListener('click', (e) => { if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; });
-menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
-menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
-videoUpload.addEventListener('change', async (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  if (appMode === 'remote' || appMode === 'meeting') return alert('إرسال الفيديوهات غير مدعوم حالياً.');
-  if (file.size > 25 * 1024 * 1024) return alert('حجم الملف كبير جداً!');
-  const targetLang = langB.value;
-  addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
-  setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
-  const formData = new FormData(); formData.append('file', file); formData.append('target_lang', targetLang);
-  try {
-    const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-    if (!res.ok) throw new Error('Server error');
-    const data = await res.json();
-    addMsg(data.original, 'user-b', 'AUTO'); addMsg(data.translated, 'bot', targetLang);
-    speak(data.translated, targetLang); setStatus('✅ تمت الترجمة بنجاح!');
-  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); }
-  finally { setBusy(false); e.target.value = ''; }
-});
-async function handleImage(e) {
-  const file = e.target.files[0]; if (!file) return;
-  isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    const compressed = await compressImage(ev.target.result);
-    if (appMode === 'remote' || appMode === 'meeting') {
-      if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed })); addMsg('', 'user-a', myLang, compressed); }
-      isCompressing = false; sendBtn.disabled = isSending; setStatus('');
-    } else {
-      attachedFileText = null; attachedImageBase64 = compressed;
-      imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
-      isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
-    }
-  };
-  reader.readAsDataURL(file);
-}
-galleryUpload.addEventListener('change', handleImage);
-cameraUpload.addEventListener('change', handleImage);
-cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.'); });
-audioUpload.addEventListener('change', (e) => {
-  const files = e.target.files;
-  for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
-  renderPlaylist(); e.target.value = '';
-});
-function renderPlaylist() {
-  musicList.innerHTML = '';
-  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause';
-  pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
-  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
-  playlist.forEach((song, index) => {
-    const div = document.createElement('div'); div.className = 'music-item';
-    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
-    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
-    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
-    div.appendChild(name); div.appendChild(del);
-    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
-    div.onclick = () => { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); } else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); } };
-    musicList.appendChild(div);
-  });
-}
-function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
-bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
-bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
-
-// ==========================================
-// Friends (Firestore)
-// ==========================================
-const FR_TEXT = {
-  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد.', accept: 'قبول', decline: 'رفض', call: 'اجتماع', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...' },
-  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', call: 'Réunion', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer', rules: "Base de données inaccessible.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...' },
-  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet.', accept: 'Accept', decline: 'Decline', call: 'Meeting', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...' }
-};
-const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
-let db = null, friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
-let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
-let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [];
-const frMsgEl = $('frMsg');
-function setFrMsg(t) { frMsgEl.textContent = t || ''; }
-function myDisplayName() { return (currentUser && (currentUser.displayName || (currentUser.email || 'user').split('@')[0])) || 'User'; }
-function genFriendCode() { const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes); return Array.from(bytes, b => alphabet[b % alphabet.length]).join(''); }
-function frErrText(e) { const c = e && e.code; if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules'); return (e && e.message) || String(e); }
-function applyFriendsLang() {
-  $('frTitle').textContent = frT('friends'); $('btnFriendsLabel').textContent = frT('friends');
-  $('frMyCodeLabel').textContent = frT('myCode'); $('frAddInput').placeholder = frT('codePh');
-  $('frReqTitle').textContent = frT('requests'); $('frListTitle').textContent = frT('list'); $('frBackBtn').textContent = frT('back');
-  $('inviteJoin').textContent = frT('join'); $('inviteDecline').textContent = frT('ignore');
-}
-applyFriendsLang();
-const _origChangeAuthLang = changeAuthLang;
-changeAuthLang = function (lang) { _origChangeAuthLang(lang); applyFriendsLang(); renderFriendsUI(); };
-function frBtn(label, bg, onClick) { const b = document.createElement('button'); b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`; b.addEventListener('click', onClick); return b; }
-function frRow(name) { const row = document.createElement('div'); row.style.cssText = 'display:flex; align-items:center; gap:6px; background:#0f172a; border-radius:8px; padding:6px 8px;'; const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;'; row.appendChild(n); return row; }
-function renderFriendsUI() {
-  const badge = $('friendsBadge');
-  const totalUnread = currentUser ? Object.values(chatsByFriend).reduce((n, c) => n + (c['unread_' + currentUser.uid] || 0), 0) : 0;
-  const badgeCount = requestsCache.length + totalUnread;
-  badge.style.display = badgeCount ? 'block' : 'none'; badge.textContent = badgeCount;
-  $('frRequestsBox').style.display = requestsCache.length ? 'block' : 'none';
-  const reqEl = $('frRequests'); reqEl.innerHTML = '';
-  requestsCache.forEach(r => { const row = frRow(r.fromName || '?'); row.appendChild(frBtn(frT('accept'), '#10b981', () => acceptRequest(r))); row.appendChild(frBtn(frT('decline'), '#475569', () => declineRequest(r))); reqEl.appendChild(row); });
-  const listEl = $('frList'); listEl.innerHTML = '';
-  if (!friendsCache.length) { const e = document.createElement('div'); e.textContent = frT('empty'); e.style.cssText = 'font-size:12px; color:#64748b; text-align:center; padding:8px;'; listEl.appendChild(e); }
-  friendsCache.forEach(f => {
-    const row = frRow(f.name || '?');
-    const ch = chatsByFriend[f.uid]; const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
-    row.appendChild(frBtn('💬' + (un ? ' ' + un : ''), un ? '#ef4444' : '#0ea5e9', () => openChat(f)));
-    row.appendChild(frBtn('📞', '#1d4ed8', () => callFriend(f)));
-    row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
-    listEl.appendChild(row);
-  });
-  if (myFriendCode) $('frMyCode').textContent = myFriendCode;
-}
-async function ensureMyCode() {
-  const uref = db.collection('users').doc(currentUser.uid);
-  const snap = await uref.get();
-  if (snap.exists && snap.data().code) { myFriendCode = snap.data().code; return; }
-  for (let i = 0; i < 5; i++) {
-    const code = genFriendCode(); const cref = db.collection('codes').doc(code);
-    try { await db.runTransaction(async tx => { const c = await tx.get(cref); if (c.exists) throw new Error('taken'); tx.set(cref, { uid: currentUser.uid, name: myDisplayName() }); tx.set(uref, { code, name: myDisplayName() }, { merge: true }); }); myFriendCode = code; return; } catch (e) { if (e.message !== 'taken') throw e; }
-  }
-  throw new Error('Could not allocate a friend code');
-}
-function initFriends() {
-  if (friendsReady) return Promise.resolve();
-  if (friendsInitPromise) return friendsInitPromise;
-  friendsInitPromise = (async () => {
-    try {
-      await loadFirestore();
-      db = firebase.firestore();
-      await ensureMyCode();
-      const me = currentUser.uid;
-      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => { friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => { requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('invites').where('to', '==', me).onSnapshot(s => {
-        s.docChanges().forEach(ch => {
-          if (ch.type !== 'added') return;
-          const inv = { id: ch.doc.id, ...ch.doc.data() };
-          if (Date.now() - (inv.createdAt || 0) > 120000) { ch.doc.ref.delete().catch(() => {}); return; }
-          showInvite(inv);
-        });
-      }, e => { lastFriendsError = e; }));
-      friendsReady = true; lastFriendsError = null; renderFriendsUI();
-    } catch (e) { console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e; }
-  })();
-  friendsInitPromise.catch(() => {});
-  return friendsInitPromise;
-}
-function teardownFriends() {
-  friendsUnsubs.forEach(u => { try { u(); } catch (e) {} });
-  friendsUnsubs = []; friendsReady = false; friendsInitPromise = null; myFriendCode = null;
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-  chatsByFriend = {}; chatOpenWith = null; chatMsgsCache = []; $('chatOverlay').style.display = 'none';
-  friendsCache = []; requestsCache = []; currentInvite = null; $('inviteToast').style.display = 'none'; renderFriendsUI();
-}
-async function sendFriendRequest(raw) {
-  const code = (raw || '').trim().toUpperCase(); if (!code) return;
-  if (code === myFriendCode) return setFrMsg(frT('self'));
-  try {
-    const c = await db.collection('codes').doc(code).get();
-    if (!c.exists) return setFrMsg(frT('notfound'));
-    const to = c.data().uid;
-    if (friendsCache.some(f => f.uid === to)) return setFrMsg(frT('already'));
-    const incoming = requestsCache.find(r => r.from === to);
-    if (incoming) { await acceptRequest(incoming); return; }
-    await db.collection('friend_requests').doc(currentUser.uid + '_' + to).set({ from: currentUser.uid, fromName: myDisplayName(), to, createdAt: Date.now() });
-    setFrMsg(frT('sent')); $('frAddInput').value = '';
-  } catch (e) { setFrMsg(frErrText(e)); }
-}
-async function acceptRequest(r) {
-  try {
-    const me = currentUser.uid, other = r.from, now = Date.now();
-    const batch = db.batch();
-    batch.set(db.collection('users').doc(other).collection('friends').doc(me), { uid: me, name: myDisplayName(), since: now });
-    batch.set(db.collection('users').doc(me).collection('friends').doc(other), { uid: other, name: r.fromName || '?', since: now });
-    batch.delete(db.collection('friend_requests').doc(r.id));
-    await batch.commit();
-  } catch (e) { setFrMsg(frErrText(e)); }
-}
-async function declineRequest(r) { try { await db.collection('friend_requests').doc(r.id).delete(); } catch (e) { setFrMsg(frErrText(e)); } }
-async function removeFriend(f) {
-  if (!confirm(frT('confirmRemove'))) return;
-  try {
-    const me = currentUser.uid;
-    const batch = db.batch();
-    batch.delete(db.collection('users').doc(me).collection('friends').doc(f.uid));
-    batch.delete(db.collection('users').doc(f.uid).collection('friends').doc(me));
-    await batch.commit();
-  } catch (e) { setFrMsg(frErrText(e)); }
-}
-async function callFriend(f) {
-  const code = "MTG" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  try { await db.collection('invites').add({ from: currentUser.uid, fromName: myDisplayName(), to: f.uid, room: code, createdAt: Date.now() }); } catch (e) { setFrMsg(frErrText(e)); return; }
-  const name = ($('meetPlayerName').value || myDisplayName()).trim();
-  enterMeeting(code, name, $('meetPlayerLang').value);
-}
-function showInvite(inv) { currentInvite = inv; $('inviteText').textContent = frT('invite')(inv.fromName || '?'); $('inviteToast').style.display = 'block'; }
-async function dismissInvite(deleteDoc = true) { const inv = currentInvite; currentInvite = null; $('inviteToast').style.display = 'none'; if (inv && deleteDoc) { try { await db.collection('invites').doc(inv.id).delete(); } catch (e) {} } }
-$('inviteDecline').addEventListener('click', () => dismissInvite());
-$('inviteJoin').addEventListener('click', async () => { const inv = currentInvite; if (!inv) return; await dismissInvite(); if (appMode !== 'none') { backBtn.click(); await new Promise(r => setTimeout(r, 500)); } enterMeeting(inv.room, ($('meetPlayerName').value || myDisplayName()).trim(), $('meetPlayerLang').value); });
-$('btnFriends').addEventListener('click', async () => {
-  $('landingOverlay').style.display = 'none'; $('friendsOverlay').style.display = 'flex';
-  applyFriendsLang(); renderFriendsUI();
-  if (!friendsReady) { setFrMsg(frT('wait')); try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); } } else { setFrMsg(''); }
-});
-$('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
-$('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
-$('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
-$('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode)); });
-renderPlaylist();
-
-// ==========================================
-// CHAT-CORE FIX: الدوال الناقصة
-// ==========================================
-async function speak(text, lang) {
-  if (!text) return;
-  stopAudio();
-  const cleaned = cleanTextForTTS(text);
-  if (!cleaned) return;
-  const myId = ++currentSpeechId;
-  isBotTalking = true; setAvatarState(true);
-  try {
-    const voice = voiceSelect ? voiceSelect.value : 'woman';
-    const res = await fetch(TTS_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleaned.slice(0, 4000), lang: lang || 'ar', voice, session_id: SESSION_ID })
-    });
-    if (!res.ok) throw new Error('tts ' + res.status);
-    if (myId !== currentSpeechId) return;
-    const blob = await res.blob(); const url = URL.createObjectURL(blob);
-    currentAudio = new Audio(url);
-    currentAudio.onended = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); };
-    currentAudio.onerror = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); };
-    await currentAudio.play().catch(() => {});
-    return;
-  } catch (e) {}
-  if (myId !== currentSpeechId) return;
-  if ('speechSynthesis' in window) {
-    try {
-      const utt = new SpeechSynthesisUtterance(cleaned);
-      utt.lang = localeFor(lang || 'ar');
-      utt.onend = () => { isBotTalking = false; setAvatarState(false); };
-      utt.onerror = () => { isBotTalking = false; setAvatarState(false); };
-      speechSynthesis.speak(utt);
-    } catch (e) { isBotTalking = false; setAvatarState(false); }
-  } else { isBotTalking = false; setAvatarState(false); }
-}
-function stopAudio() {
-  currentSpeechId++;
-  if (currentAudio) { try { currentAudio.pause(); currentAudio.currentTime = 0; } catch (e) {} currentAudio = null; }
-  if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (e) {} }
-  isBotTalking = false; setAvatarState(false);
-}
-function setAvatarState(talking) {
-  try {
-    if (avatarVideo && avatarVideo.style.display === 'block' && avatarVideo.src) {
-      if (talking) avatarVideo.play().catch(() => {});
-      else { avatarVideo.pause(); try { avatarVideo.currentTime = 0; } catch (e) {} }
-    }
-  } catch (e) {}
-}
-function startPing() {
-  stopPing();
-  pingInterval = setInterval(() => {
-    if (ws && ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify({ type: 'ping' })); } catch (e) {} }
-  }, 20000);
-}
-function stopPing() { if (pingInterval) { clearInterval(pingInterval); pingInterval = null; } }
-function connectWS(roomCode) {
-  try { if (ws) ws.close(); } catch (e) {}
-  ws = new WebSocket(WS_BASE + '/ws/' + String(roomCode).toUpperCase());
-  ws.onopen = () => { try { ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); } catch (e) {} startPing(); };
-  ws.onmessage = (evt) => { try { handleWSMessage(JSON.parse(evt.data)); } catch (e) { console.warn('ws parse', e); } };
-  ws.onerror = () => setStatus('⚠️ خطأ في الاتصال');
-  ws.onclose = () => {
-    stopPing();
-    if (shouldReconnect && hasJoinedOnce && currentRoomCode) {
-      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-      wsReconnectTimer = setTimeout(() => { if (shouldReconnect && currentRoomCode) connectWS(currentRoomCode); }, 3000);
-    }
-  };
-}
-function sendRemoteMessage(text) {
-  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-  try { ws.send(JSON.stringify({ type: 'message', text, translate: !!isTranslatorMode })); } catch (e) {}
-}
-async function handleWSMessage(msg) {
-  if (!msg || !msg.type) return;
-  const type = msg.type;
-  if (type === 'pong') return;
-  if (type === 'error') { addMsg('⚠️ ' + (msg.message || 'خطأ'), 'bot'); return; }
-  if (type === 'joined') {
-    hasJoinedOnce = true;
-    const n = (msg.users || []).length;
-    if (onlineCount) onlineCount.textContent = n + '/50';
-    setStatus('✅ متصل');
-    if (msg.history && msg.history.length) {
-      addMsg('📜 سجل سابق:', 'bot');
-      msg.history.forEach(h => {
-        addMsg((h.from || '?') + ': ' + (h.original || ''), 'user-b', h.from_lang || 'en');
-        if (h.translated && h.translated !== h.original) addMsg('↳ ' + h.translated, 'bot', myLang);
-      });
-    }
-    if (appMode === 'remote' && myIsCaller && !_rtcInitiated && n > 1) {
-      _rtcInitiated = true; setTimeout(() => startVideoCall(true), 300);
-    }
-    return;
-  }
-  if (type === 'user_joined') {
-    addMsg('👋 ' + (msg.name || 'مستخدم') + ' انضم', 'bot');
-    if (appMode === 'remote' && myIsCaller && !_rtcInitiated) {
-      _rtcInitiated = true; setTimeout(() => startVideoCall(true), 300);
-    }
-    return;
-  }
-  if (type === 'user_left') { addMsg('👋 ' + (msg.name || 'مستخدم') + ' غادر', 'bot'); return; }
-  if (type === 'translated') {
-    if (msg.is_mine) return;
-    addMsg((msg.from_name || 'صديق') + ': ' + (msg.original || ''), 'user-b', msg.from_lang || 'en');
-    if (msg.translated && msg.translated !== msg.original) {
-      addMsg('↳ ' + msg.translated, 'bot', msg.target_lang || myLang);
-      if (!msg.no_tts && isTranslatorMode) speak(msg.translated, msg.target_lang || myLang);
-    }
-    return;
-  }
-  if (type === 'chat_media') { addMsg((msg.from_name || 'صديق') + ' 📷:', 'user-b', msg.from_lang || 'en', msg.data); return; }
-  if (type === 'rtc-offer') { await handleRtcOffer(msg.offer); return; }
-  if (type === 'rtc-answer') { await handleRtcAnswer(msg.answer); return; }
-  if (type === 'rtc-ice') { await handleRtcIce(msg.candidate); return; }
-}
-async function handleRtcOffer(offer) {
-  try {
-    if (!pc) await startVideoCall(false);
-    await pc.setRemoteDescription(offer);
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'rtc-answer', answer }));
-    for (const c of iceCandidatesQueue) { try { await pc.addIceCandidate(c); } catch (e) {} }
-    iceCandidatesQueue = [];
-  } catch (e) { console.warn('rtc offer', e); }
-}
-async function handleRtcAnswer(answer) {
-  try {
-    if (!pc || pc.signalingState !== 'have-local-offer') return;
-    await pc.setRemoteDescription(answer);
-    for (const c of iceCandidatesQueue) { try { await pc.addIceCandidate(c); } catch (e) {} }
-    iceCandidatesQueue = [];
-  } catch (e) { console.warn('rtc answer', e); }
-}
-async function handleRtcIce(candidate) {
-  if (!candidate) return;
-  if (!pc || !pc.remoteDescription) { iceCandidatesQueue.push(candidate); return; }
-  try { await pc.addIceCandidate(candidate); } catch (e) {}
-}
-async function connectRemote(roomCode, participantName, lang, isCaller) {
-  myName = participantName; myLang = lang;
-  currentRoomCode = String(roomCode).toUpperCase();
-  myIsCaller = !!isCaller; hasJoinedOnce = false; shouldReconnect = true;
-  _rtcInitiated = false; iceCandidatesQueue = [];
-  isTranslatorMode = $('remoteTransCheck') ? $('remoteTransCheck').checked : false;
-  roomCodeLabel.textContent = currentRoomCode;
-  setModeUI('remote');
-  setStatus('⏳ جاري الاتصال بالغرفة...');
-  connectWS(currentRoomCode);
-}
-async function enterMeeting(roomCode, participantName, lang) {
-  myName = participantName; myLang = lang;
-  currentRoomCode = String(roomCode).toUpperCase();
-  hasJoinedOnce = false; shouldReconnect = true;
-  isTranslatorMode = $('meetingTransCheck') ? $('meetingTransCheck').checked : false;
-  roomCodeLabel.textContent = currentRoomCode;
-  setModeUI('meeting');
-  setStatus('⏳ جاري الاتصال بالاجتماع...');
-  connectWS(currentRoomCode);
-  await connectLiveKit(currentRoomCode, participantName);
-}
-$('createRoomBtn').addEventListener('click', async () => {
-  const name = ($('playerName').value || myDisplayName()).trim();
-  const lang = $('playerLang').value || 'ar';
-  if (!name) return alert('أدخل اسمك');
-  try {
-    setStatus('⏳ جاري إنشاء الغرفة...');
-    const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.code) throw new Error('no code');
-    $('remoteJoinOverlay').style.display = 'none';
-    await connectRemote(data.code, name, lang, true);
-  } catch (e) { alert('فشل إنشاء الغرفة: ' + e.message); }
-});
-$('joinRoomBtn').addEventListener('click', async () => {
-  const name = ($('playerName').value || myDisplayName()).trim();
-  const lang = $('playerLang').value || 'ar';
-  const code = ($('joinCodeInput').value || '').trim().toUpperCase();
-  if (!name) return alert('أدخل اسمك');
-  if (!code) return alert('أدخل كود الغرفة');
-  $('remoteJoinOverlay').style.display = 'none';
-  await connectRemote(code, name, lang, false);
-});
-$('createMeetingBtn').addEventListener('click', async () => {
-  const name = ($('meetPlayerName').value || myDisplayName()).trim();
-  const lang = $('meetPlayerLang').value || 'ar';
-  if (!name) return alert('أدخل اسمك');
-  const code = 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  $('meetingJoinOverlay').style.display = 'none';
-  await enterMeeting(code, name, lang);
-});
-$('joinMeetingBtn').addEventListener('click', async () => {
-  const name = ($('meetPlayerName').value || myDisplayName()).trim();
-  const lang = $('meetPlayerLang').value || 'ar';
-  const code = ($('joinMeetingCodeInput').value || '').trim().toUpperCase();
-  if (!name) return alert('أدخل اسمك');
-  if (!code) return alert('أدخل كود الاجتماع');
-  $('meetingJoinOverlay').style.display = 'none';
-  await enterMeeting(code, name, lang);
-});
-remoteMicBtn.addEventListener('click', () => {
-  if (isTranslatorMode) { if (isManualTranslating) stopManualTranslation(); else startManualTranslation(); }
-  else {
-    isWebRtcMicOn = !isWebRtcMicOn;
-    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
-    if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn).catch(()=>{});
-    updateTranslatorUI(); resetStatus();
-  }
-});
-floatingMicBtn.addEventListener('click', () => {
-  if (isTranslatorMode) { if (isManualTranslating) stopManualTranslation(); else startManualTranslation(); }
-  else {
-    isWebRtcMicOn = !isWebRtcMicOn;
-    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
-    if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn).catch(()=>{});
-    updateTranslatorUI(); resetStatus();
-  }
-});
-
-// Friends Chat
-const CHAT_LANGS = [['ar','🇹🇳 العربية'],['fr','🇫🇷 Français'],['en','🇬🇧 English'],['de','🇩🇪 Deutsch'],['tr','🇹🇷 Türkçe'],['it','🇮🇹 Italiano'],['zh','🇨🇳 中文'],['ru','🇷🇺 Русский'],['es','🇪🇸 Español'],['pt','🇵🇹 Português'],['nl','🇳🇱 Nederlands'],['no','🇳🇴 Norsk']];
-function populateChLang() {
-  const el = $('chLang'); if (!el || _chLangPopulated) return;
-  el.innerHTML = '';
-  CHAT_LANGS.forEach(([v, label]) => { const o = document.createElement('option'); o.value = v; o.textContent = label; el.appendChild(o); });
-  _chLangPopulated = true;
-}
-async function openChat(friend) {
-  if (!db || !currentUser || !friend) return;
-  chatOpenWith = friend; chatMsgsCache = []; populateChLang();
-  $('chName').textContent = friend.name || '?';
-  $('chLang').value = myLang || 'ar';
-  $('chMsgs').innerHTML = ''; $('chStatus').textContent = 'جارٍ التحميل...';
-  $('chatOverlay').style.display = 'flex';
-  const chatId = [currentUser.uid, friend.uid].sort().join('_');
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} }
-  chatUnsub = db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt', 'asc').limit(100)
-    .onSnapshot(snap => {
-      chatMsgsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderChatMsgs(); $('chStatus').textContent = '';
-      try { db.collection('chats').doc(chatId).set({ ['unread_' + currentUser.uid]: 0 }, { merge: true }); } catch (e) {}
-    }, err => { $('chStatus').textContent = '⚠️ ' + (err.message || ''); });
-}
-function renderChatMsgs() {
-  const box = $('chMsgs'); box.innerHTML = '';
-  chatMsgsCache.forEach(m => {
-    const mine = m.from === currentUser.uid;
-    const div = document.createElement('div');
-    div.style.cssText = 'max-width:80%; padding:8px 12px; border-radius:10px; font-size:13px; line-height:1.5; word-wrap:break-word; ' +
-      (mine ? 'align-self:flex-end; background:#4f46e5; color:#fff;' : 'align-self:flex-start; background:#0f172a; color:#fff;');
-    let html = escapeHtml(m.text || '');
-    if (m.translated && m.translated !== m.text) html += '<br><span style="font-size:11px; opacity:0.75; font-style:italic;">↳ ' + escapeHtml(m.translated) + '</span>';
-    div.innerHTML = html; box.appendChild(div);
-  });
-  box.scrollTop = box.scrollHeight;
-}
-async function sendChatMessage() {
-  const text = ($('chInput').value || '').trim();
-  if (!text || !chatOpenWith || !db || !currentUser) return;
-  const targetLang = $('chLang').value || 'en';
-  $('chInput').value = ''; $('chStatus').textContent = '⏳ جاري الترجمة...';
-  let translated = '';
-  try {
-    const res = await fetch(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [
-        { role: 'system', content: 'Translate from ' + langNameFor(myLang) + ' to ' + langNameFor(targetLang) + '. Output ONLY the translation.' },
-        { role: 'user', content: text }
-      ], is_translation: true })
-    });
-    const data = await res.json(); translated = (data.reply || '').trim();
-  } catch (e) { translated = ''; }
-  try {
-    const chatId = [currentUser.uid, chatOpenWith.uid].sort().join('_');
-    const now = Date.now();
-    await db.collection('chats').doc(chatId).collection('messages').add({
-      from: currentUser.uid, fromName: myDisplayName(), text, translated,
-      fromLang: myLang, targetLang, createdAt: now
-    });
-    await db.collection('chats').doc(chatId).set({
-      lastMessage: text, lastAt: now,
-      ['unread_' + chatOpenWith.uid]: firebase.firestore.FieldValue.increment(1)
-    }, { merge: true });
-    $('chStatus').textContent = '';
-  } catch (e) { $('chStatus').textContent = '⚠️ فشل الإرسال: ' + (e.message || ''); }
-}
-if ($('chBack')) $('chBack').addEventListener('click', () => {
-  $('chatOverlay').style.display = 'none';
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-  chatOpenWith = null;
-});
-if ($('chSend')) $('chSend').addEventListener('click', sendChatMessage);
-if ($('chInput')) $('chInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
-});
 </script>
 </body>
 </html>
