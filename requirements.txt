@@ -1,8 +1,7 @@
-fastapi
-uvicorn[standard]
-openai
-pydantic
-httpx
-edge-tts
-python-multipart
-livekit-api
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+pydantic==2.6.4
+openai==1.14.3
+httpx==0.27.0
+python-multipart==0.0.9
+livekit-api==0.9.0
