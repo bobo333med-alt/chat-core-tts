@@ -161,7 +161,7 @@ TTS_ENABLED = os.environ.get("TTS_ENABLED", "0") == "1"
 OXEN_TTS_MODEL = "bytedance-seed-audio-1-0"
 TTS_VOICES = {"man": "Fritz", "woman": "Celeste", "girl": "Arista", "child": "Cillian"}
 
-# ---------- Sessions (with TTL — fixes memory leak) ----------
+# ---------- Sessions (with TTL) ----------
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
 SESSION_TTL_SECONDS = 3600
@@ -367,8 +367,7 @@ async def tts_endpoint(req: TTSRequest):
             return Response(content=r.content, media_type="audio/mpeg")
     except httpx.HTTPError:
         raise HTTPException(502, detail="خطأ شبكة TTS")
-
-# ============================================================
+        # ============================================================
 # /transcribe — تحصين شامل ضد الهلوسة
 # ============================================================
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
