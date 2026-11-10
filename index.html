@@ -157,7 +157,9 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
   </div>
 </div>
 
-<button id="floatingMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+<button id="floatingMicBtn" title="Talk">
+  <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+</button>
 
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
@@ -431,7 +433,9 @@ auth.onAuthStateChanged(user => {
 });
 const savedLang = localStorage.getItem('authLang') || 'ar';
 changeAuthLang(savedLang);
-
+  // ==========================================
+// App Logic
+// ==========================================
 const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
 const SERVER_URL = BASE_SERVER_URL + "/chat";
 const TTS_URL = BASE_SERVER_URL + "/tts";
@@ -475,6 +479,7 @@ const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), re
 const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid');
 const transToggleBtnRoom = $('transToggleBtnRoom');
 const transToggleBtnLocal = $('transToggleBtnLocal');
+const voiceSelect = $('voiceSelect');
 
 $('btnLogout').addEventListener('click', logoutUser);
 
@@ -490,12 +495,14 @@ let isCameraOn = true;
 let isWebRtcMicOn = true;
 let livekitRoom = null;
 
+// Translation Pipeline state
 let isManualTranslating = false;
 let audioRecorder = null;
 let recordTimer = null;
 let translationStartTime = 0;
 let translationAudioCtx = null;
 
+// Face-to-face vars
 let finalTranscriptBuffer = '';
 let lastSentText = '';
 let lastSentTime = 0;
@@ -503,10 +510,11 @@ let isProcessingAudio = false;
 let silenceTimer = null;
 let isMicIntendedOn = false;
 let isRecording = false;
+
+// RTC vars
 let myIsCaller = false;
 let _rtcInitiated = false;
 let _chLangPopulated = false;
-const voiceSelect = $('voiceSelect');
 
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 function showAppUI() {
@@ -707,6 +715,7 @@ backBtn.addEventListener('click', async () => {
     $('landingOverlay').style.display = 'flex';
   }
 });
+
 tapToPlayOverlay.addEventListener('click', () => {
   remoteVideo.muted = false;
   remoteVideo.play().then(() => { tapToPlayOverlay.style.display = 'none'; }).catch(e => console.log(e));
@@ -739,6 +748,9 @@ toggleCamBtn.addEventListener('click', async () => {
   if (livekitRoom) { try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); } }
 });
 
+// ==========================================
+// LiveKit
+// ==========================================
 function handleTrackSubscribed(track, publication, participant) {
   if (track.kind === 'video' || track.kind === 'audio') {
     let boxId = 'participant-' + participant.identity;
@@ -856,13 +868,21 @@ async function startVideoCall(isCaller = false) {
   }
 }
 
+// ==========================================
+// MANUAL TRANSLATION (Improved: AEC + RMS + duration)
+// ==========================================
 async function startManualTranslation() {
   if (isManualTranslating) return;
   try {
     const transStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
+      audio: {
+        echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+        channelCount: 1, sampleRate: 48000
+      }
     });
     const rawTrack = transStream.getAudioTracks()[0];
+
+    // High-pass filter + RMS monitor
     translationAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = translationAudioCtx.createMediaStreamSource(new MediaStream([rawTrack]));
     const hp = translationAudioCtx.createBiquadFilter();
@@ -871,13 +891,16 @@ async function startManualTranslation() {
     analyser.fftSize = 512;
     const destination = translationAudioCtx.createMediaStreamDestination();
     source.connect(hp); hp.connect(analyser); analyser.connect(destination);
+
     const filteredTrack = destination.stream.getAudioTracks()[0];
     const rmsBuffer = new Float32Array(analyser.fftSize);
     let rmsMax = 0;
+
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
     let chunks = [];
     audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
     const rmsInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
@@ -886,6 +909,7 @@ async function startManualTranslation() {
         if (rms > rmsMax) rmsMax = rms;
       } catch(e){}
     }, 100);
+
     audioRecorder.onstop = async () => {
       clearInterval(rmsInterval);
       try { rawTrack.stop(); } catch(e){}
@@ -894,7 +918,7 @@ async function startManualTranslation() {
       const durationMs = Date.now() - translationStartTime;
       if (chunks.length === 0) return;
       if (durationMs < 400) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
-      if (rmsMax < 0.015) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
+      if (rmsMax < 0.008) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
       const blob = new Blob(chunks, { type: audioRecorder.mimeType });
       setStatus('⏳ Translating...');
       const formData = new FormData();
@@ -914,6 +938,7 @@ async function startManualTranslation() {
       } catch(e) { console.warn('Audio upload failed', e); }
       resetStatus();
     };
+
     audioRecorder.start();
     translationStartTime = Date.now();
     isManualTranslating = true;
@@ -933,6 +958,9 @@ function stopManualTranslation() {
   updateTranslatorUI();
 }
 
+// ==========================================
+// Face-to-Face
+// ==========================================
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SR) {
@@ -1013,12 +1041,9 @@ sendBtn.addEventListener('click', () => {
 inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
 
 function buildSystemPrompt(targetLang, sourceLang) {
-  if (isTranslatorMode) {
-    return `You are a highly accurate translation engine. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. You must output ONLY the translated text in ${langNameFor(targetLang)}. Do NOT repeat the original text. Do NOT explain.`;
-  }
-  return `You are Chat-Core, a helpful assistant. You must reply ONLY in ${langNameFor(targetLang)}. Never use any other language.`;
+  if (isTranslatorMode) return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text.`;
+  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
 }
-
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   setBusy(true); setStatus('Processing...');
@@ -1031,18 +1056,15 @@ async function ask(text, sourceLang, targetLang, speaker) {
     const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail);
-    
-    let replyText = data.reply.trim();
-    if (isTranslatorMode && replyText === text) {
-       replyText = "⚠️ Translation failed. Please try again.";
-    }
-
-    addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
-    resetStatus(); speak(replyText, targetLang || langA.value);
+    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
+    resetStatus(); speak(data.reply.trim(), targetLang || langA.value);
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
+// ==========================================
+// Uploads & Media
+// ==========================================
 uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
 videoAvatarUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
@@ -1126,6 +1148,9 @@ function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongInde
 bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
 
+// ==========================================
+// Friends (Firestore)
+// ==========================================
 const FR_TEXT = {
   ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد.', accept: 'قبول', decline: 'رفض', call: 'اجتماع', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...' },
   fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', call: 'Réunion', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer', rules: "Base de données inaccessible.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...' },
@@ -1269,6 +1294,9 @@ $('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.pr
 $('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode)); });
 renderPlaylist();
 
+// ==========================================
+// CHAT-CORE FIX: الدوال الناقصة
+// ==========================================
 async function speak(text, lang) {
   if (!text) return;
   stopAudio();
@@ -1489,6 +1517,8 @@ floatingMicBtn.addEventListener('click', () => {
     updateTranslatorUI(); resetStatus();
   }
 });
+
+// Friends Chat
 const CHAT_LANGS = [['ar','🇹🇳 العربية'],['fr','🇫🇷 Français'],['en','🇬🇧 English'],['de','🇩🇪 Deutsch'],['tr','🇹🇷 Türkçe'],['it','🇮🇹 Italiano'],['zh','🇨🇳 中文'],['ru','🇷🇺 Русский'],['es','🇪🇸 Español'],['pt','🇵🇹 Português'],['nl','🇳🇱 Nederlands'],['no','🇳🇴 Norsk']];
 function populateChLang() {
   const el = $('chLang'); if (!el || _chLangPopulated) return;
