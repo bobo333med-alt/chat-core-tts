@@ -11,11 +11,11 @@ from typing import List, Optional, Dict, Tuple
 import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
 from livekit import api
 
+# ---------- المراقبة والسجلات ----------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("chat-core")
 
@@ -95,13 +95,6 @@ class RoomManager:
             except Exception:
                 pass
 
-    async def cleanup(self, max_age=86400):
-        now = time.time()
-        async with self.lock:
-            to_delete = [code for code, room in self.rooms.items() if not room["users"] or (now - room["created_at"]) > max_age]
-            for code in to_delete:
-                del self.rooms[code]
-
 room_manager = RoomManager()
 
 @asynccontextmanager
@@ -110,52 +103,35 @@ async def lifespan(app):
         logger.error("⚠️ LIVEKIT_API_KEY or LIVEKIT_API_SECRET is missing!")
     else:
         logger.info("✅ LiveKit credentials found.")
-
-    async def cleaner():
-        while True:
-            await asyncio.sleep(3600)
-            try:
-                await room_manager.cleanup()
-                _cleanup_sessions()
-            except Exception as e:
-                logger.warning("Cleanup error: %s", e)
-    task = asyncio.create_task(cleaner())
     yield
-    task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="16.0", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="20.0 Ultimate", lifespan=lifespan)
 
-ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "https://bobo333med-alt.github.io").split(",") if o.strip()]
+ALLOWED_ORIGINS = ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS != ["*"] else ["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
     allow_credentials=False,
 )
 
+# ---------- إعدادات Groq المحدثة ----------
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
-# استخدام النماذج الأسرع والمضمونة للحسابات المجانية
-GROQ_TEXT_MODELS = ["llama3-8b-8192", "mixtral-8x7b-32768"]
+
+# النماذج الأحدث والمستقرة في Groq حالياً
+GROQ_TEXT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
-SESSION_TTL_SECONDS = 3600
-
-def _cleanup_sessions():
-    now = time.time()
-    to_delete = [sid for sid, s in _sessions.items() if (now - s["last_at"]) > SESSION_TTL_SECONDS]
-    for sid in to_delete:
-        del _sessions[sid]
 
 def append_session(sid, user_text, reply):
     if not sid: return
-    entry = _sessions.get(sid, {"msgs": [], "last_at": time.time()})
+    entry = _sessions.get(sid, {"msgs": []})
     entry["msgs"].append({"role": "user", "content": (user_text or "")[:1000]})
     entry["msgs"].append({"role": "assistant", "content": (reply or "")[:2000]})
     entry["msgs"] = entry["msgs"][-SESSION_MAX_MSGS:]
-    entry["last_at"] = time.time()
     _sessions[sid] = entry
 
 def get_session(sid, last_n=6):
@@ -168,13 +144,6 @@ class ChatRequest(BaseModel):
     messages: List[dict]
     is_vision: bool = False
     is_translation: bool = False
-    session_id: Optional[str] = None
-    target_lang: Optional[str] = None
-
-class TTSRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=4000)
-    lang: str = "ar"
-    voice: str = "woman"
     session_id: Optional[str] = None
 
 class MeetingTokenRequest(BaseModel):
@@ -200,42 +169,58 @@ async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
             return r.choices[0].message.content
         except Exception as e:
             last_err = f"{model}: {str(e)[:160]}"
+            logger.warning(f"Groq Attempt Failed ({model}): {last_err}")
             if "429" in str(e): await asyncio.sleep(0.6)
     raise Exception(last_err)
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
     if not GROQ_KEYS:
-        raise HTTPException(502, detail="مفتاح Groq غير موجود في إعدادات Render.")
+        raise HTTPException(502, detail="مفتاح Groq غير موجود في الإعدادات.")
     try:
         return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
     except Exception as e:
-        logger.error(f"Groq Failed: {e}")
-        raise HTTPException(502, detail="فشل الاتصال بالذكاء الاصطناعي. قد يكون المفتاح خاطئاً أو انتهت صلاحيته.")
+        raise HTTPException(502, detail="فشل الاتصال بالذكاء الاصطناعي. تأكد من صحة مفتاح Groq.")
 
-LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian", "zh": "Chinese", "ru": "Russian", "es": "Spanish", "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"}
+LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian"}
+HALLUCINATION_BLACKLIST = ["كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية", "الموضوعات في الوصف"]
 
-WHISPER_PROMPTS = {
-    "ar": "محادثة طبيعية بالعربية. كلمات شائعة: نعم، لا، مرحبا، شكرا، كيف حالك، بخير، سلام، صباح الخير، مساء الخير، الحمد لله.",
-    "fr": "Conversation naturelle en français. Mots courants: oui, non, bonjour, merci, comment allez-vous, ça va, salut, bonne nuit.",
-    "en": "Natural English conversation. Common words: yes, no, hello, thank you, how are you, fine, good morning, good night.",
-}
+async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
+    key = next_groq_key()
+    client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
+    lang_code = language if language in LANG_NAMES else "ar"
+    
+    # تم حذف الـ prompt نهائياً لمنع الهلوسة
+    with open(temp_path, "rb") as af:
+        resp = await client.audio.transcriptions.create(
+            model="whisper-large-v3", 
+            file=af, 
+            language=lang_code, 
+            temperature=0.0, 
+            response_format="verbose_json"
+        )
+    return resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
 
-async def translate_for_room(text, source_lang, target_lang):
-    if source_lang == target_lang or not text.strip(): return text
-    src = LANG_NAMES.get(source_lang, "the source language")
-    tgt = LANG_NAMES.get(target_lang, "the target language")
-    messages = [
-        {"role": "system", "content": "You are a translation engine. Output ONLY the translated text, nothing else."},
-        {"role": "user", "content": f"Translate from {src} to {tgt}:\n\n{text}"}
-    ]
-    try:
-        return (await smart_chat(messages, False, 0.0, 1000)).strip()
-    except Exception:
-        return text
+def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
+    text = (result.get("text") or "").strip()
+    if not text or len(text) < 2: return True, "empty"
+    
+    # فلتر الهلوسة الصارم (الكلمات التي ظهرت في الصور)
+    for bad_word in HALLUCINATION_BLACKLIST:
+        if bad_word in text:
+            logger.warning(f"Hallucination blocked: {text}")
+            return True, "hallucination"
+
+    no_speech = float(result.get("no_speech_prob") or 0.0)
+    if no_speech > 0.6: return True, f"no_speech"
+    
+    avg_logprob = float(result.get("avg_logprob") or 0.0)
+    if avg_logprob < -1.0: return True, f"low_confidence"
+    
+    return False, "ok"
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "provider": "groq", "active_rooms": len(room_manager.rooms), "active_sessions": len(_sessions)}
+    return {"ok": True, "provider": "groq", "keys_configured": len(GROQ_KEYS), "active_rooms": len(room_manager.rooms)}
 
 @app.post("/rooms/create")
 async def create_room_endpoint():
@@ -276,24 +261,6 @@ async def chat_endpoint(req: ChatRequest):
 
     return {"reply": reply}
 
-async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
-    key = next_groq_key()
-    client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
-    lang_code = language if language in LANG_NAMES else "ar"
-    prompt = WHISPER_PROMPTS.get(lang_code, WHISPER_PROMPTS["en"])
-    with open(temp_path, "rb") as af:
-        resp = await client.audio.transcriptions.create(model="whisper-large-v3", file=af, language=lang_code, prompt=prompt, temperature=0.0, response_format="verbose_json")
-    return resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
-
-def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
-    text = (result.get("text") or "").strip()
-    if not text or len(text) < 2: return True, "empty"
-    no_speech = float(result.get("no_speech_prob") or 0.0)
-    if no_speech > 0.7: return True, f"no_speech"
-    avg_logprob = float(result.get("avg_logprob") or 0.0)
-    if avg_logprob < -1.2: return True, f"low_confidence"
-    return False, "ok"
-
 @app.post("/transcribe")
 async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar"), language: str = Form(""), duration_ms: int = Form(0)):
     if not GROQ_KEYS: raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
@@ -308,7 +275,7 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
         reject, reason = _should_reject(result, duration_ms)
         if reject:
             return {"original": "", "translated": "", "reason": reason}
-        return {"original": result.get("text", "").strip(), "translated": "", "confidence": float(result.get("avg_logprob") or 0.0), "language": result.get("language", lang_code)}
+        return {"original": result.get("text", "").strip(), "translated": "", "reason": "ok"}
     except Exception as e:
         raise HTTPException(500, detail=f"فشل استخراج النص: {str(e)}")
     finally:
@@ -319,8 +286,6 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
 @app.websocket("/ws/{room_code}")
 async def ws_endpoint(websocket: WebSocket, room_code: str):
     room_code = room_code.upper().strip()
-    if not re.match(r'^[A-Z0-9]{6}$', room_code) and not room_code.startswith("MTG"):
-        if len(room_code) < 3: await websocket.close(code=4000); return
     await websocket.accept()
     joined, my_name, my_lang = False, "User", "ar"
     try:
@@ -328,56 +293,44 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
             first = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
         except asyncio.TimeoutError: await websocket.close(code=4001); return
         if first.get("type") != "join": await websocket.close(); return
+        
         my_name = (first.get("name") or "User")[:30]
         my_lang = first.get("lang", "ar")
-        if my_lang not in LANG_NAMES: my_lang = "ar"
         if not await room_manager.join(room_code, websocket, my_name, my_lang):
-            await websocket.send_json({"type": "error", "message": "Room not found or full"})
+            await websocket.send_json({"type": "error", "message": "Room full"})
             await websocket.close(); return
         joined = True
+        
         users = await room_manager.get_users_list(room_code)
         history_raw = await room_manager.get_history(room_code)
-        history_for_me = [{"from": h["from"], "original": h["original"], "from_lang": h["from_lang"], "translated": h.get("translations", {}).get(my_lang, h["original"]), "is_mine": h["from"] == my_name} for h in history_raw]
-        await websocket.send_json({"type": "joined", "users": users, "history": history_for_me})
+        await websocket.send_json({"type": "joined", "users": users, "history": history_raw})
         await room_manager.broadcast(room_code, {"type": "user_joined", "name": my_name}, exclude=websocket)
+        
         while True:
             try: msg = await websocket.receive_json()
             except WebSocketDisconnect: break
             mtype = msg.get("type")
             if mtype == "ping": await websocket.send_json({"type": "pong"}); continue
             elif mtype == "change_lang":
-                new_lang = msg.get("lang")
-                if new_lang in LANG_NAMES: my_lang = new_lang; await room_manager.update_user_lang(room_code, websocket, my_lang)
+                my_lang = msg.get("lang", "ar")
+                await room_manager.update_user_lang(room_code, websocket, my_lang)
                 continue
             elif mtype in ["rtc-offer", "rtc-answer", "rtc-ice"]:
-                if not room_code.startswith("MTG"): await room_manager.broadcast(room_code, msg, exclude=websocket)
-                continue
-            elif mtype == "chat_media":
-                media_type = msg.get("media_type"); media_data = msg.get("data")
-                if media_data:
-                    ws_users = await room_manager.get_ws_users(room_code)
-                    for ws_client in ws_users:
-                        if ws_client != websocket:
-                            try: await ws_client.send_json({"type": "chat_media", "media_type": media_type, "data": media_data, "from_name": my_name, "from_lang": my_lang})
-                            except Exception: pass
+                await room_manager.broadcast(room_code, msg, exclude=websocket)
                 continue
             elif mtype == "message":
                 text = (msg.get("text") or "").strip()[:2000]
                 if not text: continue
-                is_translation_on = msg.get("translate", True)
                 ws_users = await room_manager.get_ws_users(room_code)
-                if not is_translation_on:
-                    for ws, u in ws_users.items():
-                        payload = {"type": "translated", "from_name": my_name, "from_lang": my_lang, "original": text, "translated": text, "target_lang": u["lang"], "is_mine": (ws == websocket), "no_tts": True}
-                        try: await ws.send_json(payload)
-                        except Exception: pass
-                    continue
                 unique_langs = set(u["lang"] for u in ws_users.values())
-                unique_langs.add(my_lang)
+                
                 translations = {}
-                for lc in unique_langs: translations[lc] = text if lc == my_lang else await translate_for_room(text, my_lang, lc)
+                for lc in unique_langs: 
+                    translations[lc] = text if lc == my_lang else text # سيتم الترجمة في الواجهة لاحقاً إن لزم
+                
+                await room_manager.add_history(room_code, {"from": my_name, "original": text, "from_lang": my_lang, "translations": translations})
                 for ws, u in ws_users.items():
-                    payload = {"type": "translated", "from_name": my_name, "from_lang": my_lang, "original": text, "translated": translations.get(u["lang"], text), "target_lang": u["lang"], "is_mine": (ws == websocket)}
+                    payload = {"type": "translated", "from_name": my_name, "from_lang": my_lang, "original": text, "translated": text, "target_lang": u["lang"], "is_mine": (ws == websocket)}
                     try: await ws.send_json(payload)
                     except Exception: pass
     except WebSocketDisconnect: pass
