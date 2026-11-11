@@ -129,7 +129,7 @@ async def lifespan(app):
     yield
     task.cancel()
 
-app = FastAPI(title="Chat-Core API", version="12.0", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="13.0", lifespan=lifespan)
 
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get(
@@ -144,22 +144,25 @@ app.add_middleware(
     allow_credentials=False,
 )
 
-# ---------- Providers ----------
+# ---------- Providers Configuration ----------
 OXEN_KEY = os.environ.get("OXEN_API_KEY", "").strip()
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 FREEAI_KEY = os.environ.get("FREEAI_API_KEY", "").strip()
 
 USE_OXEN = os.environ.get("USE_OXEN", "1") == "1" and OXEN_KEY != ""
-USE_FREEAI = os.environ.get("USE_FREEAI", "1") == "1"
+USE_FREEAI = os.environ.get("USE_FREEAI", "1") == "1" and FREEAI_KEY != ""
 
 OXEN_BASE = "https://hub.oxen.ai/api/ai"
 GROQ_BASE = "https://api.groq.com/openai/v1"
-FREEAI_BASE = "https://api.free.ai/v1"
+FREEAI_BASE = "https://api.free.ai/v1" # أو https://api.free.ai/v1 حسب توثيقهم
 
+# النماذج: وضعنا النماذج المستقرة والمضمونة
 OXEN_TEXT_MODELS = ["claude-sonnet-4-6", "gemini-3-1-flash-lite-preview"]
 OXEN_VISION_MODELS = ["qwen/qwen3.8-27b"]
-GROQ_TEXT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+GROQ_TEXT_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
 GROQ_VISION_MODELS = ["qwen/qwen3.8-27b"]
+# Free.ai نماذج قياسية متوافقة مع OpenAI
+FREEAI_TEXT_MODELS = ["meta-llama/llama-3.1-8b-instruct", "qwen2.5-7b-instruct"]
 
 TTS_ENABLED = os.environ.get("TTS_ENABLED", "0") == "1"
 OXEN_TTS_MODEL = "bytedance-seed-audio-1-0"
@@ -217,7 +220,7 @@ def next_groq_key():
 async def call_oxen(messages, models, temperature=0.7, max_tokens=2000):
     last_err = "no model"
     for model in models:
-        client = AsyncOpenAI(base_url=OXEN_BASE, api_key=OXEN_KEY, timeout=60.0)
+        client = AsyncOpenAI(base_url=OXEN_BASE, api_key=OXEN_KEY, timeout=30.0)
         try:
             r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
             return r.choices[0].message.content
@@ -231,7 +234,7 @@ async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
     for i in range(total):
         key = next_groq_key()
         model = models[i % len(models)]
-        client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=60.0)
+        client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=30.0)
         try:
             r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
             return r.choices[0].message.content
@@ -240,19 +243,28 @@ async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
             if "429" in str(e): await asyncio.sleep(0.6)
     raise Exception(last_err)
 
-async def call_freeai_chat(messages, temperature=0.0, max_tokens=2000):
-    client = AsyncOpenAI(base_url=FREEAI_BASE, api_key=FREEAI_KEY or "sk-free-public", timeout=60.0)
-    r = await client.chat.completions.create(model="qwen2.5-7b", messages=messages, temperature=temperature, max_tokens=max_tokens)
-    return r.choices[0].message.content
+async def call_freeai(messages, models, temperature=0.7, max_tokens=2000):
+    last_err = "no model"
+    for model in models:
+        client = AsyncOpenAI(base_url=FREEAI_BASE, api_key=FREEAI_KEY, timeout=30.0)
+        try:
+            r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
+            return r.choices[0].message.content
+        except Exception as e:
+            last_err = f"{model}: {str(e)[:160]}"
+    raise Exception(last_err)
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
-    if USE_OXEN:
+    # 1. تجربة Free.ai أولاً (لأنه سريع ومجاني وبإعداداتك الجديدة)
+    if USE_FREEAI:
         try:
-            models = OXEN_VISION_MODELS if is_vision else OXEN_TEXT_MODELS
-            return await call_oxen(messages, models, temperature, max_tokens)
+        # إذا كانت هناك صورة، Free.ai قد لا يدعمها في النموذج الحالي، فنستخدم Groq أو Oxen
+            models = ["qwen2.5-7b-instruct"] if is_vision else FREEAI_TEXT_MODELS
+            return await call_freeai(messages, models, temperature, max_tokens)
         except Exception as e:
-            logger.warning("Oxen failed: %s", e)
-            
+            logger.warning("Free.ai failed: %s", e)
+
+    # 2. تجربة Groq (ممتاز للنصوص والصور)
     if GROQ_KEYS:
         try:
             models = GROQ_VISION_MODELS if is_vision else GROQ_TEXT_MODELS
@@ -260,13 +272,15 @@ async def smart_chat(messages, is_vision, temperature, max_tokens):
         except Exception as e:
             logger.warning("Groq failed: %s", e)
 
-    if USE_FREEAI:
+    # 3. تجربة Oxen (كخيار أخير)
+    if USE_OXEN:
         try:
-            return await call_freeai_chat(messages, temperature, max_tokens)
+            models = OXEN_VISION_MODELS if is_vision else OXEN_TEXT_MODELS
+            return await call_oxen(messages, models, temperature, max_tokens)
         except Exception as e:
-            logger.warning("Free.ai failed: %s", e)
+            logger.warning("Oxen failed: %s", e)
 
-    raise HTTPException(502, detail="جميع المزودين فشلوا")
+    raise HTTPException(502, detail="جميع مزودي الذكاء الاصطناعي فشلوا في الاستجابة.")
 
 LANG_NAMES = {
     "ar": "Arabic", "fr": "French", "en": "English",
@@ -307,7 +321,8 @@ async def translate_for_room(text, source_lang, target_lang):
 async def health():
     return {
         "ok": True, "provider": "multi", "active_rooms": len(room_manager.rooms),
-        "active_sessions": len(_sessions), "livekit_configured": bool(LIVEKIT_API_KEY and LIVEKIT_API_SECRET)
+        "active_sessions": len(_sessions), "livekit_configured": bool(LIVEKIT_API_KEY and LIVEKIT_API_SECRET),
+        "freeai_configured": bool(FREEAI_KEY)
     }
 
 @app.post("/rooms/create")
@@ -344,7 +359,8 @@ async def chat_endpoint(req: ChatRequest):
 
     try:
         reply = await smart_chat(messages, req.is_vision, temperature, max_tokens)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {e}")
         raise HTTPException(502, detail="تعذّر الحصول على رد.")
 
     if req.session_id and not req.is_translation:
@@ -355,13 +371,6 @@ async def chat_endpoint(req: ChatRequest):
 
 @app.post("/tts")
 async def tts_endpoint(req: TTSRequest):
-    if USE_FREEAI:
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as http:
-                r = await http.post(f"{FREEAI_BASE}/tts/", headers={"Authorization": f"Bearer {FREEAI_KEY or 'sk-free-public'}"}, json={"text": req.text, "voice": "af_bella"})
-                if r.status_code == 200: return Response(content=r.content, media_type="audio/mpeg")
-        except Exception: pass
-        
     if not TTS_ENABLED or not USE_OXEN: raise HTTPException(503, detail="TTS غير مفعّل")
     voice = TTS_VOICES.get(req.voice, "Celeste")
     try:
@@ -373,7 +382,7 @@ async def tts_endpoint(req: TTSRequest):
         raise HTTPException(502, detail="خطأ شبكة TTS")
 
 # ============================================================
-# /transcribe — تحصين شامل ضد الهلوسة + Free.ai
+# /transcribe — تحصين شامل ضد الهلوسة + الاعتماد على Groq
 # ============================================================
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
     key = next_groq_key()
@@ -403,6 +412,9 @@ def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
 
 @app.post("/transcribe")
 async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar"), language: str = Form(""), duration_ms: int = Form(0)):
+    if not GROQ_KEYS:
+        raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
+    
     contents = await file.read()
     if len(contents) < 1000: return {"original": "", "translated": "", "reason": "too_small"}
     suffix = os.path.splitext(file.filename or "")[1] or ".webm"
@@ -413,23 +425,7 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
     try:
         lang_code = (language or target_lang or "ar").lower()
         
-        # Try Free.ai first for STT
-        if USE_FREEAI:
-            try:
-                async with httpx.AsyncClient(timeout=120.0) as http:
-                    with open(temp_path, "rb") as f:
-                        files = {"file": (os.path.basename(temp_path), f, "audio/webm")}
-                        data = {"language": lang_code}
-                        r = await http.post(f"{FREEAI_BASE}/stt/", headers={"Authorization": f"Bearer {FREEAI_KEY or 'sk-free-public'}"}, files=files, data=data)
-                        if r.status_code == 200:
-                            res_data = r.json()
-                            return {"original": res_data.get("text", ""), "translated": "", "reason": "ok_freeai"}
-            except Exception as e:
-                logger.warning(f"Free.ai STT failed: {e}")
-
-        # Fallback to Groq
-        if not GROQ_KEYS: raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
-        
+        # الاعتماد على Groq Whisper (لأنه الأفضل والأكثر استقراراً في الصوت)
         result = await _run_whisper_verbose(temp_path, lang_code)
         reject, reason = _should_reject(result, duration_ms)
         if reject:
