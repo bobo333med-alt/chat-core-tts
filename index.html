@@ -823,7 +823,8 @@ async function connectLiveKit(roomCode, participantName) {
     else { addMsg("⚠️ فشل الانضمام للاجتماع: " + e.message, 'bot'); setStatus("خطأ في الاجتماع"); }
   }
 }
-  async function startVideoCall(isCaller = false) {
+
+async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
@@ -913,9 +914,11 @@ async function startManualTranslation() {
       translationAudioCtx = null;
       const durationMs = Date.now() - translationStartTime;
       if (chunks.length === 0) return;
-      if (durationMs <150) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
-      // خفض الحساسية لـ 0.004 لالتقاط الصوت العادي
+      
+      // تم تعديل الحساسية هنا لالتقاط أي صوت
+      if (durationMs < 150) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
       if (rmsMax < 0.001) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
+      
       const blob = new Blob(chunks, { type: audioRecorder.mimeType });
       setStatus('⏳ Translating...');
       const formData = new FormData();
