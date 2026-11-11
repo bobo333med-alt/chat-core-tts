@@ -1577,4 +1577,28 @@ async function sendChatMessage() {
     const data = await res.json(); translated = (data.reply || '').trim();
   } catch (e) { translated = ''; }
   try {
-    const chatId = [currentUser.uid, chatOpenWith.
+    const chatId = [currentUser.uid, chatOpenWith.uid].sort().join('_');
+    const now = Date.now();
+    await db.collection('chats').doc(chatId).collection('messages').add({
+      from: currentUser.uid, fromName: myDisplayName(), text, translated,
+      fromLang: myLang, targetLang, createdAt: now
+    });
+    await db.collection('chats').doc(chatId).set({
+      lastMessage: text, lastAt: now,
+      ['unread_' + chatOpenWith.uid]: firebase.firestore.FieldValue.increment(1)
+    }, { merge: true });
+    $('chStatus').textContent = '';
+  } catch (e) { $('chStatus').textContent = '⚠️ فشل الإرسال: ' + (e.message || ''); }
+}
+if ($('chBack')) $('chBack').addEventListener('click', () => {
+  $('chatOverlay').style.display = 'none';
+  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
+  chatOpenWith = null;
+});
+if ($('chSend')) $('chSend').addEventListener('click', sendChatMessage);
+if ($('chInput')) $('chInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+});
+</script>
+</body>
+</html>
