@@ -157,9 +157,7 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
   </div>
 </div>
 
-<button id="floatingMicBtn" title="Talk">
-  <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-</button>
+<button id="floatingMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
 
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
@@ -432,7 +430,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 const savedLang = localStorage.getItem('authLang') || 'ar';
-changeAuthLang(savedLang); 
+changeAuthLang(savedLang);
   // ==========================================
 // App Logic
 // ==========================================
@@ -640,7 +638,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
-function localeFor(code) { return { 'ar': 'ar-SA', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
+function localeFor(code) { return { 'ar': 'ar', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
 function cleanTextForTTS(text) { if (!text) return ""; return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim(); }
 function removeRepeatedWords(text) { if (!text) return ""; let cleaned = text; cleaned = cleaned.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1'); cleaned = cleaned.replace(/\b(\w+)[,.]?\s+\1\b/gi, '$1'); return cleaned.trim(); }
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
@@ -825,8 +823,7 @@ async function connectLiveKit(roomCode, participantName) {
     else { addMsg("⚠️ فشل الانضمام للاجتماع: " + e.message, 'bot'); setStatus("خطأ في الاجتماع"); }
   }
 }
-
-async function startVideoCall(isCaller = false) {
+  async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
@@ -882,7 +879,6 @@ async function startManualTranslation() {
     });
     const rawTrack = transStream.getAudioTracks()[0];
 
-    // High-pass filter + RMS monitor
     translationAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = translationAudioCtx.createMediaStreamSource(new MediaStream([rawTrack]));
     const hp = translationAudioCtx.createBiquadFilter();
@@ -918,7 +914,8 @@ async function startManualTranslation() {
       const durationMs = Date.now() - translationStartTime;
       if (chunks.length === 0) return;
       if (durationMs < 400) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
-      if (rmsMax < 0.008) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
+      // خفض الحساسية لـ 0.004 لالتقاط الصوت العادي
+      if (rmsMax < 0.004) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
       const blob = new Blob(chunks, { type: audioRecorder.mimeType });
       setStatus('⏳ Translating...');
       const formData = new FormData();
@@ -1041,9 +1038,12 @@ sendBtn.addEventListener('click', () => {
 inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
 
 function buildSystemPrompt(targetLang, sourceLang) {
-  if (isTranslatorMode) return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text.`;
-  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
+  if (isTranslatorMode) {
+    return `You are a highly accurate translation engine. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. You must output ONLY the translated text in ${langNameFor(targetLang)}. Do NOT repeat the original text. Do NOT explain.`;
+  }
+  return `You are Chat-Core, a helpful assistant. You must reply ONLY in ${langNameFor(targetLang)}. Never use any other language.`;
 }
+
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   setBusy(true); setStatus('Processing...');
@@ -1056,8 +1056,14 @@ async function ask(text, sourceLang, targetLang, speaker) {
     const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail);
-    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
-    resetStatus(); speak(data.reply.trim(), targetLang || langA.value);
+    
+    let replyText = data.reply.trim();
+    if (isTranslatorMode && replyText === text) {
+       replyText = "⚠️ Translation failed. Please try again.";
+    }
+
+    addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
+    resetStatus(); speak(replyText, targetLang || langA.value);
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
