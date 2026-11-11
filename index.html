@@ -157,7 +157,9 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
   </div>
 </div>
 
-<button id="floatingMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+<button id="floatingMicBtn" title="Talk">
+  <svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+</button>
 
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
@@ -430,7 +432,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 const savedLang = localStorage.getItem('authLang') || 'ar';
-changeAuthLang(savedLang);
+changeAuthLang(savedLang); 
   // ==========================================
 // App Logic
 // ==========================================
@@ -823,7 +825,8 @@ async function connectLiveKit(roomCode, participantName) {
     else { addMsg("⚠️ فشل الانضمام للاجتماع: " + e.message, 'bot'); setStatus("خطأ في الاجتماع"); }
   }
 }
-  async function startVideoCall(isCaller = false) {
+
+async function startVideoCall(isCaller = false) {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
@@ -1038,12 +1041,9 @@ sendBtn.addEventListener('click', () => {
 inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
 
 function buildSystemPrompt(targetLang, sourceLang) {
-  if (isTranslatorMode) {
-    return `You are a highly accurate translation engine. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. You must output ONLY the translated text in ${langNameFor(targetLang)}. Do NOT repeat the original text. Do NOT explain.`;
-  }
-  return `You are Chat-Core, a helpful assistant. You must reply ONLY in ${langNameFor(targetLang)}. Never use any other language.`;
+  if (isTranslatorMode) return `You are a professional translator. Translate the user's text naturally from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Output ONLY the translated text.`;
+  return `You are Chat-Core, a wise human friend. Reply in ${langNameFor(targetLang)}.`;
 }
-
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending) return;
   setBusy(true); setStatus('Processing...');
@@ -1056,14 +1056,8 @@ async function ask(text, sourceLang, targetLang, speaker) {
     const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail);
-    
-    let replyText = data.reply.trim();
-    if (isTranslatorMode && replyText === text) {
-       replyText = "⚠️ Translation failed. Please try again.";
-    }
-
-    addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
-    resetStatus(); speak(replyText, targetLang || langA.value);
+    addMsg(data.reply.trim(), isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
+    resetStatus(); speak(data.reply.trim(), targetLang || langA.value);
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
