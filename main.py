@@ -11,11 +11,11 @@ from typing import List, Optional, Dict, Tuple
 import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
 from livekit import api
 
-# ---------- المراقبة والسجلات ----------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("chat-core")
 
@@ -105,7 +105,7 @@ async def lifespan(app):
         logger.info("✅ LiveKit credentials found.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="20.0 Ultimate", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="21.0 Ultra", lifespan=lifespan)
 
 ALLOWED_ORIGINS = ["*"]
 app.add_middleware(
@@ -116,11 +116,10 @@ app.add_middleware(
     allow_credentials=False,
 )
 
-# ---------- إعدادات Groq المحدثة ----------
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 
-# النماذج الأحدث والمستقرة في Groq حالياً
+# النماذج المستقرة حالياً في Groq (مرتبة حسب القوة والسرعة)
 GROQ_TEXT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 _sessions: Dict[str, dict] = {}
@@ -152,36 +151,45 @@ class MeetingTokenRequest(BaseModel):
 
 _groq_idx = {"i": 0}
 def next_groq_key():
-    if not GROQ_KEYS: raise HTTPException(503, detail="لا يوجد مفتاح Groq.")
+    if not GROQ_KEYS: raise HTTPException(503, detail="لا يوجد مفتاح Groq في إعدادات Render.")
     k = GROQ_KEYS[_groq_idx["i"] % len(GROQ_KEYS)]
     _groq_idx["i"] += 1
     return k
 
 async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
-    last_err = "no model"
-    total = len(GROQ_KEYS) * len(models) if GROQ_KEYS else 0
-    for i in range(total):
+    last_err = "no model tried"
+    if not GROQ_KEYS:
+        raise Exception("No GROQ_KEYS configured in environment variables.")
+
+    for model in models:
         key = next_groq_key()
-        model = models[i % len(models)]
         client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=30.0)
         try:
-            r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
+            r = await client.chat.completions.create(
+                model=model, messages=messages, temperature=temperature, max_tokens=max_tokens
+            )
+            logger.info(f"✅ Groq success with model: {model}")
             return r.choices[0].message.content
         except Exception as e:
-            last_err = f"{model}: {str(e)[:160]}"
-            logger.warning(f"Groq Attempt Failed ({model}): {last_err}")
-            if "429" in str(e): await asyncio.sleep(0.6)
-    raise Exception(last_err)
+            last_err = str(e)
+            logger.warning(f"Groq model {model} failed: {last_err[:160]}")
+            if "rate_limit" in last_err or "429" in last_err:
+                await asyncio.sleep(1.0)
+            continue
+    raise Exception(f"All Groq models failed. Last error: {last_err}")
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
     if not GROQ_KEYS:
-        raise HTTPException(502, detail="مفتاح Groq غير موجود في الإعدادات.")
+        raise HTTPException(502, detail="مفتاح Groq غير موجود في إعدادات Render. يرجى إضافته في Environment.")
     try:
         return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
     except Exception as e:
-        raise HTTPException(502, detail="فشل الاتصال بالذكاء الاصطناعي. تأكد من صحة مفتاح Groq.")
+        logger.error(f"Smart_chat failed: {e}")
+        raise HTTPException(502, detail="فشل الاتصال بالذكاء الاصطناعي. تأكد من أن مفتاح Groq صحيح.")
 
 LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian"}
+
+# فلتر الهلوسة الصارم (يمنع الكلمات الغريبة التي ظهرت سابقاً)
 HALLUCINATION_BLACKLIST = ["كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية", "الموضوعات في الوصف"]
 
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
@@ -189,7 +197,6 @@ async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
     client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
     lang_code = language if language in LANG_NAMES else "ar"
     
-    # تم حذف الـ prompt نهائياً لمنع الهلوسة
     with open(temp_path, "rb") as af:
         resp = await client.audio.transcriptions.create(
             model="whisper-large-v3", 
@@ -204,17 +211,16 @@ def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
     text = (result.get("text") or "").strip()
     if not text or len(text) < 2: return True, "empty"
     
-    # فلتر الهلوسة الصارم (الكلمات التي ظهرت في الصور)
     for bad_word in HALLUCINATION_BLACKLIST:
         if bad_word in text:
             logger.warning(f"Hallucination blocked: {text}")
             return True, "hallucination"
 
     no_speech = float(result.get("no_speech_prob") or 0.0)
-    if no_speech > 0.6: return True, f"no_speech"
+    if no_speech > 0.6: return True, "no_speech"
     
     avg_logprob = float(result.get("avg_logprob") or 0.0)
-    if avg_logprob < -1.0: return True, f"low_confidence"
+    if avg_logprob < -1.0: return True, "low_confidence"
     
     return False, "ok"
 
@@ -326,7 +332,7 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 
                 translations = {}
                 for lc in unique_langs: 
-                    translations[lc] = text if lc == my_lang else text # سيتم الترجمة في الواجهة لاحقاً إن لزم
+                    translations[lc] = text if lc == my_lang else text
                 
                 await room_manager.add_history(room_code, {"from": my_name, "original": text, "from_lang": my_lang, "translations": translations})
                 for ws, u in ws_users.items():
