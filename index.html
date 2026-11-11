@@ -913,7 +913,7 @@ async function startManualTranslation() {
       translationAudioCtx = null;
       const durationMs = Date.now() - translationStartTime;
       if (chunks.length === 0) return;
-      if (durationMs < 400) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
+      if (durationMs <150) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
       // خفض الحساسية لـ 0.004 لالتقاط الصوت العادي
       if (rmsMax < 0.004) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
       const blob = new Blob(chunks, { type: audioRecorder.mimeType });
