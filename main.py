@@ -1,6 +1,6 @@
 import os
 import re
-import time 
+import time
 import asyncio
 import secrets
 import logging
@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from typing import List, Optional, Dict, Tuple
 
 import httpx
-import edge_tts  # ⚠️ جديد — pip install edge-tts
+import edge_tts
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -24,7 +24,6 @@ logger = logging.getLogger("chat-core")
 LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://chat-core-ozzy0gzk.livekit.cloud")
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
-
 
 class RoomManager:
     def __init__(self):
@@ -98,9 +97,7 @@ class RoomManager:
             except Exception:
                 pass
 
-
 room_manager = RoomManager()
-
 
 @asynccontextmanager
 async def lifespan(app):
@@ -113,7 +110,6 @@ async def lifespan(app):
     else:
         logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
-
 
 app = FastAPI(title="Chat-Core API", version="21.1 Ultra", lifespan=lifespan)
 
@@ -128,12 +124,12 @@ app.add_middleware(
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 
-GROQ_TEXT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
-GROQ_FAST_MODEL = "llama-3.1-8b-instant"  # للترجمة (أسرع وأرخص)
+# تم تحديث أسماء النماذج هنا
+GROQ_TEXT_MODELS = ["llama3-70b-8192", "llama3-8b-8192"]
+GROQ_FAST_MODEL = "llama3-8b-8192"
 
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
-
 
 def append_session(sid, user_text, reply):
     if not sid:
@@ -144,7 +140,6 @@ def append_session(sid, user_text, reply):
     entry["msgs"] = entry["msgs"][-SESSION_MAX_MSGS:]
     _sessions[sid] = entry
 
-
 def get_session(sid, last_n=6):
     if not sid:
         return []
@@ -153,18 +148,15 @@ def get_session(sid, last_n=6):
         return []
     return entry["msgs"][-last_n:]
 
-
 class ChatRequest(BaseModel):
     messages: List[dict]
     is_vision: bool = False
     is_translation: bool = False
     session_id: Optional[str] = None
 
-
 class MeetingTokenRequest(BaseModel):
     room_name: str
     participant_name: str
-
 
 class TTSRequest(BaseModel):
     text: str
@@ -172,9 +164,7 @@ class TTSRequest(BaseModel):
     voice: str = "woman"
     session_id: Optional[str] = None
 
-
 _groq_idx = {"i": 0}
-
 
 def next_groq_key():
     if not GROQ_KEYS:
@@ -183,9 +173,7 @@ def next_groq_key():
     _groq_idx["i"] += 1
     return k
 
-
 def _classify_groq_error(e: Exception) -> Tuple[int, str]:
-    """يحوّل خطأ Groq إلى كود HTTP ورسالة مناسبة."""
     status = getattr(e, "status_code", None)
     msg = str(e)
     if status == 401 or "invalid_api_key" in msg or "Unauthorized" in msg:
@@ -195,7 +183,6 @@ def _classify_groq_error(e: Exception) -> Tuple[int, str]:
     if status == 400:
         return 400, f"طلب غير صحيح إلى Groq: {msg[:160]}"
     return 502, f"خطأ من Groq: {msg[:200]}"
-
 
 async def call_groq(messages, models, temperature=0.7, max_tokens=2000, timeout=30.0):
     last_err = "no model tried"
@@ -217,32 +204,23 @@ async def call_groq(messages, models, temperature=0.7, max_tokens=2000, timeout=
             if "rate_limit" in last_err or "429" in last_err:
                 await asyncio.sleep(0.8)
             continue
-    # كل النماذج فشلت — نمرر الخطأ الأصلي مع تصنيف
     raise HTTPException(*_classify_groq_error(Exception(last_err)))
-
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
     if not GROQ_KEYS:
         raise HTTPException(502, detail="مفتاح Groq غير موجود في إعدادات Render. يرجى إضافته في Environment.")
     return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
 
-
 LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German",
               "tr": "Turkish", "it": "Italian", "zh": "Chinese", "ru": "Russian",
               "es": "Spanish", "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"}
 
-
-# ============================================
-# Translation Cache (in-memory, TTL 1h)
-# ============================================
 _trans_cache: Dict[str, Tuple[str, float]] = {}
 CACHE_TTL = 3600
-
 
 def _cache_key(text: str, src: str, tgt: str) -> str:
     h = hashlib.sha1(text.encode("utf-8")).hexdigest()
     return f"{src}:{tgt}:{h}"
-
 
 def _cache_get(text: str, src: str, tgt: str) -> Optional[str]:
     k = _cache_key(text, src, tgt)
@@ -255,18 +233,14 @@ def _cache_get(text: str, src: str, tgt: str) -> Optional[str]:
         return None
     return val
 
-
 def _cache_set(text: str, src: str, tgt: str, val: str):
     _trans_cache[_cache_key(text, src, tgt)] = (val, time.time())
-    # حد أقصى بسيط
     if len(_trans_cache) > 2000:
         oldest = sorted(_trans_cache.items(), key=lambda kv: kv[1][1])[:500]
         for k, _ in oldest:
             _trans_cache.pop(k, None)
 
-
 async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
-    """ترجمة نص بين لغتين مع caching. عند الفشل يعيد النص الأصلي."""
     if not text or not text.strip():
         return text
     if src_lang == tgt_lang:
@@ -280,7 +254,7 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
                 {"role": "system", "content": f"You are a translation engine. Translate the user's text from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translated text. No explanations, no quotes."},
                 {"role": "user", "content": text},
             ],
-            models=[GROQ_FAST_MODEL, "llama-3.3-70b-versatile"],
+            models=[GROQ_FAST_MODEL, "llama3-70b-8192"],
             temperature=0.0,
             max_tokens=800,
             timeout=20.0,
@@ -292,12 +266,9 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
         return text
     except Exception as e:
         logger.warning(f"translate_text failed ({src_lang}->{tgt_lang}): {e}")
-        return text  # fallback: النص الأصلي
+        return text
 
-
-# فلتر الهلوسة
 HALLUCINATION_BLACKLIST = ["كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية", "الموضوعات في الوصف"]
-
 
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
     key = next_groq_key()
@@ -309,7 +280,6 @@ async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
             temperature=0.0, response_format="verbose_json"
         )
     return resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
-
 
 def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
     text = (result.get("text") or "").strip()
@@ -329,10 +299,6 @@ def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
         return True, "low_confidence"
     return False, "ok"
 
-
-# ============================================
-# TTS — Edge-TTS (free, high quality)
-# ============================================
 TTS_VOICES = {
     "ar": {"man": "ar-SA-HamedNeural", "woman": "ar-SA-ZariyahNeural", "girl": "ar-EG-SalmaNeural", "child": "ar-EG-SalmaNeural"},
     "fr": {"man": "fr-FR-HenriNeural", "woman": "fr-FR-DeniseNeural", "girl": "fr-FR-EloiseNeural", "child": "fr-FR-EloiseNeural"},
@@ -348,9 +314,7 @@ TTS_VOICES = {
     "no": {"man": "nb-NO-FinnNeural", "woman": "nb-NO-PernilleNeural", "girl": "nb-NO-PernilleNeural", "child": "nb-NO-PernilleNeural"},
 }
 
-
 def _pick_voice(lang: str, voice: str) -> Tuple[str, str, str]:
-    """يرجع (voice_name, rate, pitch)."""
     lang = (lang or "ar").lower()
     voice = (voice or "woman").lower()
     table = TTS_VOICES.get(lang) or TTS_VOICES["en"]
@@ -364,7 +328,6 @@ def _pick_voice(lang: str, voice: str) -> Tuple[str, str, str]:
         rate = "+5%"
     return name, rate, pitch
 
-
 async def synthesize_tts(text: str, lang: str, voice: str) -> bytes:
     name, rate, pitch = _pick_voice(lang, voice)
     buf = bytearray()
@@ -374,19 +337,13 @@ async def synthesize_tts(text: str, lang: str, voice: str) -> bytes:
             buf.extend(chunk["data"])
     return bytes(buf)
 
-
-# ============================================
-# Endpoints
-# ============================================
 @app.get("/health")
 async def health():
     return {"ok": True, "provider": "groq", "keys_configured": len(GROQ_KEYS),
             "active_rooms": len(room_manager.rooms)}
 
-
 @app.get("/health/groq")
 async def health_groq():
-    """يختبر مفتاح Groq فعلياً."""
     if not GROQ_KEYS:
         return {"status": "missing", "detail": "GROQ_API_KEYS not set"}
     try:
@@ -403,11 +360,9 @@ async def health_groq():
     except Exception as e:
         return {"status": "error", "detail": str(e)[:200]}
 
-
 @app.post("/rooms/create")
 async def create_room_endpoint():
     return {"code": await room_manager.create_room()}
-
 
 @app.post("/get-token")
 async def get_token_endpoint(req: MeetingTokenRequest):
@@ -419,7 +374,6 @@ async def get_token_endpoint(req: MeetingTokenRequest):
         return {"token": token.to_jwt(), "url": LIVEKIT_URL}
     except Exception as e:
         raise HTTPException(500, detail=str(e))
-
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
@@ -442,7 +396,6 @@ async def chat_endpoint(req: ChatRequest):
 
     return {"reply": reply}
 
-
 @app.post("/tts")
 async def tts_endpoint(req: TTSRequest):
     text = (req.text or "").strip()
@@ -459,7 +412,6 @@ async def tts_endpoint(req: TTSRequest):
     except Exception as e:
         logger.error(f"TTS failed: {e}")
         raise HTTPException(503, detail=f"فشل توليد الصوت: {str(e)[:120]}")
-
 
 @app.post("/transcribe")
 async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar"),
@@ -480,7 +432,6 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
         if reject:
             return {"original": "", "translated": "", "reason": reason}
         original = result.get("text", "").strip()
-        # ترجمة حقيقية عبر Groq
         translated = original
         if target_lang and target_lang != lang_code:
             translated = await translate_text(original, lang_code, target_lang)
@@ -495,7 +446,6 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
                 os.remove(temp_path)
             except Exception:
                 pass
-
 
 @app.websocket("/ws/{room_code}")
 async def ws_endpoint(websocket: WebSocket, room_code: str):
@@ -547,7 +497,6 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                     continue
                 ws_users = await room_manager.get_ws_users(room_code)
 
-                # 🌐 ترجمة حقيقية لكل لغة هدف (مع caching)
                 target_langs = set(u["lang"] for u in ws_users.values()) - {my_lang}
                 translations: Dict[str, str] = {my_lang: text}
                 for tgt in target_langs:
@@ -555,7 +504,7 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                         translations[tgt] = await translate_text(text, my_lang, tgt)
                     except Exception as e:
                         logger.warning(f"WS translate error {my_lang}->{tgt}: {e}")
-                        translations[tgt] = text  # fallback
+                        translations[tgt] = text
 
                 await room_manager.add_history(room_code, {
                     "from": my_name, "original": text, "from_lang": my_lang,
