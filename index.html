@@ -43,7 +43,7 @@ body { font-family: Tahoma, sans-serif; background: #0ea5e9; color: #fff; displa
 #avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; }
 #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
 #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
-#removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 14px; height: 14px; border-radius: 50%; background: #000; border: none; cursor: pointer; z-index: 10; }
+#removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; background: #000; border: 2px solid #fff; cursor: pointer; z-index: 999; color: white; font-weight: bold; font-size: 14px; align-items: center; justify-content: center; }
 body.remote-mode #avatar-wrap, body.meeting-mode #avatar-wrap { display: none !important; }
 #closeFullscreen, #closeVideoFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 .inner-white-dot { width: 14px; height: 14px; background: #fff; border-radius: 50%; }
@@ -314,7 +314,7 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
-  <button id="removeAvatarBtn" title="Reset Avatar"></button>
+  <button id="removeAvatarBtn" title="إغلاق الأفاتار">✕</button>
   <button id="closeFullscreen" title="Close"><div class="inner-white-dot"></div></button>
 </div>
 
@@ -483,7 +483,7 @@ const voiceSelect = $('voiceSelect');
 $('btnLogout').addEventListener('click', logoutUser);
 
 let appMode = 'none';
-let chatHistory = [], activeSpeaker = null, isSending = false, isCompressing = false;
+let chatHistory = [], isSending = false, isCompressing = false;
 let isTranslatorMode = false;
 let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
@@ -494,20 +494,20 @@ let isCameraOn = true;
 let isWebRtcMicOn = true;
 let livekitRoom = null;
 
-// Face-to-Face variables (Replaced Web Speech API)
+// Face-to-Face variables
 let localRecorder = null;
 let localStreamMic = null;
 let localChunks = [];
 let localStartTime = 0;
 let currentSpeaker = null;
+let isLocalProcessing = false; // منع الضغط المتكرر
 
-// Remote/Meeting Translation Pipeline state
+// Remote/Meeting variables
 let isManualTranslating = false;
 let audioRecorder = null;
 let recordTimer = null;
 let translationStartTime = 0;
 let translationAudioCtx = null;
-
 let myIsCaller = false;
 let _rtcInitiated = false;
 let _chLangPopulated = false;
@@ -694,7 +694,7 @@ $('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOv
 
 backBtn.addEventListener('click', async () => {
   if (isManualTranslating) stopManualTranslation();
-  if (localRecorder && localRecorder.state === 'recording') stopLocalMic();
+  if (localRecorder && localRecorder.state === 'recording') localRecorder.stop();
   stopAudio();
   if (appMode === 'remote' || appMode === 'meeting') {
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
@@ -733,7 +733,7 @@ $('copyRoomBtn').addEventListener('click', () => {
 avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return; avatarWrap.classList.toggle('fullscreen'); });
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
-stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); if (localRecorder && localRecorder.state === 'recording') stopLocalMic(); });
+stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); if (localRecorder && localRecorder.state === 'recording') localRecorder.stop(); });
 toggleCamBtn.addEventListener('click', async () => {
   isCameraOn = !isCameraOn;
   toggleCamBtn.classList.toggle('off', !isCameraOn);
@@ -865,14 +865,20 @@ async function startVideoCall(isCaller = false) {
 }
 
 // ==========================================
-// FACE-TO-FACE: Local Recording (Replaces Web Speech API)
+// FACE-TO-FACE
 // ==========================================
 async function toggleLocalMic(speaker) {
+  if (isLocalProcessing) return;
   unlockAudio();
+  
   if (localRecorder && localRecorder.state === 'recording') {
     localRecorder.stop();
+    micA.classList.remove('recording'); 
+    micB.classList.remove('recording');
+    setStatus('⏳ Processing...');
     return;
   }
+  
   if (localRecorder) { try { localRecorder.stop(); } catch(e){} }
   
   currentSpeaker = speaker;
@@ -882,6 +888,21 @@ async function toggleLocalMic(speaker) {
   
   try {
     localStreamMic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(localStreamMic);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    const rmsBuffer = new Float32Array(analyser.fftSize);
+    let rmsMax = 0;
+    const rmsInterval = setInterval(() => {
+      analyser.getFloatTimeDomainData(rmsBuffer);
+      let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+      const rms = Math.sqrt(sum / rmsBuffer.length);
+      if (rms > rmsMax) rmsMax = rms;
+    }, 100);
+
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     localRecorder = new MediaRecorder(localStreamMic, { mimeType });
     localChunks = [];
@@ -889,13 +910,21 @@ async function toggleLocalMic(speaker) {
     localRecorder.ondataavailable = e => { if (e.data.size > 0) localChunks.push(e.data); };
     
     localRecorder.onstop = async () => {
+      clearInterval(rmsInterval);
       localStreamMic.getTracks().forEach(t => t.stop());
+      try { if (audioCtx.state !== 'closed') await audioCtx.close(); } catch(e){}
+      
       const durationMs = Date.now() - localStartTime;
-      if (durationMs < 500) { unlockMics(); return; }
+      
+      if (durationMs < 800 || rmsMax < 0.005) { 
+        isLocalProcessing = false; unlockMics(); 
+        if (durationMs >= 800) addMsg('⚠️ لم يُسمع صوت واضح.', 'bot');
+        return; 
+      }
       
       const blob = new Blob(localChunks, { type: localRecorder.mimeType });
-      
       setStatus('⏳ جاري استخراج النص والترجمة...');
+      
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
       formData.append('target_lang', targetLang); 
@@ -908,7 +937,6 @@ async function toggleLocalMic(speaker) {
           const data = await res.json();
           if (data.original && data.original.length > 1) {
             addMsg(`You: ${data.original}`, speaker === 'A' ? 'user-a' : 'user-b', lang);
-            
             if (isTranslatorMode) {
               if (data.translated) {
                 addMsg(`↳ ${data.translated}`, 'bot', targetLang);
@@ -922,6 +950,8 @@ async function toggleLocalMic(speaker) {
           }
         }
       } catch(e) { console.warn('Audio upload failed', e); }
+      
+      isLocalProcessing = false;
       unlockMics();
     };
     
@@ -933,6 +963,7 @@ async function toggleLocalMic(speaker) {
     setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
   } catch (e) {
     addMsg("⚠️ تعذر الوصول للمايك.", "bot");
+    isLocalProcessing = false;
     unlockMics();
   }
 }
@@ -951,10 +982,7 @@ async function startManualTranslation() {
   if (isManualTranslating) return;
   try {
     const transStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true, noiseSuppression: true, autoGainControl: true,
-        channelCount: 1, sampleRate: 48000
-      }
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
     });
     const rawTrack = transStream.getAudioTracks()[0];
 
@@ -993,8 +1021,7 @@ async function startManualTranslation() {
       const durationMs = Date.now() - translationStartTime;
       if (chunks.length === 0) return;
       
-      if (durationMs < 150) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
-      if (rmsMax < 0.001) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
+      if (durationMs < 150 || rmsMax < 0.001) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
       
       const blob = new Blob(chunks, { type: audioRecorder.mimeType });
       setStatus('⏳ Translating...');
@@ -1007,7 +1034,7 @@ async function startManualTranslation() {
         const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
         if (res.ok) {
           const data = await res.json();
-          if (data.original && data.original.length > 1 && data.original !== "لم يتم التعرف على أي كلام.") {
+          if (data.original && data.original.length > 1) {
             addMsg(`You: ${data.original}`, 'user-a', myLang);
             sendRemoteMessage(data.original);
           } else { addMsg(`⚠️ لم يتم التعرف على كلام.`, 'bot'); }
@@ -1021,7 +1048,7 @@ async function startManualTranslation() {
     isManualTranslating = true;
     updateTranslatorUI();
     setStatus('🎤 Recording... Press mic to stop & translate');
-    recordTimer = setTimeout(() => { if (isManualTranslating) stopManualTranslation(); }, 60000); // زيادة المدة إلى 60 ثانية
+    recordTimer = setTimeout(() => { if (isManualTranslating) stopManualTranslation(); }, 60000);
   } catch (e) {
     console.error("Mic access failed", e);
     addMsg("⚠️ تعذر الوصول للمايك.", "bot");
@@ -1082,12 +1109,17 @@ videoAvatarUpload.addEventListener('change', (e) => {
   if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block'; avatarVideo.src = currentAvatarObjectUrl;
-  if (isBotTalking || isRecording) avatarVideo.play().catch(()=>{});
-  removeAvatarBtn.style.display = 'block';
+  if (isBotTalking) avatarVideo.play().catch(()=>{});
+  removeAvatarBtn.style.display = 'flex';
 });
 removeAvatarBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
-  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block'; removeAvatarBtn.style.display = 'none';
+  e.stopPropagation(); 
+  avatarVideo.pause(); 
+  avatarVideo.removeAttribute('src'); 
+  avatarVideo.load();
+  avatarVideo.style.display = 'none'; 
+  avatarLogo.style.display = 'block'; 
+  removeAvatarBtn.style.display = 'none';
   if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
 });
 mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = 'none'; if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none'; else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; } });
@@ -1096,6 +1128,7 @@ document.addEventListener('click', (e) => { if (!actionMenu.contains(e.target) &
 menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
 menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
+
 videoUpload.addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
   if (appMode === 'remote' || appMode === 'meeting') return alert('إرسال الفيديوهات غير مدعوم حالياً.');
@@ -1103,16 +1136,22 @@ videoUpload.addEventListener('change', async (e) => {
   const targetLang = langB.value;
   addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
   setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
-  const formData = new FormData(); formData.append('file', file); formData.append('target_lang', targetLang);
+  const formData = new FormData(); 
+  formData.append('file', file); 
+  formData.append('target_lang', targetLang);
+  formData.append('language', langA.value);
+  formData.append('duration_ms', '10000');
   try {
     const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
-    addMsg(data.original, 'user-b', 'AUTO'); addMsg(data.translated, 'bot', targetLang);
+    if (data.original) addMsg(data.original, 'user-b', 'AUTO'); 
+    if (data.translated) addMsg(data.translated, 'bot', targetLang);
     speak(data.translated, targetLang); setStatus('✅ تمت الترجمة بنجاح!');
   } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); }
   finally { setBusy(false); e.target.value = ''; }
 });
+
 async function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
   isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
