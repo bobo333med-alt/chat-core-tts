@@ -431,7 +431,8 @@ auth.onAuthStateChanged(user => {
 });
 const savedLang = localStorage.getItem('authLang') || 'ar';
 changeAuthLang(savedLang);
-  // ==========================================
+
+// ==========================================
 // App Logic
 // ==========================================
 const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
@@ -493,23 +494,20 @@ let isCameraOn = true;
 let isWebRtcMicOn = true;
 let livekitRoom = null;
 
-// Translation Pipeline state
+// Face-to-Face variables (Replaced Web Speech API)
+let localRecorder = null;
+let localStreamMic = null;
+let localChunks = [];
+let localStartTime = 0;
+let currentSpeaker = null;
+
+// Remote/Meeting Translation Pipeline state
 let isManualTranslating = false;
 let audioRecorder = null;
 let recordTimer = null;
 let translationStartTime = 0;
 let translationAudioCtx = null;
 
-// Face-to-face vars
-let finalTranscriptBuffer = '';
-let lastSentText = '';
-let lastSentTime = 0;
-let isProcessingAudio = false;
-let silenceTimer = null;
-let isMicIntendedOn = false;
-let isRecording = false;
-
-// RTC vars
 let myIsCaller = false;
 let _rtcInitiated = false;
 let _chLangPopulated = false;
@@ -640,7 +638,6 @@ function fetchWithTimeout(url, options, timeoutMs) {
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
 function cleanTextForTTS(text) { if (!text) return ""; return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim(); }
-function removeRepeatedWords(text) { if (!text) return ""; let cleaned = text; cleaned = cleaned.replace(/\b(\w+)(?:\s+\1\b)+/gi, '$1'); cleaned = cleaned.replace(/\b(\w+)[,.]?\s+\1\b/gi, '$1'); return cleaned.trim(); }
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image(); img.src = base64Str;
@@ -697,6 +694,7 @@ $('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOv
 
 backBtn.addEventListener('click', async () => {
   if (isManualTranslating) stopManualTranslation();
+  if (localRecorder && localRecorder.state === 'recording') stopLocalMic();
   stopAudio();
   if (appMode === 'remote' || appMode === 'meeting') {
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
@@ -735,7 +733,7 @@ $('copyRoomBtn').addEventListener('click', () => {
 avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return; avatarWrap.classList.toggle('fullscreen'); });
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
 clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
-stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); });
+stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); if (localRecorder && localRecorder.state === 'recording') stopLocalMic(); });
 toggleCamBtn.addEventListener('click', async () => {
   isCameraOn = !isCameraOn;
   toggleCamBtn.classList.toggle('off', !isCameraOn);
@@ -867,7 +865,87 @@ async function startVideoCall(isCaller = false) {
 }
 
 // ==========================================
-// MANUAL TRANSLATION (Improved: AEC + RMS + duration)
+// FACE-TO-FACE: Local Recording (Replaces Web Speech API)
+// ==========================================
+async function toggleLocalMic(speaker) {
+  unlockAudio();
+  if (localRecorder && localRecorder.state === 'recording') {
+    localRecorder.stop();
+    return;
+  }
+  if (localRecorder) { try { localRecorder.stop(); } catch(e){} }
+  
+  currentSpeaker = speaker;
+  const lang = speaker === 'A' ? langA.value : langB.value;
+  const targetLang = speaker === 'A' ? langB.value : langA.value;
+  const btn = speaker === 'A' ? micA : micB;
+  
+  try {
+    localStreamMic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+    localRecorder = new MediaRecorder(localStreamMic, { mimeType });
+    localChunks = [];
+    
+    localRecorder.ondataavailable = e => { if (e.data.size > 0) localChunks.push(e.data); };
+    
+    localRecorder.onstop = async () => {
+      localStreamMic.getTracks().forEach(t => t.stop());
+      const durationMs = Date.now() - localStartTime;
+      if (durationMs < 500) { unlockMics(); return; }
+      
+      const blob = new Blob(localChunks, { type: localRecorder.mimeType });
+      
+      setStatus('⏳ جاري استخراج النص والترجمة...');
+      const formData = new FormData();
+      formData.append('file', blob, 'audio.webm');
+      formData.append('target_lang', targetLang); 
+      formData.append('language', lang); 
+      formData.append('duration_ms', String(durationMs));
+      
+      try {
+        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.original && data.original.length > 1) {
+            addMsg(`You: ${data.original}`, speaker === 'A' ? 'user-a' : 'user-b', lang);
+            
+            if (isTranslatorMode) {
+              if (data.translated) {
+                addMsg(`↳ ${data.translated}`, 'bot', targetLang);
+                speak(data.translated, targetLang);
+              }
+            } else {
+              ask(data.original, lang, targetLang, speaker);
+            }
+          } else {
+            addMsg(`⚠️ لم يتم التعرف على كلام.`, 'bot');
+          }
+        }
+      } catch(e) { console.warn('Audio upload failed', e); }
+      unlockMics();
+    };
+    
+    localRecorder.start();
+    localStartTime = Date.now();
+    btn.classList.add('recording');
+    micA.disabled = speaker !== 'A';
+    micB.disabled = speaker !== 'B';
+    setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
+  } catch (e) {
+    addMsg("⚠️ تعذر الوصول للمايك.", "bot");
+    unlockMics();
+  }
+}
+function unlockMics() {
+  micA.disabled = false; micB.disabled = false;
+  micA.classList.remove('recording'); micB.classList.remove('recording');
+  resetStatus();
+}
+micA.addEventListener('click', () => toggleLocalMic('A'));
+micB.addEventListener('click', () => toggleLocalMic('B'));
+
+// ==========================================
+// REMOTE / MEETING: Manual Translation
 // ==========================================
 async function startManualTranslation() {
   if (isManualTranslating) return;
@@ -915,7 +993,6 @@ async function startManualTranslation() {
       const durationMs = Date.now() - translationStartTime;
       if (chunks.length === 0) return;
       
-      // تم تعديل الحساسية هنا لالتقاط أي صوت
       if (durationMs < 150) { addMsg('⚠️ تسجيل قصير جداً.', 'bot'); resetStatus(); return; }
       if (rmsMax < 0.001) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
       
@@ -944,7 +1021,7 @@ async function startManualTranslation() {
     isManualTranslating = true;
     updateTranslatorUI();
     setStatus('🎤 Recording... Press mic to stop & translate');
-    recordTimer = setTimeout(() => { if (isManualTranslating) stopManualTranslation(); }, 90000);
+    recordTimer = setTimeout(() => { if (isManualTranslating) stopManualTranslation(); }, 60000); // زيادة المدة إلى 60 ثانية
   } catch (e) {
     console.error("Mic access failed", e);
     addMsg("⚠️ تعذر الوصول للمايك.", "bot");
@@ -958,81 +1035,6 @@ function stopManualTranslation() {
   updateTranslatorUI();
 }
 
-// ==========================================
-// Face-to-Face
-// ==========================================
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-if (SR) {
-  recognition = new SR();
-  recognition.continuous = true; recognition.interimResults = true;
-  const processVoice = (text) => {
-    const clean = removeRepeatedWords(text).trim();
-    if (!clean) return;
-    const now = Date.now();
-    if (clean === lastSentText && (now - lastSentTime) < 3000) return;
-    lastSentText = clean; lastSentTime = now;
-    const isA = activeSpeaker === 'A';
-    addMsg(clean, isA ? 'user-a' : 'user-b', isA ? langA.value : langB.value);
-    ask(clean, isA ? langA.value : langB.value, isA ? langB.value : langA.value, activeSpeaker);
-  };
-  recognition.onresult = (e) => {
-    if (isProcessingAudio) return;
-    let interim = "";
-    for (let i = e.resultIndex; i < e.results.length; ++i) {
-      if (e.results[i].isFinal) {
-        let newPart = e.results[i][0].transcript.trim();
-        if (newPart) {
-          let cleanBuffer = finalTranscriptBuffer.toLowerCase().replace(/[.,?!]/g, '').trim();
-          let cleanNewPart = newPart.toLowerCase().replace(/[.,?!]/g, '').trim();
-          if (cleanNewPart.length > 0) {
-            if (!cleanBuffer.endsWith(cleanNewPart) && !finalTranscriptBuffer.includes(newPart + " ")) {
-              finalTranscriptBuffer += newPart + " ";
-            }
-          }
-        }
-      } else { interim += e.results[i][0].transcript; }
-    }
-    setStatus(`🎤 Listening... ${finalTranscriptBuffer.slice(-30)}${interim}`);
-    clearTimeout(silenceTimer);
-    silenceTimer = setTimeout(() => {
-      if (finalTranscriptBuffer.trim()) {
-        const textToSend = finalTranscriptBuffer.trim();
-        finalTranscriptBuffer = ""; isProcessingAudio = true;
-        try { recognition.abort(); } catch(e){}
-        processVoice(textToSend); resetStatus();
-      }
-    }, 2500);
-  };
-  recognition.onerror = (e) => {
-    if (e.error === 'no-speech') return;
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { isMicIntendedOn = false; unlockMics(); setStatus('Mic permission denied.'); return; }
-    if (e.error === 'aborted') { unlockMics(); return; }
-    setStatus('Mic Error: ' + e.error);
-  };
-  recognition.onend = () => { isProcessingAudio = false; unlockMics(); };
-  const startMic = (speaker) => {
-    unlockAudio();
-    if (isMicIntendedOn && activeSpeaker === speaker) {
-      isMicIntendedOn = false; isRecording = false; clearTimeout(silenceTimer); try { recognition.abort(); } catch(e){}
-      if (finalTranscriptBuffer.trim()) { processVoice(finalTranscriptBuffer.trim()); finalTranscriptBuffer = ""; }
-      unlockMics(); return;
-    }
-    if (isMicIntendedOn) { try { recognition.abort(); } catch(e){} }
-    stopAudio(); activeSpeaker = speaker; setAvatarState(true); isMicIntendedOn = true; isRecording = true; finalTranscriptBuffer = "";
-    if (speaker === 'A') { recognition.lang = localeFor(langA.value); micA.classList.add('recording'); micB.disabled = true; setStatus('🎤 Listening (You)...'); }
-    else if (speaker === 'B') { recognition.lang = localeFor(langB.value); micB.classList.add('recording'); micA.disabled = true; setStatus('🎤 Listening (Friend)...'); }
-    try { recognition.start(); } catch (e) {}
-  };
-  micA.addEventListener('click', () => startMic('A'));
-  micB.addEventListener('click', () => startMic('B'));
-}
-function unlockMics() {
-  activeSpeaker = null; isRecording = false; isMicIntendedOn = false;
-  micA.disabled = false; micB.disabled = false;
-  micA.classList.remove('recording'); micB.classList.remove('recording');
-  resetStatus();
-}
 sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim();
   if (appMode === 'remote' || appMode === 'meeting') { if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; } }
@@ -1304,7 +1306,7 @@ $('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; nav
 renderPlaylist();
 
 // ==========================================
-// CHAT-CORE FIX: الدوال الناقصة
+// Core Functions
 // ==========================================
 async function speak(text, lang) {
   if (!text) return;
