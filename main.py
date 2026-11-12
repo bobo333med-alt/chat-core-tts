@@ -124,9 +124,9 @@ app.add_middleware(
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 
-# تم تحديث أسماء النماذج هنا
-GROQ_TEXT_MODELS = ["llama3-70b-8192", "llama3-8b-8192"]
-GROQ_FAST_MODEL = "llama3-8b-8192"
+# النماذج الجديدة المعتمدة من Groq
+GROQ_TEXT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
+GROQ_FAST_MODEL = "openai/gpt-oss-20b"
 
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
@@ -254,7 +254,7 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
                 {"role": "system", "content": f"You are a translation engine. Translate the user's text from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translated text. No explanations, no quotes."},
                 {"role": "user", "content": text},
             ],
-            models=[GROQ_FAST_MODEL, "llama3-70b-8192"],
+            models=[GROQ_FAST_MODEL, "openai/gpt-oss-120b"],
             temperature=0.0,
             max_tokens=800,
             timeout=20.0,
