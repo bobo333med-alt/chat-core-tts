@@ -944,7 +944,7 @@ async function startManualTranslation() {
     isManualTranslating = true;
     updateTranslatorUI();
     setStatus('🎤 Recording... Press mic to stop & translate');
-    recordTimer = setTimeout(() => { if (isManualTranslating) stopManualTranslation(); }, 15000);
+    recordTimer = setTimeout(() => { if (isManualTranslating) stopManualTranslation(); }, 90000);
   } catch (e) {
     console.error("Mic access failed", e);
     addMsg("⚠️ تعذر الوصول للمايك.", "bot");
