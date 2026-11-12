@@ -5,10 +5,12 @@ import asyncio
 import secrets
 import logging
 import tempfile
+import hashlib
 from contextlib import asynccontextmanager
 from typing import List, Optional, Dict, Tuple
 
 import httpx
+import edge_tts  # ⚠️ جديد — pip install edge-tts
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -22,6 +24,7 @@ logger = logging.getLogger("chat-core")
 LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://chat-core-ozzy0gzk.livekit.cloud")
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
+
 
 class RoomManager:
     def __init__(self):
@@ -95,7 +98,9 @@ class RoomManager:
             except Exception:
                 pass
 
+
 room_manager = RoomManager()
+
 
 @asynccontextmanager
 async def lifespan(app):
@@ -103,14 +108,18 @@ async def lifespan(app):
         logger.error("⚠️ LIVEKIT_API_KEY or LIVEKIT_API_SECRET is missing!")
     else:
         logger.info("✅ LiveKit credentials found.")
+    if not GROQ_KEYS:
+        logger.error("⚠️ GROQ_API_KEYS is empty!")
+    else:
+        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.0 Ultra", lifespan=lifespan)
 
-ALLOWED_ORIGINS = ["*"]
+app = FastAPI(title="Chat-Core API", version="21.1 Ultra", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
     allow_credentials=False,
@@ -119,25 +128,31 @@ app.add_middleware(
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 
-# النماذج المستقرة حالياً في Groq (مرتبة حسب القوة والسرعة)
 GROQ_TEXT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+GROQ_FAST_MODEL = "llama-3.1-8b-instant"  # للترجمة (أسرع وأرخص)
 
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
 
+
 def append_session(sid, user_text, reply):
-    if not sid: return
+    if not sid:
+        return
     entry = _sessions.get(sid, {"msgs": []})
     entry["msgs"].append({"role": "user", "content": (user_text or "")[:1000]})
     entry["msgs"].append({"role": "assistant", "content": (reply or "")[:2000]})
     entry["msgs"] = entry["msgs"][-SESSION_MAX_MSGS:]
     _sessions[sid] = entry
 
+
 def get_session(sid, last_n=6):
-    if not sid: return []
+    if not sid:
+        return []
     entry = _sessions.get(sid)
-    if not entry: return []
+    if not entry:
+        return []
     return entry["msgs"][-last_n:]
+
 
 class ChatRequest(BaseModel):
     messages: List[dict]
@@ -145,25 +160,51 @@ class ChatRequest(BaseModel):
     is_translation: bool = False
     session_id: Optional[str] = None
 
+
 class MeetingTokenRequest(BaseModel):
     room_name: str
     participant_name: str
 
+
+class TTSRequest(BaseModel):
+    text: str
+    lang: str = "ar"
+    voice: str = "woman"
+    session_id: Optional[str] = None
+
+
 _groq_idx = {"i": 0}
+
+
 def next_groq_key():
-    if not GROQ_KEYS: raise HTTPException(503, detail="لا يوجد مفتاح Groq في إعدادات Render.")
+    if not GROQ_KEYS:
+        raise HTTPException(503, detail="لا يوجد مفتاح Groq في إعدادات Render.")
     k = GROQ_KEYS[_groq_idx["i"] % len(GROQ_KEYS)]
     _groq_idx["i"] += 1
     return k
 
-async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
+
+def _classify_groq_error(e: Exception) -> Tuple[int, str]:
+    """يحوّل خطأ Groq إلى كود HTTP ورسالة مناسبة."""
+    status = getattr(e, "status_code", None)
+    msg = str(e)
+    if status == 401 or "invalid_api_key" in msg or "Unauthorized" in msg:
+        return 401, "مفتاح Groq غير صالح. راجع GROQ_API_KEYS في Render."
+    if status == 429 or "rate_limit" in msg or "429" in msg:
+        return 429, "تجاوز حد Groq مؤقتاً. أعد المحاولة بعد لحظات."
+    if status == 400:
+        return 400, f"طلب غير صحيح إلى Groq: {msg[:160]}"
+    return 502, f"خطأ من Groq: {msg[:200]}"
+
+
+async def call_groq(messages, models, temperature=0.7, max_tokens=2000, timeout=30.0):
     last_err = "no model tried"
     if not GROQ_KEYS:
-        raise Exception("No GROQ_KEYS configured in environment variables.")
+        raise HTTPException(503, detail="No GROQ_KEYS configured in environment variables.")
 
     for model in models:
         key = next_groq_key()
-        client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=30.0)
+        client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=timeout)
         try:
             r = await client.chat.completions.create(
                 model=model, messages=messages, temperature=temperature, max_tokens=max_tokens
@@ -174,63 +215,199 @@ async def call_groq(messages, models, temperature=0.7, max_tokens=2000):
             last_err = str(e)
             logger.warning(f"Groq model {model} failed: {last_err[:160]}")
             if "rate_limit" in last_err or "429" in last_err:
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(0.8)
             continue
-    raise Exception(f"All Groq models failed. Last error: {last_err}")
+    # كل النماذج فشلت — نمرر الخطأ الأصلي مع تصنيف
+    raise HTTPException(*_classify_groq_error(Exception(last_err)))
+
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
     if not GROQ_KEYS:
         raise HTTPException(502, detail="مفتاح Groq غير موجود في إعدادات Render. يرجى إضافته في Environment.")
+    return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
+
+
+LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German",
+              "tr": "Turkish", "it": "Italian", "zh": "Chinese", "ru": "Russian",
+              "es": "Spanish", "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"}
+
+
+# ============================================
+# Translation Cache (in-memory, TTL 1h)
+# ============================================
+_trans_cache: Dict[str, Tuple[str, float]] = {}
+CACHE_TTL = 3600
+
+
+def _cache_key(text: str, src: str, tgt: str) -> str:
+    h = hashlib.sha1(text.encode("utf-8")).hexdigest()
+    return f"{src}:{tgt}:{h}"
+
+
+def _cache_get(text: str, src: str, tgt: str) -> Optional[str]:
+    k = _cache_key(text, src, tgt)
+    item = _trans_cache.get(k)
+    if not item:
+        return None
+    val, ts = item
+    if time.time() - ts > CACHE_TTL:
+        _trans_cache.pop(k, None)
+        return None
+    return val
+
+
+def _cache_set(text: str, src: str, tgt: str, val: str):
+    _trans_cache[_cache_key(text, src, tgt)] = (val, time.time())
+    # حد أقصى بسيط
+    if len(_trans_cache) > 2000:
+        oldest = sorted(_trans_cache.items(), key=lambda kv: kv[1][1])[:500]
+        for k, _ in oldest:
+            _trans_cache.pop(k, None)
+
+
+async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
+    """ترجمة نص بين لغتين مع caching. عند الفشل يعيد النص الأصلي."""
+    if not text or not text.strip():
+        return text
+    if src_lang == tgt_lang:
+        return text
+    cached = _cache_get(text, src_lang, tgt_lang)
+    if cached:
+        return cached
     try:
-        return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
+        result = await call_groq(
+            messages=[
+                {"role": "system", "content": f"You are a translation engine. Translate the user's text from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translated text. No explanations, no quotes."},
+                {"role": "user", "content": text},
+            ],
+            models=[GROQ_FAST_MODEL, "llama-3.3-70b-versatile"],
+            temperature=0.0,
+            max_tokens=800,
+            timeout=20.0,
+        )
+        out = (result or "").strip().strip('"').strip("'")
+        if out:
+            _cache_set(text, src_lang, tgt_lang, out)
+            return out
+        return text
     except Exception as e:
-        logger.error(f"Smart_chat failed: {e}")
-        raise HTTPException(502, detail="فشل الاتصال بالذكاء الاصطناعي. تأكد من أن مفتاح Groq صحيح.")
+        logger.warning(f"translate_text failed ({src_lang}->{tgt_lang}): {e}")
+        return text  # fallback: النص الأصلي
 
-LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian"}
 
-# فلتر الهلوسة الصارم (يمنع الكلمات الغريبة التي ظهرت سابقاً)
+# فلتر الهلوسة
 HALLUCINATION_BLACKLIST = ["كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية", "الموضوعات في الوصف"]
+
 
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
     key = next_groq_key()
     client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
     lang_code = language if language in LANG_NAMES else "ar"
-    
     with open(temp_path, "rb") as af:
         resp = await client.audio.transcriptions.create(
-            model="whisper-large-v3", 
-            file=af, 
-            language=lang_code, 
-            temperature=0.0, 
-            response_format="verbose_json"
+            model="whisper-large-v3", file=af, language=lang_code,
+            temperature=0.0, response_format="verbose_json"
         )
     return resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
 
+
 def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
     text = (result.get("text") or "").strip()
-    if not text or len(text) < 2: return True, "empty"
-    
+    if not text or len(text) < 2:
+        return True, "empty"
+    if duration_ms and duration_ms < 300:
+        return True, "too_short"
     for bad_word in HALLUCINATION_BLACKLIST:
         if bad_word in text:
             logger.warning(f"Hallucination blocked: {text}")
             return True, "hallucination"
-
     no_speech = float(result.get("no_speech_prob") or 0.0)
-    if no_speech > 0.6: return True, "no_speech"
-    
+    if no_speech > 0.6:
+        return True, "no_speech"
     avg_logprob = float(result.get("avg_logprob") or 0.0)
-    if avg_logprob < -1.0: return True, "low_confidence"
-    
+    if avg_logprob < -1.0:
+        return True, "low_confidence"
     return False, "ok"
 
+
+# ============================================
+# TTS — Edge-TTS (free, high quality)
+# ============================================
+TTS_VOICES = {
+    "ar": {"man": "ar-SA-HamedNeural", "woman": "ar-SA-ZariyahNeural", "girl": "ar-EG-SalmaNeural", "child": "ar-EG-SalmaNeural"},
+    "fr": {"man": "fr-FR-HenriNeural", "woman": "fr-FR-DeniseNeural", "girl": "fr-FR-EloiseNeural", "child": "fr-FR-EloiseNeural"},
+    "en": {"man": "en-US-GuyNeural", "woman": "en-US-JennyNeural", "girl": "en-US-AriaNeural", "child": "en-US-AnaNeural"},
+    "de": {"man": "de-DE-ConradNeural", "woman": "de-DE-KatjaNeural", "girl": "de-DE-AmelieNeural", "child": "de-DE-AmelieNeural"},
+    "tr": {"man": "tr-TR-AhmetNeural", "woman": "tr-TR-EmelNeural", "girl": "tr-TR-EmelNeural", "child": "tr-TR-EmelNeural"},
+    "it": {"man": "it-IT-DiegoNeural", "woman": "it-IT-ElsaNeural", "girl": "it-IT-IsabellaNeural", "child": "it-IT-IsabellaNeural"},
+    "zh": {"man": "zh-CN-YunxiNeural", "woman": "zh-CN-XiaoxiaoNeural", "girl": "zh-CN-XiaoyiNeural", "child": "zh-CN-XiaoyiNeural"},
+    "ru": {"man": "ru-RU-DmitryNeural", "woman": "ru-RU-SvetlanaNeural", "girl": "ru-RU-DariyaNeural", "child": "ru-RU-DariyaNeural"},
+    "es": {"man": "es-ES-AlvaroNeural", "woman": "es-ES-ElviraNeural", "girl": "es-ES-LuciaNeural", "child": "es-ES-LuciaNeural"},
+    "pt": {"man": "pt-PT-DuarteNeural", "woman": "pt-PT-RaquelNeural", "girl": "pt-PT-RaquelNeural", "child": "pt-PT-RaquelNeural"},
+    "nl": {"man": "nl-NL-MaartenNeural", "woman": "nl-NL-ColetteNeural", "girl": "nl-NL-ColetteNeural", "child": "nl-NL-ColetteNeural"},
+    "no": {"man": "nb-NO-FinnNeural", "woman": "nb-NO-PernilleNeural", "girl": "nb-NO-PernilleNeural", "child": "nb-NO-PernilleNeural"},
+}
+
+
+def _pick_voice(lang: str, voice: str) -> Tuple[str, str, str]:
+    """يرجع (voice_name, rate, pitch)."""
+    lang = (lang or "ar").lower()
+    voice = (voice or "woman").lower()
+    table = TTS_VOICES.get(lang) or TTS_VOICES["en"]
+    name = table.get(voice) or table["woman"]
+    rate = "+0%"
+    pitch = "+0Hz"
+    if voice == "girl":
+        pitch = "+15Hz"
+    elif voice == "child":
+        pitch = "+30Hz"
+        rate = "+5%"
+    return name, rate, pitch
+
+
+async def synthesize_tts(text: str, lang: str, voice: str) -> bytes:
+    name, rate, pitch = _pick_voice(lang, voice)
+    buf = bytearray()
+    communicate = edge_tts.Communicate(text, name, rate=rate, pitch=pitch)
+    async for chunk in communicate.stream():
+        if chunk.get("type") == "audio":
+            buf.extend(chunk["data"])
+    return bytes(buf)
+
+
+# ============================================
+# Endpoints
+# ============================================
 @app.get("/health")
 async def health():
-    return {"ok": True, "provider": "groq", "keys_configured": len(GROQ_KEYS), "active_rooms": len(room_manager.rooms)}
+    return {"ok": True, "provider": "groq", "keys_configured": len(GROQ_KEYS),
+            "active_rooms": len(room_manager.rooms)}
+
+
+@app.get("/health/groq")
+async def health_groq():
+    """يختبر مفتاح Groq فعلياً."""
+    if not GROQ_KEYS:
+        return {"status": "missing", "detail": "GROQ_API_KEYS not set"}
+    try:
+        r = await call_groq(
+            messages=[{"role": "user", "content": "ping"}],
+            models=[GROQ_FAST_MODEL],
+            temperature=0.0,
+            max_tokens=5,
+            timeout=10.0,
+        )
+        return {"status": "ok", "sample": (r or "")[:20]}
+    except HTTPException as e:
+        return {"status": "error", "code": e.status_code, "detail": e.detail}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)[:200]}
+
 
 @app.post("/rooms/create")
 async def create_room_endpoint():
     return {"code": await room_manager.create_room()}
+
 
 @app.post("/get-token")
 async def get_token_endpoint(req: MeetingTokenRequest):
@@ -243,9 +420,11 @@ async def get_token_endpoint(req: MeetingTokenRequest):
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 
+
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
-    if not req.messages: raise HTTPException(400, detail="messages فارغة")
+    if not req.messages:
+        raise HTTPException(400, detail="messages فارغة")
     messages = req.messages
     if req.session_id and not req.is_translation:
         ctx = get_session(req.session_id)
@@ -255,11 +434,7 @@ async def chat_endpoint(req: ChatRequest):
     temperature = 0.0 if req.is_translation else 0.7
     max_tokens = 800 if req.is_translation else 2000
 
-    try:
-        reply = await smart_chat(messages, req.is_vision, temperature, max_tokens)
-    except Exception as e:
-        logger.error(f"Chat endpoint error: {e}")
-        raise HTTPException(502, detail=str(e))
+    reply = await smart_chat(messages, req.is_vision, temperature, max_tokens)
 
     if req.session_id and not req.is_translation:
         last_user = next((m.get("content") for m in reversed(messages) if m.get("role") == "user"), "")
@@ -267,27 +442,60 @@ async def chat_endpoint(req: ChatRequest):
 
     return {"reply": reply}
 
+
+@app.post("/tts")
+async def tts_endpoint(req: TTSRequest):
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(400, detail="text فارغ")
+    if len(text) > 4000:
+        text = text[:4000]
+    try:
+        audio = await synthesize_tts(text, req.lang, req.voice)
+        if not audio:
+            raise Exception("empty audio from edge-tts")
+        return Response(content=audio, media_type="audio/mpeg",
+                        headers={"Cache-Control": "public, max-age=3600"})
+    except Exception as e:
+        logger.error(f"TTS failed: {e}")
+        raise HTTPException(503, detail=f"فشل توليد الصوت: {str(e)[:120]}")
+
+
 @app.post("/transcribe")
-async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar"), language: str = Form(""), duration_ms: int = Form(0)):
-    if not GROQ_KEYS: raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
+async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar"),
+                              language: str = Form(""), duration_ms: int = Form(0)):
+    if not GROQ_KEYS:
+        raise HTTPException(503, detail="مفتاح Groq مطلوب لاستخراج النص")
     contents = await file.read()
-    if len(contents) < 1000: return {"original": "", "translated": "", "reason": "too_small"}
+    if len(contents) < 1000:
+        return {"original": "", "translated": "", "reason": "too_small"}
     suffix = os.path.splitext(file.filename or "")[1] or ".webm"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        temp_path = tmp.name; tmp.write(contents)
+        temp_path = tmp.name
+        tmp.write(contents)
     try:
         lang_code = (language or target_lang or "ar").lower()
         result = await _run_whisper_verbose(temp_path, lang_code)
         reject, reason = _should_reject(result, duration_ms)
         if reject:
             return {"original": "", "translated": "", "reason": reason}
-        return {"original": result.get("text", "").strip(), "translated": "", "reason": "ok"}
+        original = result.get("text", "").strip()
+        # ترجمة حقيقية عبر Groq
+        translated = original
+        if target_lang and target_lang != lang_code:
+            translated = await translate_text(original, lang_code, target_lang)
+        return {"original": original, "translated": translated, "reason": "ok"}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(500, detail=f"فشل استخراج النص: {str(e)}")
+        raise HTTPException(500, detail=f"فشل استخراج النص: {str(e)[:160]}")
     finally:
         if os.path.exists(temp_path):
-            try: os.remove(temp_path)
-            except: pass
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
 
 @app.websocket("/ws/{room_code}")
 async def ws_endpoint(websocket: WebSocket, room_code: str):
@@ -297,26 +505,35 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
     try:
         try:
             first = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
-        except asyncio.TimeoutError: await websocket.close(code=4001); return
-        if first.get("type") != "join": await websocket.close(); return
-        
+        except asyncio.TimeoutError:
+            await websocket.close(code=4001)
+            return
+        if first.get("type") != "join":
+            await websocket.close()
+            return
+
         my_name = (first.get("name") or "User")[:30]
         my_lang = first.get("lang", "ar")
         if not await room_manager.join(room_code, websocket, my_name, my_lang):
             await websocket.send_json({"type": "error", "message": "Room full"})
-            await websocket.close(); return
+            await websocket.close()
+            return
         joined = True
-        
+
         users = await room_manager.get_users_list(room_code)
         history_raw = await room_manager.get_history(room_code)
         await websocket.send_json({"type": "joined", "users": users, "history": history_raw})
         await room_manager.broadcast(room_code, {"type": "user_joined", "name": my_name}, exclude=websocket)
-        
+
         while True:
-            try: msg = await websocket.receive_json()
-            except WebSocketDisconnect: break
+            try:
+                msg = await websocket.receive_json()
+            except WebSocketDisconnect:
+                break
             mtype = msg.get("type")
-            if mtype == "ping": await websocket.send_json({"type": "pong"}); continue
+            if mtype == "ping":
+                await websocket.send_json({"type": "pong"})
+                continue
             elif mtype == "change_lang":
                 my_lang = msg.get("lang", "ar")
                 await room_manager.update_user_lang(room_code, websocket, my_lang)
@@ -326,20 +543,40 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 continue
             elif mtype == "message":
                 text = (msg.get("text") or "").strip()[:2000]
-                if not text: continue
+                if not text:
+                    continue
                 ws_users = await room_manager.get_ws_users(room_code)
-                unique_langs = set(u["lang"] for u in ws_users.values())
-                
-                translations = {}
-                for lc in unique_langs: 
-                    translations[lc] = text if lc == my_lang else text
-                
-                await room_manager.add_history(room_code, {"from": my_name, "original": text, "from_lang": my_lang, "translations": translations})
+
+                # 🌐 ترجمة حقيقية لكل لغة هدف (مع caching)
+                target_langs = set(u["lang"] for u in ws_users.values()) - {my_lang}
+                translations: Dict[str, str] = {my_lang: text}
+                for tgt in target_langs:
+                    try:
+                        translations[tgt] = await translate_text(text, my_lang, tgt)
+                    except Exception as e:
+                        logger.warning(f"WS translate error {my_lang}->{tgt}: {e}")
+                        translations[tgt] = text  # fallback
+
+                await room_manager.add_history(room_code, {
+                    "from": my_name, "original": text, "from_lang": my_lang,
+                    "translations": translations,
+                })
                 for ws, u in ws_users.items():
-                    payload = {"type": "translated", "from_name": my_name, "from_lang": my_lang, "original": text, "translated": text, "target_lang": u["lang"], "is_mine": (ws == websocket)}
-                    try: await ws.send_json(payload)
-                    except Exception: pass
-    except WebSocketDisconnect: pass
+                    payload = {
+                        "type": "translated",
+                        "from_name": my_name,
+                        "from_lang": my_lang,
+                        "original": text,
+                        "translated": translations.get(u["lang"], text),
+                        "target_lang": u["lang"],
+                        "is_mine": (ws == websocket),
+                    }
+                    try:
+                        await ws.send_json(payload)
+                    except Exception:
+                        pass
+    except WebSocketDisconnect:
+        pass
     finally:
         if joined:
             await room_manager.leave(room_code, websocket)
