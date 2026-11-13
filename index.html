@@ -500,12 +500,11 @@ let localStreamMic = null;
 let localChunks = [];
 let localStartTime = 0;
 let currentSpeaker = null;
-let isLocalProcessing = false; // منع الضغط المتكرر
+let isLocalProcessing = false;
 
 // Remote/Meeting variables
 let isManualTranslating = false;
 let audioRecorder = null;
-let recordTimer = null;
 let translationStartTime = 0;
 let translationAudioCtx = null;
 let myIsCaller = false;
@@ -976,7 +975,7 @@ micA.addEventListener('click', () => toggleLocalMic('A'));
 micB.addEventListener('click', () => toggleLocalMic('B'));
 
 // ==========================================
-// REMOTE / MEETING: Manual Translation
+// REMOTE / MEETING: Smart Chunking Translation
 // ==========================================
 async function startManualTranslation() {
   if (isManualTranslating) return;
@@ -998,67 +997,93 @@ async function startManualTranslation() {
     const filteredTrack = destination.stream.getAudioTracks()[0];
     const rmsBuffer = new Float32Array(analyser.fftSize);
     let rmsMax = 0;
+    let silenceStart = Date.now();
+    let chunkStartTime = Date.now();
 
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
-    let chunks = [];
-    audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    
+    const startNewChunk = () => {
+      audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
+      let chunks = [];
+      audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      
+      audioRecorder.onstop = async () => {
+        const durationMs = Date.now() - chunkStartTime;
+        if (chunks.length === 0 || durationMs < 800 || rmsMax < 0.005) return;
+        
+        const blob = new Blob(chunks, { type: mimeType });
+        const formData = new FormData();
+        formData.append('file', blob, 'audio.webm');
+        formData.append('target_lang', myLang);
+        formData.append('language', myLang);
+        formData.append('duration_ms', String(durationMs));
+        
+        try {
+          const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.original && data.original.length > 1) {
+              addMsg(`You: ${data.original}`, 'user-a', myLang);
+              sendRemoteMessage(data.original);
+            }
+          }
+        } catch(e) { console.warn('Audio chunk upload failed', e); }
+      };
+      
+      audioRecorder.start();
+      chunkStartTime = Date.now();
+      rmsMax = 0;
+      silenceStart = Date.now();
+    };
 
-    const rmsInterval = setInterval(() => {
+    startNewChunk();
+
+    const vadInterval = setInterval(() => {
+      if (!isManualTranslating) return;
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
         let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
         const rms = Math.sqrt(sum / rmsBuffer.length);
-        if (rms > rmsMax) rmsMax = rms;
-      } catch(e){}
-    }, 100);
-
-    audioRecorder.onstop = async () => {
-      clearInterval(rmsInterval);
-      try { rawTrack.stop(); } catch(e){}
-      try { if (translationAudioCtx && translationAudioCtx.state !== 'closed') await translationAudioCtx.close(); } catch(e){}
-      translationAudioCtx = null;
-      const durationMs = Date.now() - translationStartTime;
-      if (chunks.length === 0) return;
-      
-      if (durationMs < 150 || rmsMax < 0.001) { addMsg('⚠️ لم يُسمع صوت واضح.', 'bot'); resetStatus(); return; }
-      
-      const blob = new Blob(chunks, { type: audioRecorder.mimeType });
-      setStatus('⏳ Translating...');
-      const formData = new FormData();
-      formData.append('file', blob, 'audio.webm');
-      formData.append('target_lang', myLang);
-      formData.append('language', myLang);
-      formData.append('duration_ms', String(durationMs));
-      try {
-        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.original && data.original.length > 1) {
-            addMsg(`You: ${data.original}`, 'user-a', myLang);
-            sendRemoteMessage(data.original);
-          } else { addMsg(`⚠️ لم يتم التعرف على كلام.`, 'bot'); }
+        
+        if (rms > 0.01) {
+          if (rms > rmsMax) rmsMax = rms;
+          silenceStart = Date.now();
+        } else {
+          if (Date.now() - silenceStart > 1500 && audioRecorder.state === 'recording') {
+             audioRecorder.stop();
+             startNewChunk();
+          }
         }
-      } catch(e) { console.warn('Audio upload failed', e); }
-      resetStatus();
-    };
+      } catch(e){}
+    }, 200);
 
-    audioRecorder.start();
     translationStartTime = Date.now();
     isManualTranslating = true;
     updateTranslatorUI();
     setStatus('🎤 Recording... Press mic to stop & translate');
-    recordTimer = setTimeout(() => { if (isManualTranslating) stopManualTranslation(); }, 60000);
+    
+    window._vadInterval = vadInterval;
+    window._rawTrack = rawTrack;
+
   } catch (e) {
     console.error("Mic access failed", e);
-    addMsg("⚠️ تعذر الوصول للمايك.", "bot");
+    addMsg("⚠️ تعذر الوصول للمايك.", 'bot');
   }
 }
 function stopManualTranslation() {
   if (!isManualTranslating) return;
   isManualTranslating = false;
-  clearTimeout(recordTimer);
-  if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
+  
+  if (window._vadInterval) { clearInterval(window._vadInterval); window._vadInterval = null; }
+  if (window._rawTrack) { try { window._rawTrack.stop(); } catch(e){} window._rawTrack = null; }
+  
+  if (audioRecorder && audioRecorder.state === 'recording') {
+    audioRecorder.stop();
+  }
+  
+  try { if (translationAudioCtx && translationAudioCtx.state !== 'closed') translationAudioCtx.close(); } catch(e){}
+  translationAudioCtx = null;
+  
   updateTranslatorUI();
 }
 
