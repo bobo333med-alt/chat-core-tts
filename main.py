@@ -107,7 +107,7 @@ async def lifespan(app):
         logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.3 Ultra", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="21.4 Ultra", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
@@ -211,11 +211,9 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
         return text
 
 async def translate_text_chunked(text: str, src_lang: str, tgt_lang: str) -> str:
-    """ترجمة النصوص الطويلة عبر تقسيمها إلى أجزاء."""
     if not text or not text.strip() or src_lang == tgt_lang: return text
     if len(text) < 1000:
         return await translate_text(text, src_lang, tgt_lang)
-        
     chunks = []
     current_chunk = ""
     for sentence in text.replace('\n', ' ').split('. '):
@@ -225,11 +223,9 @@ async def translate_text_chunked(text: str, src_lang: str, tgt_lang: str) -> str
             if current_chunk.strip(): chunks.append(current_chunk.strip())
             current_chunk = sentence + ". "
     if current_chunk.strip(): chunks.append(current_chunk.strip())
-    
     translated_chunks = []
     for chunk in chunks:
         translated_chunks.append(await translate_text(chunk, src_lang, tgt_lang))
-    
     return " ".join(translated_chunks)
 
 HALLUCINATION_BLACKLIST = [
@@ -251,7 +247,8 @@ async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
 def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
     text = (result.get("text") or "").strip()
     if not text or len(text) < 2: return True, "empty"
-    if duration_ms and duration_ms < 1000: return True, "too_short"
+    # تم تعديل الشرط ليقبل الفيديوهات (التي ترسل duration_ms = 0)
+    if duration_ms and duration_ms > 0 and duration_ms < 1000: return True, "too_short"
     for bad_word in HALLUCINATION_BLACKLIST:
         if bad_word in text: return True, "hallucination"
     no_speech = float(result.get("no_speech_prob") or 0.0)
