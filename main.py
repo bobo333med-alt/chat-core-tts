@@ -107,13 +107,12 @@ async def lifespan(app):
         logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.2 Ultra", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="21.3 Ultra", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 
-# النماذج الجديدة المعتمدة
 GROQ_TEXT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
 GROQ_FAST_MODEL = "openai/gpt-oss-20b"
 
@@ -210,6 +209,28 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
         return text
     except Exception:
         return text
+
+async def translate_text_chunked(text: str, src_lang: str, tgt_lang: str) -> str:
+    """ترجمة النصوص الطويلة عبر تقسيمها إلى أجزاء."""
+    if not text or not text.strip() or src_lang == tgt_lang: return text
+    if len(text) < 1000:
+        return await translate_text(text, src_lang, tgt_lang)
+        
+    chunks = []
+    current_chunk = ""
+    for sentence in text.replace('\n', ' ').split('. '):
+        if len(current_chunk) + len(sentence) < 800:
+            current_chunk += sentence + ". "
+        else:
+            if current_chunk.strip(): chunks.append(current_chunk.strip())
+            current_chunk = sentence + ". "
+    if current_chunk.strip(): chunks.append(current_chunk.strip())
+    
+    translated_chunks = []
+    for chunk in chunks:
+        translated_chunks.append(await translate_text(chunk, src_lang, tgt_lang))
+    
+    return " ".join(translated_chunks)
 
 HALLUCINATION_BLACKLIST = [
     "كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية", 
@@ -322,7 +343,7 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
         original = result.get("text", "").strip()
         translated = original
         if target_lang and target_lang != (language or "ar"):
-            translated = await translate_text(original, language or "ar", target_lang)
+            translated = await translate_text_chunked(original, language or "ar", target_lang)
         return {"original": original, "translated": translated, "reason": "ok"}
     except Exception as e: raise HTTPException(500, detail=f"Transcribe Error: {e}")
     finally:
@@ -357,7 +378,7 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 target_langs = set(u["lang"] for u in ws_users.values()) - {my_lang}
                 translations: Dict[str, str] = {my_lang: text}
                 for tgt in target_langs:
-                    translations[tgt] = await translate_text(text, my_lang, tgt)
+                    translations[tgt] = await translate_text_chunked(text, my_lang, tgt)
                 await room_manager.add_history(room_code, {"from": my_name, "original": text, "from_lang": my_lang, "translations": translations})
                 for ws, u in ws_users.items():
                     try: await ws.send_json({"type": "translated", "from_name": my_name, "from_lang": my_lang, "original": text, "translated": translations.get(u["lang"], text), "target_lang": u["lang"], "is_mine": (ws == websocket)})
