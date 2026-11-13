@@ -1172,7 +1172,7 @@ videoUpload.addEventListener('change', async (e) => {
     const data = await res.json();
     if (data.original) addMsg(data.original, 'user-b', 'AUTO'); 
     if (data.translated) addMsg(data.translated, 'bot', targetLang);
-    speak(data.translated, targetLang); setStatus('✅ تمت الترجمة بنجاح!');
+    setStatus('✅ تمت الترجمة بنجاح!');
   } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); }
   finally { setBusy(false); e.target.value = ''; }
 });
