@@ -107,14 +107,14 @@ async def lifespan(app):
         logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.6 Ultra", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="21.2 Ultra", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 
+# النماذج الجديدة المعتمدة
 GROQ_TEXT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
-GROQ_VISION_MODEL = "llama-3.2-11b-vision-preview"
 GROQ_FAST_MODEL = "openai/gpt-oss-20b"
 
 _sessions: Dict[str, dict] = {}
@@ -180,9 +180,6 @@ async def call_groq(messages, models, temperature=0.7, max_tokens=2000, timeout=
     raise HTTPException(*_classify_groq_error(Exception(last_err)))
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
-    # إذا كان هناك صورة، استخدم نموذج الرؤية، وإلا استخدم النموذج النصي
-    if is_vision:
-        return await call_groq(messages, [GROQ_VISION_MODEL], temperature, max_tokens, timeout=60.0)
     return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
 
 LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian", "zh": "Chinese", "ru": "Russian", "es": "Spanish", "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"}
@@ -198,42 +195,21 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
     k = _cache_key(text, src_lang, tgt_lang)
     item = _trans_cache.get(k)
     if item and time.time() - item[1] < CACHE_TTL: return item[0]
-    
     try:
-        # استخدام النموذج الأقوى لضمان الترجمة إذا فشل النموذج السريع
         result = await call_groq(
             messages=[
-                {"role": "system", "content": f"You are a professional translator. Translate the following text from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translated text. Do not add any notes."},
+                {"role": "system", "content": f"Translate from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translation."},
                 {"role": "user", "content": text},
             ],
-            models=[GROQ_FAST_MODEL, "openai/gpt-oss-120b"], temperature=0.0, max_tokens=1000, timeout=30.0
+            models=[GROQ_FAST_MODEL, "openai/gpt-oss-120b"], temperature=0.0, max_tokens=800, timeout=20.0
         )
         out = (result or "").strip().strip('"').strip("'")
         if out:
             _trans_cache[k] = (out, time.time())
             return out
         return text
-    except Exception as e:
-        logger.warning(f"Translation failed: {e}")
+    except Exception:
         return text
-
-async def translate_text_chunked(text: str, src_lang: str, tgt_lang: str) -> str:
-    if not text or not text.strip() or src_lang == tgt_lang: return text
-    if len(text) < 1000:
-        return await translate_text(text, src_lang, tgt_lang)
-    chunks = []
-    current_chunk = ""
-    for sentence in text.replace('\n', ' ').split('. '):
-        if len(current_chunk) + len(sentence) < 800:
-            current_chunk += sentence + ". "
-        else:
-            if current_chunk.strip(): chunks.append(current_chunk.strip())
-            current_chunk = sentence + ". "
-    if current_chunk.strip(): chunks.append(current_chunk.strip())
-    translated_chunks = []
-    for chunk in chunks:
-        translated_chunks.append(await translate_text(chunk, src_lang, tgt_lang))
-    return " ".join(translated_chunks)
 
 HALLUCINATION_BLACKLIST = [
     "كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية", 
@@ -254,17 +230,11 @@ async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
 def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
     text = (result.get("text") or "").strip()
     if not text or len(text) < 2: return True, "empty"
-    
-    # جعل الشرط أكثر تسامحاً لتجنب رسائل "لم يسمع صوت" الكثيرة
-    if duration_ms and duration_ms > 0 and duration_ms < 1000: 
-        # إذا كان الصوت قصيراً جداً، لكن Whisper سمعه بوضوح، نقبله
-        if float(result.get("no_speech_prob") or 0.0) > 0.5:
-            return True, "too_short"
-            
+    if duration_ms and duration_ms < 1000: return True, "too_short"
     for bad_word in HALLUCINATION_BLACKLIST:
         if bad_word in text: return True, "hallucination"
     no_speech = float(result.get("no_speech_prob") or 0.0)
-    if no_speech > 0.5: return True, "no_speech"
+    if no_speech > 0.4: return True, "no_speech"
     return False, "ok"
 
 TTS_VOICES = {
@@ -320,19 +290,10 @@ async def get_token_endpoint(req: MeetingTokenRequest):
 async def chat_endpoint(req: ChatRequest):
     if not req.messages: raise HTTPException(400, detail="messages فارغة")
     messages = req.messages
-    
-    # إصلاح: إذا لم توجد صورة، تأكد أن النص ليس مصفوفة
-    for msg in messages:
-        if isinstance(msg.get("content"), list) and not req.is_vision:
-            text_parts = [part.get("text", "") for part in msg["content"] if part.get("type") == "text"]
-            msg["content"] = " ".join(text_parts)
-
     if req.session_id and not req.is_translation:
         ctx = get_session(req.session_id)
         if ctx and messages[0].get("role") == "system": messages = [messages[0]] + ctx + messages[1:]
-        
     reply = await smart_chat(messages, req.is_vision, 0.0 if req.is_translation else 0.7, 800 if req.is_translation else 2000)
-    
     if req.session_id and not req.is_translation:
         last_user = next((m.get("content") for m in reversed(messages) if m.get("role") == "user"), "")
         append_session(req.session_id, last_user if isinstance(last_user, str) else "[media]", reply)
@@ -361,7 +322,7 @@ async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = F
         original = result.get("text", "").strip()
         translated = original
         if target_lang and target_lang != (language or "ar"):
-            translated = await translate_text_chunked(original, language or "ar", target_lang)
+            translated = await translate_text(original, language or "ar", target_lang)
         return {"original": original, "translated": translated, "reason": "ok"}
     except Exception as e: raise HTTPException(500, detail=f"Transcribe Error: {e}")
     finally:
@@ -396,7 +357,7 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 target_langs = set(u["lang"] for u in ws_users.values()) - {my_lang}
                 translations: Dict[str, str] = {my_lang: text}
                 for tgt in target_langs:
-                    translations[tgt] = await translate_text_chunked(text, my_lang, tgt)
+                    translations[tgt] = await translate_text(text, my_lang, tgt)
                 await room_manager.add_history(room_code, {"from": my_name, "original": text, "from_lang": my_lang, "translations": translations})
                 for ws, u in ws_users.items():
                     try: await ws.send_json({"type": "translated", "from_name": my_name, "from_lang": my_lang, "original": text, "translated": translations.get(u["lang"], text), "target_lang": u["lang"], "is_mine": (ws == websocket)})
