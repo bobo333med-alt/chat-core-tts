@@ -537,12 +537,16 @@ const AUTH_TRANS = {
 
 function updateAppLanguageUI(lang) {
   const t = AUTH_TRANS[lang] || AUTH_TRANS.en;
+  
+  // الشاشة الرئيسية
   if($('btnLocalTxt')) $('btnLocalTxt').textContent = t.face;
   if($('btnRemoteTxt')) $('btnRemoteTxt').textContent = t.remote;
   if($('btnMeetingTxt')) $('btnMeetingTxt').textContent = t.meet;
   if($('btnFriendsLabel')) $('btnFriendsLabel').textContent = t.friends;
   if($('btnLogoutTxt')) $('btnLogoutTxt').textContent = t.logout;
   if($('landingSubTitle')) $('landingSubTitle').textContent = t.chooseMode;
+  
+  // شاشات الانضمام
   if($('rmTitle')) $('rmTitle').textContent = t.rmTitle;
   if($('mtTitle')) $('mtTitle').textContent = t.mtTitle;
   if($('rmTransLbl')) $('rmTransLbl').textContent = t.enableTrans;
@@ -553,12 +557,13 @@ function updateAppLanguageUI(lang) {
   if($('joinMeetingBtn')) $('joinMeetingBtn').textContent = t.join;
   if($('backToLandingBtn')) $('backToLandingBtn').textContent = t.back;
   if($('backToLandingFromMeetBtn')) $('backToLandingFromMeetBtn').textContent = t.back;
+  
+  // داخل الغرف
   if($('lblFriend')) $('lblFriend').textContent = t.friendLbl;
   if($('lblYou')) $('lblYou').textContent = t.youLbl;
   if($('lblTransON')) $('lblTransON').textContent = t.transOn;
-  // تحديث النصوص في الأزرار الصغيرة
-  if ($('backBtn')) $('backBtn').textContent = t.back.replace('← ', '');
-  if ($('uploadBtn')) $('uploadBtn').innerHTML = '📁 Avatar';
+  if($('backBtn')) $('backBtn').textContent = t.back.replace('← ', '');
+  if($('uploadBtn')) $('uploadBtn').innerHTML = '📁 Avatar';
 }
 
 function changeAuthLang(lang) {
@@ -570,6 +575,8 @@ function changeAuthLang(lang) {
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
   Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase()).classList.add('active');
   const t = AUTH_TRANS[lang];
+  
+  // شاشة الدخول
   document.getElementById('authTitle').textContent = isLoginMode ? t.loginTitle : t.registerTitle;
   document.getElementById('authEmail').placeholder = t.email;
   document.getElementById('authPassword').placeholder = t.pass;
@@ -580,8 +587,10 @@ function changeAuthLang(lang) {
   document.getElementById('btnAuthGithub').textContent = '🐙 ' + t.github;
   document.getElementById('btnAuthTwitter').textContent = '🐦 ' + t.twitter;
   
+  // تحديث باقي التطبيق
   updateAppLanguageUI(lang);
 }
+
 function toggleAuthMode() { isLoginMode = !isLoginMode; changeAuthLang(currentAuthLang); document.getElementById('authError').textContent = ''; }
 function showAuthError(msg) { document.getElementById('authError').textContent = msg; }
 function handleEmailAuth() {
