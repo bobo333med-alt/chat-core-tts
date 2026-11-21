@@ -155,11 +155,9 @@
 <script>
 'use strict';
 
-const SERVER_URL = "https://vibe-core-0m1r.onrender.com/chat";
-const TTS_URL = "https://vibe-core-0m1r.onrender.com/tts";
+const SERVER_URL = "https://chat-core-tts.onrender.com/chat";
 const REQUEST_TIMEOUT_MS = 90000;
 const HISTORY_LIMIT = 12;
-const SESSION_ID = crypto.randomUUID();
 
 const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn');
@@ -185,7 +183,6 @@ let isTranslatorMode = true;
 let activeSpeaker = null; 
 let isRecording = false;
 let isSending = false;
-let isCompressing = false;
 let isLocked = false;
 let currentAudio = null;
 let currentAvatarObjectUrl = null;
@@ -193,36 +190,42 @@ let attachedImageBase64 = null;
 let attachedFileText = null;
 let playlist = [], currentSongIndex = -1, cachedVoices = [];
 let currentSpeechId = 0;
-let isBotTalking = false;
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() { setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬'); }
 resetStatus();
 
-function setBusy(busy) {
-  isSending = busy;
-  sendBtn.disabled = busy || isCompressing;
-  micA.disabled = busy;
-  micB.disabled = busy;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => (
-    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
-  ));
-}
+lockBtn.addEventListener('click', () => {
+  isLocked = !isLocked;
+  if (isLocked) {
+    lockBtn.classList.remove('unlocked');
+    lockBtn.classList.add('locked');
+    lockBtn.textContent = '🔒';
+    uiElements.forEach(el => el.classList.add('locked-ui'));
+    stopAudio(); 
+    if (isRecording) recognition.stop(); 
+    setStatus('App is locked 🔒');
+  } else {
+    lockBtn.classList.remove('locked');
+    lockBtn.classList.add('unlocked');
+    lockBtn.textContent = '';
+    uiElements.forEach(el => el.classList.remove('locked-ui'));
+    resetStatus();
+  }
+});
 
 function addMsg(text, className, lang) {
   const div = document.createElement('div');
   div.className = 'msg ' + className;
-  div.setAttribute('dir', 'auto');
   if (lang && isTranslatorMode) {
     const tag = document.createElement('span');
     tag.className = 'lang-tag';
     tag.textContent = String(lang).toUpperCase();
     div.appendChild(tag);
   }
-  div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
+  let formattedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+  div.appendChild(document.createTextNode(formattedText));
+  div.innerHTML = div.innerHTML.replace(/&lt;br&gt;/g, '<br>');
   chatEl.appendChild(div); 
   chatEl.scrollTop = chatEl.scrollHeight;
 }
@@ -241,6 +244,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar-TN', 'en': 'en-US', 'fr': 'fr-FR' }[code] || 'en-US'; }
+function ttsLangCodeFor(code) { return { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US' }[code] || 'en-US'; }
 
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
@@ -262,6 +266,25 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
     };
     img.onerror = () => resolve(base64Str);
   });
+}
+
+function cleanTounsiTTS(text) {
+  let clean = text;
+  const dict = {
+    'شنية': 'شنوه', 'شنوا': 'شنوه', 'برشة': 'برشا', 'كيفاش': 'كيفاش', 'علاش': 'علاش',
+    'عسلامة': 'عسلاما', 'لاباس': 'لاباس', 'خاطر': 'خاطر', 'برك': 'برك', 'توة': 'توه',
+    'هكا': 'هاكا', 'مريڨل': 'مريقل', 'مريغل': 'مريقل', 'شكون': 'شكون', 'وقتاش': 'وقتاش'
+  };
+  for (const [key, value] of Object.entries(dict)) {
+    clean = clean.replace(new RegExp(`\\b${key}\\b`, 'g'), value);
+  }
+  clean = clean.replace(/([^\s]+)ة(\s|$|[.,!?])/g, '$1ا$2');
+  
+  return clean
+    .replace(/[*_#`~|\\\/<>()\[\]{}]/g, ' ') 
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') 
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 avatarWrap.addEventListener('click', (e) => {
@@ -319,22 +342,18 @@ menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; 
 menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
 menuFile.addEventListener('click', () => { actionMenu.style.display = 'none'; fileUpload.value = ''; fileUpload.click(); });
 
-async function handleImage(e) {
+function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
-  isCompressing = true;
-  sendBtn.disabled = true;
-  setStatus('Compressing image...');
-  const reader = new FileReader();
-  reader.onload = async ev => {
+  const reader = new FileReader(); 
+  reader.onload = async ev => { 
     attachedFileText = null;
+    setStatus('Compressing image...');
     const compressed = await compressImage(ev.target.result);
-    attachedImageBase64 = compressed;
-    imagePreview.src = attachedImageBase64;
-    imagePreviewContainer.style.display = 'flex';
-    isCompressing = false;
-    sendBtn.disabled = isSending;
-    setStatus('Image attached.');
-  };
+    attachedImageBase64 = compressed; 
+    imagePreview.src = attachedImageBase64; 
+    imagePreviewContainer.style.display = 'flex'; 
+    setStatus('Image attached.'); 
+  }; 
   reader.readAsDataURL(file);
 }
 galleryUpload.addEventListener('change', handleImage);
@@ -422,40 +441,26 @@ function buildSystemPrompt(targetLang) {
   const currentDate = new Date().toLocaleDateString(localeFor(targetLang), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   if (isTranslatorMode) {
-    return `You are a world-class literal translation engine. 
-Your ONLY task is to translate the user's input into ${langName}.
-RULES:
-1. Output ONLY the translated text.
-2. DO NOT answer, explain, or add extra words.
-3. If an image or file is provided, translate the text inside it into ${langName}.
-4. If the user speaks in any language, translate it into ${langName}.`;
+    return `You are a literal translation engine. Translate the user's input into ${langName}. Output ONLY the translated text. If an image is provided, translate the text inside it.`;
   } 
   
-  if (targetLang === 'ar') {
-    return `You are Chat-Core, a highly intelligent, empathetic, and wise human friend.
-CURRENT DATE: Today is ${currentDate}.
-CRITICAL DIALECT RULE: You MUST reply in deep Tunisian Derja (شنية، برشة، كيفاش، علاش، توة، باهي، مريقل).
-ABSOLUTE RULE 1: YOU ARE STRICTLY FORBIDDEN FROM USING LATIN CHARACTERS (FRANCO-ARAB / ARABIZI). YOU MUST WRITE ONLY IN ARABIC SCRIPT (e.g., أنا، شنوة، برشة). If you use Latin letters, the system will break.
-ABSOLUTE RULE 2: Use commas and periods to allow the voice to breathe naturally.
-MEMORY: Remember the user's name, context, and previous messages.
-GENIUS MODE: You are a polymath. Solve complex math, science, and programming problems accurately.
-NO ROBOT TALK: DO NOT ask "How can I help you?". Reply naturally like a friend.
-NEVER mention AI or GPT. You are a real human named Chat-Core.`;
-  } 
-  
-  return `You are Chat-Core, a highly intelligent, empathetic, and wise human.
-CURRENT DATE: Today is ${currentDate}.
-CRITICAL LANGUAGE RULE: You MUST reply ONLY in ${langName}. DO NOT USE ARABIC.
-MEMORY: Remember the user's name, context, and previous messages.
-GENIUS MODE: You are a polymath. Solve complex math, science, and programming problems accurately.
-NO ROBOT TALK: DO NOT ask "How can I help you?". Reply naturally like a friend.
-NEVER mention AI or GPT. You are a real human named Chat-Core.`;
+  const sharedRules = `YOUR CORE RULES:
+1. GENIUS: You are a highly intelligent genius. Answer fast, concise, and predict the user's intent.
+2. DIALECT MIMICRY: Use the EXACT same dialect as the user (e.g., Tunisian Derja, Egyptian).
+3. INDEPENDENT TRANSLATION: If the user asks to translate something, translate it immediately.
+4. NO SERVICE OFFERING: DO NOT ask "How can I help you?". Reply naturally like a friend.
+5. NO HALLUCINATION: If you don't know, say 'I don't know'. Do not invent facts.
+6. NEVER mention AI. You are a real human named Chat-Core.`;
+
+  return `You are Chat-Core, a highly intelligent, empathetic human.
+CURRENT DATE: ${currentDate}.
+CRITICAL RULE: Reply ONLY in ${langName}.
+${sharedRules}`;
 }
 
 async function ask(text, sourceLang, targetLang, speaker) {
   if (isSending || isLocked) return;
-  setBusy(true);
-  setStatus('Processing...');
+  isSending = true; setStatus('Processing...');
   
   const systemPrompt = buildSystemPrompt(targetLang);
   const messages = [{ role: 'system', content: systemPrompt }];
@@ -483,23 +488,16 @@ async function ask(text, sourceLang, targetLang, speaker) {
   try {
     const res = await fetchWithTimeout(SERVER_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        messages: messages, 
-        is_vision: attachedImageBase64 != null, 
-        is_translation: isTranslatorMode,
-        session_id: SESSION_ID,
-        target_lang: targetLang
-      })
+      body: JSON.stringify({ messages: messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode })
     }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Server error');
     reply = data.reply.trim();
   } catch (e) {
-    console.error(e);
-    addMsg('تعذّر الاتصال. تحقّق من الشبكة وأعد المحاولة.', 'bot');
+    addMsg('Error: ' + e.message, 'bot');
     setStatus('Error');
   } finally {
-    setBusy(false);
+    isSending = false;
     if (reply) {
       const replyClass = (speaker === 'A') ? 'user-b' : 'user-a';
       const finalClass = isTranslatorMode ? replyClass : 'user-b'; 
@@ -572,7 +570,7 @@ if (SR) {
 }
 
 sendBtn.addEventListener('click', () => {
-  if (isLocked || isSending || isCompressing) return;
+  if (isLocked) return;
   const t = inputEl.value.trim(); 
   if (!t && !attachedImageBase64 && !attachedFileText) return; 
   
@@ -584,6 +582,8 @@ sendBtn.addEventListener('click', () => {
   ask(t, langA.value, langB.value, 'A');
   inputEl.value = '';
 });
+
+let isBotTalking = false;
 
 function unlockMics() {
   activeSpeaker = null;
@@ -601,83 +601,65 @@ function stopAudio() {
   if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.pause();
 }
 
-async function speak(text, lang) {
-  if (isLocked) return;
-  stopAudio();
-  isBotTalking = true;
-  const myId = ++currentSpeechId;
+function speak(text, lang) {
+  if (isLocked) return; 
+  stopAudio(); isBotTalking = true; 
+  const mySpeechId = currentSpeechId;
   setStatus('Speaking...');
 
-  if (avatarVideo.src && avatarVideo.style.display !== 'none') {
-    avatarVideo.play().catch(()=>{});
-  }
+  if (avatarVideo.src && avatarVideo.style.display !== 'none') avatarVideo.play().catch(()=>{});
 
-  // محاولة TTS من الخادم (Oxen)
-  try {
-    const res = await fetch(TTS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: text,
-        lang: lang,
-        voice: voiceSelect.value,
-        session_id: SESSION_ID
-      })
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (myId !== currentSpeechId) return;
-      currentAudio = new Audio(URL.createObjectURL(blob));
-      currentAudio.onended = () => { isBotTalking = false; unlockMics(); };
-      currentAudio.onerror = () => { isBotTalking = false; unlockMics(); };
-      await currentAudio.play();
-      return;
-    }
-  } catch (e) {
-    console.warn('Server TTS unavailable, fallback to browser', e);
-  }
+  let cleanText = cleanTounsiTTS(text);
 
-  // Fallback: TTS المتصفح
-  speakBrowser(text, lang, myId);
-}
-
-function speakBrowser(text, lang, myId) {
-  const langCode = { 'ar': 'ar-SA', 'fr': 'fr-CA', 'en': 'en-US' }[lang] || 'en-US';
+  const langCode = ttsLangCodeFor(lang);
   const voices = cachedVoices.length ? cachedVoices : speechSynthesis.getVoices();
+  
   let candidates = voices.filter(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase().split('-')[0]));
   let bestVoice = candidates[0];
+  
+  if (lang === 'fr') {
+    let caVoice = voices.find(v => v.lang.toLowerCase() === 'fr-ca');
+    if (caVoice) bestVoice = caVoice;
+  } else {
+    const score = v => { let s = 0; const n = v.name.toLowerCase(); if (n.includes('google')) s += 80; if (n.includes('natural') || n.includes('neural')) s += 100; return s; };
+    candidates.sort((a, b) => score(b) - score(a));
+    bestVoice = candidates[0];
+  }
 
-  const sentences = text.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [text];
+  const sentences = cleanText.match(/[^.!?؟،؛]+[.!?؟،؛]*/g) || [cleanText];
   let chunks = [], current = "";
   sentences.forEach(s => {
     s = s.trim(); if (!s) return;
-    if ((current + " " + s).length > 150) { if (current) chunks.push(current); current = s; }
+    if ((current + " " + s).length > 150) { if (current) chunks.push(current); current = s; } 
     else { current += " " + s; }
   });
   if (current) chunks.push(current.trim());
 
   let index = 0;
   function playChunk() {
-    if (index >= chunks.length || myId !== currentSpeechId || isLocked) {
-       if (myId === currentSpeechId) { isBotTalking = false; unlockMics(); }
+    if (index >= chunks.length || mySpeechId !== currentSpeechId || isLocked) {
+       if (mySpeechId === currentSpeechId) { isBotTalking = false; unlockMics(); }
        return;
     }
     const u = new SpeechSynthesisUtterance(chunks[index]);
     index++;
     if (bestVoice) u.voice = bestVoice;
     u.lang = bestVoice ? bestVoice.lang : langCode;
-    u.onend = () => { if (myId === currentSpeechId) setTimeout(playChunk, 150); };
-    u.onerror = () => { if (myId === currentSpeechId) setTimeout(playChunk, 150); };
+    
+    const v = voiceSelect.value;
+    if (v === 'man') { u.pitch = 0.4; u.rate = 1.05; } 
+    else if (v === 'woman') { u.pitch = 1.0; u.rate = 1.05; } 
+    else if (v === 'girl') { u.pitch = 1.4; u.rate = 1.1; } 
+    else if (v === 'child') { u.pitch = 1.8; u.rate = 1.15; } 
+
+    u.onend = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
+    u.onerror = () => { if (mySpeechId === currentSpeechId) setTimeout(playChunk, 150); };
     speechSynthesis.speak(u);
   }
   setTimeout(playChunk, 100);
 }
 
-if ('speechSynthesis' in window) {
-  const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); };
-  loadVoices();
-  speechSynthesis.onvoiceschanged = loadVoices;
-}
+if ('speechSynthesis' in window) { const loadVoices = () => { cachedVoices = speechSynthesis.getVoices(); }; loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
 
 addMsg('Hello! Tap your Mic (Blue) to talk, and your friend taps the Green Mic. I am Chat-Core.', 'bot');
 </script>
