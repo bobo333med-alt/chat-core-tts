@@ -23,6 +23,12 @@ LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://chat-core-ozzy0gzk.livekit.cl
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
 
+# تم نقل تعريف GROQ_KEYS هنا لإصلاح خطأ NameError
+GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
+GROQ_BASE = "https://api.groq.com/openai/v1"
+GROQ_TEXT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
+GROQ_FAST_MODEL = "openai/gpt-oss-20b"
+
 class RoomManager:
     def __init__(self):
         self.rooms = {}
@@ -109,13 +115,6 @@ async def lifespan(app):
 
 app = FastAPI(title="Chat-Core API", version="21.2 Ultra", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
-GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
-GROQ_BASE = "https://api.groq.com/openai/v1"
-
-# النماذج الجديدة المعتمدة
-GROQ_TEXT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
-GROQ_FAST_MODEL = "openai/gpt-oss-20b"
 
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
