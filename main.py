@@ -23,15 +23,15 @@ LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://chat-core-ozzy0gzk.livekit.cl
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
 
-# مفاتيح OpenRouter للمحادثات والترجمة
 OPENROUTER_API_KEYS = [k.strip() for k in os.environ.get("OPENROUTER_API_KEYS", "").split(",") if k.strip()]
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
-OPENROUTER_CHAT_MODELS = ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3-8b-instruct"]
+OPENROUTER_CHAT_MODELS = ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.1-8b-instruct"]
 
-# مفاتيح Groq مخصصة للتعرف على الصوت (Whisper) فقط
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 GROQ_WHISPER_MODEL = "whisper-large-v3"
+# النماذج المحدّثة (بدل llama3-70b-8192 المتقاعد)
+GROQ_CHAT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 class RoomManager:
     def __init__(self):
@@ -112,16 +112,16 @@ async def lifespan(app):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         logger.error("⚠️ LiveKit keys missing!")
     if not OPENROUTER_API_KEYS:
-        logger.warning("⚠️ OPENROUTER_API_KEYS empty! Chat/Translation may fail.")
-    if not GROQ_KEYS:
-        logger.warning("⚠️ GROQ_API_KEYS empty! Audio transcription will fail.")
+        logger.warning("⚠️ OPENROUTER_API_KEYS empty! Chat/Translation will use Groq fallback.")
     else:
-        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded for Whisper.")
-    if OPENROUTER_API_KEYS:
         logger.info(f"✅ {len(OPENROUTER_API_KEYS)} OpenRouter key(s) loaded for Chat.")
+    if not GROQ_KEYS:
+        logger.error("⚠️ GROQ_API_KEYS empty! Audio transcription will fail.")
+    else:
+        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.3 OpenRouter", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="21.4", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 _sessions: Dict[str, dict] = {}
@@ -164,16 +164,16 @@ def get_next_key(keys_list):
     _api_key_idx["i"] += 1
     return k
 
-async def call_llm(messages, models, temperature=0.7, max_tokens=2000, timeout=30.0):
-    last_err = "no model tried"
-    
-    # 1. Try OpenRouter First
+async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0):
+    last_err = "no provider tried"
+
+    # 1. OpenRouter أولاً
     if OPENROUTER_API_KEYS:
-        for model in models:
+        for model in OPENROUTER_CHAT_MODELS:
             key = get_next_key(OPENROUTER_API_KEYS)
             client = AsyncOpenAI(
-                base_url=OPENROUTER_BASE, 
-                api_key=key, 
+                base_url=OPENROUTER_BASE,
+                api_key=key,
                 timeout=timeout,
                 default_headers={
                     "HTTP-Referer": "https://chat-core-tts.onrender.com",
@@ -188,10 +188,9 @@ async def call_llm(messages, models, temperature=0.7, max_tokens=2000, timeout=3
                 if "429" in last_err or "rate_limit" in last_err: await asyncio.sleep(0.8)
                 continue
 
-    # 2. Fallback to Groq for text if OpenRouter fails or is empty
+    # 2. Fallback Groq (نماذج محدّثة)
     if GROQ_KEYS:
-        groq_models = ["llama3-8b-8192", "llama3-70b-8192"]
-        for model in groq_models:
+        for model in GROQ_CHAT_MODELS:
             key = get_next_key(GROQ_KEYS)
             client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=timeout)
             try:
@@ -205,7 +204,7 @@ async def call_llm(messages, models, temperature=0.7, max_tokens=2000, timeout=3
     raise HTTPException(503, detail=f"LLM Error: {last_err}")
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
-    return await call_llm(messages, OPENROUTER_CHAT_MODELS, temperature, max_tokens)
+    return await call_llm(messages, temperature, max_tokens)
 
 LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian", "zh": "Chinese", "ru": "Russian", "es": "Spanish", "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"}
 
@@ -226,7 +225,7 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
                 {"role": "system", "content": f"Translate from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translation."},
                 {"role": "user", "content": text},
             ],
-            models=OPENROUTER_CHAT_MODELS, temperature=0.0, max_tokens=800, timeout=20.0
+            temperature=0.0, max_tokens=800, timeout=20.0
         )
         out = (result or "").strip().strip('"').strip("'")
         if out:
@@ -237,7 +236,7 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
         return text
 
 HALLUCINATION_BLACKLIST = [
-    "كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية", 
+    "كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية",
     "الموضوعات في الوصف", "اشتركوا في القناة", "شكراً لكم", "شكرا لكم",
     "Thank you for watching", "Subscribe to", "Amara.org", "ترجمة"
 ]
@@ -293,11 +292,11 @@ async def synthesize_tts(text: str, lang: str, voice: str) -> bytes:
     return bytes(buf)
 
 @app.get("/health")
-async def health(): 
+async def health():
     return {"ok": True, "openrouter_keys": len(OPENROUTER_API_KEYS), "groq_keys": len(GROQ_KEYS)}
 
 @app.post("/rooms/create")
-async def create_room_endpoint(): 
+async def create_room_endpoint():
     return {"code": await room_manager.create_room()}
 
 @app.post("/get-token")
