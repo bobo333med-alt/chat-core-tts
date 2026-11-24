@@ -15,10 +15,8 @@
   --glass-blur: blur(12px);
   --text-main: #ffffff;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
-
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: radial-gradient(circle at 50% 0%, #2a1b54 0%, #0d082b 50%, #050312 100%);
@@ -27,153 +25,55 @@ body {
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   height: 100dvh; transition: opacity 0.3s;
 }
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
-@keyframes ringPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
-}
-
-@keyframes slideIn {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow), inset 0 0 20px rgba(255,255,255,0.05);
-  border-radius: 20px;
-}
-
-#authOverlay {
-  position: fixed; inset: 0; background: transparent; display: flex;
-  flex-direction: column; align-items: center; justify-content: center;
-  z-index: 9999999; padding: 20px; overflow-y: auto;
-}
-.auth-lang-switch {
-  position: absolute; top: 20px; right: 20px; display: flex; gap: 8px;
-  background: var(--glass-bg); padding: 5px; border-radius: 12px;
-  backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border);
-}
-.lang-btn {
-  background: transparent; border: none; color: rgba(255,255,255,0.6);
-  padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold;
-  transition: 0.3s;
-}
-.lang-btn.active {
-  background: rgba(0, 240, 255, 0.2); color: #00f0ff;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
-}
-.auth-box {
-  background: var(--glass-bg); backdrop-filter: var(--glass-blur);
-  padding: 30px 20px; border-radius: 24px; width: 100%; max-width: 350px;
-  box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border);
-  text-align: center; margin: auto;
-}
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+@keyframes ringPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } }
+@keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse { 50% { transform: scale(1.1); } }
+.glass-panel { background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 0 20px rgba(255,255,255,0.05); border-radius: 20px; }
+#authOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; }
+.auth-lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; background: var(--glass-bg); padding: 5px; border-radius: 12px; backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); }
+.lang-btn { background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.3s; }
+.lang-btn.active { background: rgba(0, 240, 255, 0.2); color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+.auth-box { background: var(--glass-bg); backdrop-filter: var(--glass-blur); padding: 30px 20px; border-radius: 24px; width: 100%; max-width: 350px; box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); text-align: center; margin: auto; }
 .auth-box h1 { color: #00f0ff; margin-bottom: 5px; font-size: 26px; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
 .auth-box h2 { color: #fff; margin-bottom: 20px; font-size: 18px; font-weight: normal; }
-.auth-input {
-  width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
-  color: #fff; outline: none; font-size: 14px; transition: 0.3s;
-}
+.auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; outline: none; font-size: 14px; transition: 0.3s; }
 .auth-input:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,0.2); }
-.auth-btn {
-  width: 100%; padding: 14px; border-radius: 12px; border: none;
-  background: linear-gradient(135deg, #00b09b, #96c93d); color: #fff;
-  font-weight: bold; cursor: pointer; margin-bottom: 10px;
-  transition: 0.3s; font-size: 15px; box-shadow: 0 4px 15px rgba(0,176,155,0.4);
-}
+.auth-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00b09b, #96c93d); color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 15px; box-shadow: 0 4px 15px rgba(0,176,155,0.4); }
 .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,176,155,0.6); }
-.auth-btn.outline {
-  background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff;
-  box-shadow: none;
-}
+.auth-btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; box-shadow: none; }
 .auth-btn.outline:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
-.social-btn {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.05); color: #fff; font-weight: bold;
-  cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 14px;
-}
+.social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 14px; }
 .social-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
 #authError { color: #ff6b6b; font-size: 13px; margin-bottom: 10px; min-height: 18px; word-wrap: break-word; }
 .divider { display: flex; align-items: center; margin: 20px 0; color: rgba(255,255,255,0.5); font-size: 12px; }
 .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.1); margin: 0 10px; }
-
-.overlay {
-  position: fixed; inset: 0; background: transparent; display: flex;
-  flex-direction: column; align-items: center; justify-content: center;
-  gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto;
-}
+.overlay { position: fixed; inset: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
 .overlay h1 { font-size: 32px; color: #00f0ff; margin-bottom: 5px; text-shadow: 0 0 15px rgba(0,240,255,0.4); }
 .overlay h2 { font-size: 20px; color: #fff; margin-bottom: 15px; font-weight: normal; }
-.mode-btn {
-  padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
-  color: #fff; cursor: pointer; width: 100%; max-width: 280px; font-weight: bold;
-  display: flex; align-items: center; justify-content: space-between;
-  backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: inset 0 0 10px rgba(255,255,255,0.05), 0 4px 15px rgba(0,0,0,0.2);
-  background: rgba(255,255,255,0.03);
-}
+.mode-btn { padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); color: #fff; cursor: pointer; width: 100%; max-width: 280px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: inset 0 0 10px rgba(255,255,255,0.05), 0 4px 15px rgba(0,0,0,0.2); background: rgba(255,255,255,0.03); }
 .mode-btn:active { transform: scale(0.96); }
 #btnLocal { border-color: rgba(138, 43, 226, 0.4); background: linear-gradient(90deg, rgba(138,43,226,0.1), rgba(0,0,0,0)); }
 #btnRemote { border-color: rgba(46, 139, 87, 0.4); background: linear-gradient(90deg, rgba(46,139,87,0.1), rgba(0,0,0,0)); }
 #btnMeeting { border-color: rgba(30, 144, 255, 0.4); background: linear-gradient(90deg, rgba(30,144,255,0.1), rgba(0,0,0,0)); }
 #btnFriends { border-color: rgba(255, 165, 0, 0.4); background: linear-gradient(90deg, rgba(255,165,0,0.1), rgba(0,0,0,0)); position: relative; }
 #btnLogout { border-color: rgba(255, 69, 0, 0.4); background: linear-gradient(90deg, rgba(255,69,0,0.1), rgba(0,0,0,0)); margin-top: 20px; }
-
-.join-form {
-  display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px;
-  background: var(--glass-bg); padding: 25px 20px; border-radius: 24px;
-  backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow); align-items: stretch;
-}
-.join-form input[type="text"], .join-form select, .join-form input[type="email"], .join-form input[type="password"] {
-  padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(0,0,0,0.3); color: #fff; font-size: 14px; outline: none; transition: 0.3s;
-}
+.join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; background: var(--glass-bg); padding: 25px 20px; border-radius: 24px; backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); align-items: stretch; }
+.join-form input[type="text"], .join-form select, .join-form input[type="email"], .join-form input[type="password"] { padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; font-size: 14px; outline: none; transition: 0.3s; }
 .join-form input:focus, .join-form select:focus { border-color: #00f0ff; }
-.join-form button {
-  padding: 14px; border-radius: 12px; border: none; color: #fff;
-  cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s;
-}
+.join-form button { padding: 14px; border-radius: 12px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s; }
 #createRoomBtn, #createMeetingBtn { background: linear-gradient(135deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.3); }
 #joinRoomBtn, #joinMeetingBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); box-shadow: 0 4px 15px rgba(69,104,220,0.3); }
 #backToLandingBtn, #backToLandingFromMeetBtn { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); margin-top: 5px; }
 #backToLandingBtn:hover, #backToLandingFromMeetBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-
 .top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
-.top-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  background: var(--glass-bg); padding: 8px 15px; border-radius: 16px;
-  width: 95%; max-width: 400px; backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
-}
+.top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--glass-bg); padding: 8px 15px; border-radius: 16px; width: 95%; max-width: 400px; backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); }
 .user-section { display: flex; align-items: center; gap: 6px; }
-.lang-select {
-  padding: 0 5px; border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff;
-  border: 1px solid rgba(255,255,255,0.1); font-size: 10px; outline: none;
-  width: 85px !important; height: 28px; text-align: center;
-}
-.mic-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: none; color: #fff;
-  font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
+.lang-select { padding: 0 5px; border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.1); font-size: 10px; outline: none; width: 85px !important; height: 28px; text-align: center; }
+.mic-btn { width: 44px; height: 44px; border-radius: 50%; border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 .mic-btn.blue { background: #6366f1; } .mic-btn.green { background: #10b981; }
 .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 15px rgba(239,68,68,0.6); }
 .mic-btn:disabled { background: #475569 !important; opacity: 0.5; }
-@keyframes pulse { 50% { transform: scale(1.1); } }
-
 #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
 #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,240,255,0.2); z-index: 1; transition: all 0.3s; border: 2px solid rgba(255,255,255,0.2); }
 #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -184,11 +84,9 @@ body {
 #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
 #removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; background: #000; border: 2px solid #fff; cursor: pointer; z-index: 999; color: white; font-weight: bold; font-size: 14px; align-items: center; justify-content: center; }
 body.remote-mode #avatar-wrap, body.meeting-mode #avatar-wrap { display: none !important; }
-
 #closeFullscreen, #closeVideoFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 .inner-white-dot { width: 14px; height: 14px; background: #fff; border-radius: 50%; }
 #closeFullscreen { top: 80px; right: 20px; } #closeVideoFullscreen { top: 20px; right: 20px; }
-
 #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.5); cursor: pointer; transition: all 0.3s; z-index: 500; border: 1px solid rgba(255,255,255,0.1); }
 #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid rgba(255,255,255,0.5); background: #1e293b; z-index: 2; pointer-events: auto; }
@@ -199,18 +97,15 @@ body.video-maximized #remoteVideo { object-fit: cover; }
 body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
 body.video-maximized #closeVideoFullscreen { display: flex; }
 body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
-
 #meetingGridContainer { display: none; position: relative; width: 100%; flex: 1; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: 16px; padding: 10px; overflow-y: auto; margin-bottom: 10px; box-shadow: var(--glass-shadow); }
 #videoGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-content: start; }
 .participant-box { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
 .participant-box video { width: 100%; height: 100%; object-fit: cover; }
 .participant-name { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #fff; z-index: 2; }
 body.meeting-mode .chat-container { max-height: 35vh; }
-
 #floatingMicBtn { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #11998e, #38ef7d); color: white; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(56,239,125,0.4); z-index: 100000; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s; }
 #floatingMicBtn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 20px rgba(239,68,68,0.8); }
 body.video-maximized #floatingMicBtn { display: flex; }
-
 .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
 #chat { flex: 1; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); border-radius: 20px; padding: 15px; overflow-y: auto; }
 .msg { padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -221,11 +116,9 @@ body.video-maximized #floatingMicBtn { display: flex; }
 .lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
 #clearBtn { position: absolute; bottom: 2px; left: 10px; width: 32px; height: 32px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 #clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
-
 #imagePreviewContainer { display: none; position: absolute; bottom: 60px; right: 10px; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: 12px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: var(--glass-shadow); }
 #imagePreview { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
 #cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-
 .row { display: flex; gap: 8px; align-items: center; flex-shrink: 0; position: relative; }
 input[type=text] { flex: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff; font-size: 14px; order: 3; outline: none; backdrop-filter: blur(5px); }
 input[type=text]:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,0.1); }
@@ -241,7 +134,6 @@ button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; wi
 #stopAudioBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; outline: none; }
 #stopAudioBtn svg { fill: #2d3748; width: 14px; height: 14px; }
 #status { text-align: center; font-size: 13px; color: #00f0ff; margin-top: 6px; min-height: 18px; font-weight: bold; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
-
 .extra-controls { display: flex; gap: 8px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; width: 100%; padding: 0 5px; align-items: center; }
 .extra-controls button, .extra-controls select { padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff; font-size: 11px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); transition: 0.3s; }
 .extra-controls button:active { transform: scale(0.95); }
@@ -250,11 +142,9 @@ button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; wi
 .btn-back { background: rgba(239, 68, 68, 0.3) !important; border-color: #ef4444 !important; color: #fff !important; }
 body.remote-mode #extraControls, body.meeting-mode #extraControls { justify-content: space-between; padding: 0 10px; }
 body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex: 1 1 30%; }
-
 #actionMenu { display: none; position: fixed; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .action-btn { padding: 10px 15px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
 .action-btn:hover { background: rgba(255,255,255,0.15); }
-
 #musicMenu { display: none; position: fixed; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px; z-index: 2000; width: 220px; max-height: 300px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 #musicMenu h4 { font-size: 13px; margin-bottom: 10px; text-align: center; color: #00f0ff; }
 .music-item { padding: 8px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-bottom: 5px; background: rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
@@ -265,13 +155,11 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
 .music-item.pause-btn { background: rgba(71, 85, 105, 0.5); margin-bottom: 8px; }
 .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
 .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 15px; }
-
 #remoteBar { display: none; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); padding: 10px 15px; border-radius: 16px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 13px; box-shadow: var(--glass-shadow); }
 #remoteBar .room-info { display: flex; align-items: center; gap: 10px; justify-content: center; flex: 1; }
 #remoteBar strong { color: #00f0ff; letter-spacing: 2px; font-size: 15px; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
 #copyRoomBtn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s; }
 #copyRoomBtn:hover { background: rgba(255,255,255,0.2); }
-
 #friendsOverlay .join-form { max-width: 360px; }
 #frMyCode { color: #00f0ff; letter-spacing: 3px; font-size: 20px; text-shadow: 0 0 10px rgba(0,240,255,0.4); }
 #frCopyCode { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
@@ -282,56 +170,27 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
 #frRequests > div, #frList > div { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px; }
 #frRequests button, #frList button { border-radius: 6px; padding: 4px 8px; font-size: 11px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
 #frRequests button:active, #frList button:active { transform: scale(0.9); }
-
 #chatOverlay { background: transparent; }
 #chMsgs { background: var(--glass-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); border-radius: 16px; }
 #chMsgs > div { border-radius: 12px; font-size: 14px; padding: 10px 14px; }
 #chInput { border-radius: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px 15px; }
 #chSend { background: linear-gradient(135deg, #4568dc, #b06ab3); border-radius: 50%; width: 46px; height: 46px; box-shadow: 0 4px 15px rgba(69,104,220,0.3); }
 #chBack { background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; }
-
 .checkbox-row { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 13px; color: rgba(255,255,255,0.7); cursor: pointer; }
 .checkbox-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #00f0ff; }
-
-/* ===== نظام الرنين ===== */
-#callOverlay {
-  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(20px); z-index: 9999998; flex-direction: column;
-  align-items: center; justify-content: center; gap: 30px;
-}
+#callOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 9999998; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
 #callOverlay.active { display: flex; animation: slideIn 0.3s ease; }
-.call-avatar {
-  width: 150px; height: 150px; border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 60px; animation: ringPulse 1.5s infinite;
-  box-shadow: 0 0 40px rgba(102, 126, 234, 0.5);
-}
+.call-avatar { width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 60px; animation: ringPulse 1.5s infinite; box-shadow: 0 0 40px rgba(102, 126, 234, 0.5); }
 .call-name { font-size: 28px; font-weight: bold; color: #fff; }
 .call-status { font-size: 16px; color: rgba(255,255,255,0.7); }
 .call-actions { display: flex; gap: 40px; }
-.call-btn {
-  width: 70px; height: 70px; border-radius: 50%; border: none;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px; cursor: pointer; transition: 0.3s;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-}
+.call-btn { width: 70px; height: 70px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
 .call-btn.accept { background: #10b981; color: #fff; }
 .call-btn.decline { background: #ef4444; color: #fff; }
 .call-btn:active { transform: scale(0.9); }
-
-/* مؤشر التسجيل الطويل */
-#longRecordIndicator {
-  display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  background: rgba(239, 68, 68, 0.9); color: #fff; padding: 10px 20px;
-  border-radius: 20px; font-size: 14px; font-weight: bold; z-index: 100001;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
-}
+#longRecordIndicator { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.9); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; z-index: 100001; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5); }
 #longRecordIndicator.active { display: flex; align-items: center; gap: 10px; }
-#longRecordIndicator .dot {
-  width: 10px; height: 10px; background: #fff; border-radius: 50%;
-  animation: pulse 1s infinite;
-}
+#longRecordIndicator .dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; animation: pulse 1s infinite; }
 </style>
 </head>
 <body>
@@ -554,13 +413,11 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
 <audio id="bgAudio"></audio>
 <div id="musicMenu"><h4>🎵 Playlist</h4><div id="musicList"></div></div>
 
-<!-- مؤشر التسجيل الطويل -->
 <div id="longRecordIndicator">
   <div class="dot"></div>
   <span id="longRecordTime">00:00</span>
 </div>
 
-<!-- شاشة الاتصال برنين -->
 <div id="callOverlay">
   <div class="call-avatar">📞</div>
   <div class="call-name" id="callName">Unknown</div>
@@ -650,9 +507,6 @@ auth.onAuthStateChanged(user => {
 const savedLang = localStorage.getItem('authLang') || 'ar';
 changeAuthLang(savedLang);
 
-// ==========================================
-// App Logic
-// ==========================================
 const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
 const SERVER_URL = BASE_SERVER_URL + "/chat";
 const TTS_URL = BASE_SERVER_URL + "/tts";
@@ -663,10 +517,9 @@ const WS_BASE = BASE_SERVER_URL.replace('https://', 'wss://').replace('http://',
 const REQUEST_TIMEOUT_MS = 60000;
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
-// ===== إعدادات التسجيل الطويل =====
-const LONG_RECORD_CHUNK_MS = 5 * 60 * 1000; // 5 دقائق لكل chunk
-const LONG_RECORD_SILENCE_MS = 10000; // 10 ثواني صمت لقطع chunk
-const MAX_RECORD_DURATION_MS = 60 * 60 * 1000; // ساعة كحد أقصى
+const LONG_RECORD_CHUNK_MS = 5 * 60 * 1000;
+const LONG_RECORD_SILENCE_MS = 10000;
+const MAX_RECORD_DURATION_MS = 60 * 60 * 1000;
 
 const _scriptPromises = {};
 function loadScript(src) {
@@ -720,7 +573,6 @@ let isCameraOn = true;
 let isWebRtcMicOn = true;
 let livekitRoom = null;
 
-// Face-to-Face variables
 let localRecorder = null;
 let localStreamMic = null;
 let localChunks = [];
@@ -728,7 +580,6 @@ let localStartTime = 0;
 let currentSpeaker = null;
 let isLocalProcessing = false;
 
-// Remote/Meeting variables
 let isManualTranslating = false;
 let audioRecorder = null;
 let translationStartTime = 0;
@@ -737,14 +588,12 @@ let myIsCaller = false;
 let _rtcInitiated = false;
 let _chLangPopulated = false;
 
-// ===== متغيرات التسجيل الطويل =====
 let longRecordChunks = [];
 let longRecordStartTime = 0;
 let longRecordTimer = null;
 let longRecordChunkIndex = 0;
 let longRecordSilenceTimer = null;
 
-// ===== متغيرات الرنين =====
 let currentIncomingCall = null;
 let ringtoneAudio = null;
 let callUnsub = null;
@@ -929,10 +778,9 @@ $('btnMeeting').addEventListener('click', () => { $('landingOverlay').style.disp
 $('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 $('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-backBtn.addEventListener('click', async () => {
+async function cleanupAll() {
   if (isManualTranslating) stopManualTranslation();
   if (localRecorder && localRecorder.state === 'recording') localRecorder.stop();
-  stopLongRecord();
   stopAudio();
   if (appMode === 'remote' || appMode === 'meeting') {
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
@@ -948,7 +796,9 @@ backBtn.addEventListener('click', async () => {
     UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
     $('landingOverlay').style.display = 'flex';
   }
-});
+}
+
+backBtn.addEventListener('click', cleanupAll);
 
 tapToPlayOverlay.addEventListener('click', () => {
   remoteVideo.muted = false;
@@ -982,9 +832,6 @@ toggleCamBtn.addEventListener('click', async () => {
   if (livekitRoom) { try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); } }
 });
 
-// ==========================================
-// LiveKit
-// ==========================================
 function handleTrackSubscribed(track, publication, participant) {
   if (track.kind === 'video' || track.kind === 'audio') {
     let boxId = 'participant-' + participant.identity;
@@ -1102,9 +949,6 @@ async function startVideoCall(isCaller = false) {
   }
 }
 
-// ==========================================
-// FACE-TO-FACE (تسجيل طويل)
-// ==========================================
 async function toggleLocalMic(speaker) {
   if (isLocalProcessing) return;
   unlockAudio();
@@ -1125,7 +969,15 @@ async function toggleLocalMic(speaker) {
   const btn = speaker === 'A' ? micA : micB;
   
   try {
-    localStreamMic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    localStreamMic = await navigator.mediaDevices.getUserMedia({ 
+      audio: { 
+        echoCancellation: true, 
+        noiseSuppression: true, 
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 48000
+      } 
+    });
     
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaStreamSource(localStreamMic);
@@ -1135,15 +987,20 @@ async function toggleLocalMic(speaker) {
     const rmsBuffer = new Float32Array(analyser.fftSize);
     let rmsMax = 0;
     let silenceStart = Date.now();
-    const rmsInterval = setInterval(() => {
-      analyser.getFloatTimeDomainData(rmsBuffer);
-      let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-      const rms = Math.sqrt(sum / rmsBuffer.length);
-      if (rms > rmsMax) rmsMax = rms;
-      if (rms > 0.01) silenceStart = Date.now();
-      else if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && localRecorder && localRecorder.state === 'recording') {
-        localRecorder.stop();
-      }
+    let intervalId = null;
+    
+    intervalId = setInterval(() => {
+      try {
+        analyser.getFloatTimeDomainData(rmsBuffer);
+        let sum = 0; 
+        for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+        const rms = Math.sqrt(sum / rmsBuffer.length);
+        if (rms > rmsMax) rmsMax = rms;
+        if (rms > 0.01) silenceStart = Date.now();
+        else if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && localRecorder && localRecorder.state === 'recording') {
+          localRecorder.stop();
+        }
+      } catch(e){}
     }, 100);
 
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
@@ -1153,8 +1010,8 @@ async function toggleLocalMic(speaker) {
     localRecorder.ondataavailable = e => { if (e.data.size > 0) localChunks.push(e.data); };
     
     localRecorder.onstop = async () => {
-      clearInterval(rmsInterval);
-      localStreamMic.getTracks().forEach(t => t.stop());
+      if (intervalId) clearInterval(intervalId);
+      if (localStreamMic) localStreamMic.getTracks().forEach(t => t.stop());
       try { if (audioCtx.state !== 'closed') await audioCtx.close(); } catch(e){}
       
       const durationMs = Date.now() - localStartTime;
@@ -1192,20 +1049,20 @@ async function toggleLocalMic(speaker) {
             addMsg(`⚠️ لم يتم التعرف على كلام.`, 'bot');
           }
         }
-      } catch(e) { console.warn('Audio upload failed', e); }
+      } catch(e) { console.warn('Audio upload failed', e); addMsg('⚠️ فشل إرسال الصوت.', 'bot'); }
       
       isLocalProcessing = false;
       unlockMics();
     };
     
-    localRecorder.start();
+    localRecorder.start(1000);
     localStartTime = Date.now();
     btn.classList.add('recording');
     micA.disabled = speaker !== 'A';
     micB.disabled = speaker !== 'B';
     setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
   } catch (e) {
-    addMsg("⚠️ تعذر الوصول للمايك.", "bot");
+    addMsg("⚠️ تعذر الوصول للمايك: " + e.message, "bot");
     isLocalProcessing = false;
     unlockMics();
   }
@@ -1218,9 +1075,52 @@ function unlockMics() {
 micA.addEventListener('click', () => toggleLocalMic('A'));
 micB.addEventListener('click', () => toggleLocalMic('B'));
 
-// ==========================================
-// REMOTE / MEETING: تسجيل طويل ذكي
-// ==========================================
+async function ensureMicStream() {
+  if (localStream) return localStream;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
+    });
+    isWebRtcMicOn = true;
+    return localStream;
+  } catch (err) {
+    addMsg('⚠️ تعذر الوصول للمايك: ' + err.message, 'bot');
+    return null;
+  }
+}
+
+async function toggleRemoteMic() {
+  if (isTranslatorMode) {
+    if (isManualTranslating) stopManualTranslation();
+    else startManualTranslation();
+    return;
+  }
+  
+  isWebRtcMicOn = !isWebRtcMicOn;
+  
+  if (appMode === 'remote') {
+    const stream = await ensureMicStream();
+    if (stream) {
+      stream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
+    }
+  }
+  
+  if (appMode === 'meeting' && livekitRoom) {
+    try {
+      await livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn);
+    } catch(e) {
+      console.warn('Mic toggle error:', e);
+    }
+  }
+  
+  updateTranslatorUI();
+  resetStatus();
+}
+
+remoteMicBtn.addEventListener('click', toggleRemoteMic);
+floatingMicBtn.addEventListener('click', toggleRemoteMic);
+
 async function startManualTranslation() {
   if (isManualTranslating) return;
   try {
@@ -1248,10 +1148,9 @@ async function startManualTranslation() {
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     
     const startNewChunk = () => {
-      audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
       let chunks = [];
+      audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
       audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      
       audioRecorder.onstop = async () => {
         const durationMs = Date.now() - chunkStartTime;
         if (chunks.length === 0 || durationMs < 800 || rmsMax < 0.005) return;
@@ -1276,8 +1175,7 @@ async function startManualTranslation() {
         } catch(e) { console.warn('Audio chunk upload failed', e); }
         chunkIndex++;
       };
-      
-      audioRecorder.start();
+      audioRecorder.start(1000);
       chunkStartTime = Date.now();
       rmsMax = 0;
       silenceStart = Date.now();
@@ -1298,14 +1196,13 @@ async function startManualTranslation() {
         } else {
           if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && audioRecorder && audioRecorder.state === 'recording') {
              audioRecorder.stop();
-             setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 100);
+             setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
           }
         }
         
-        // قطع تلقائي كل 5 دقائق
         if (Date.now() - chunkStartTime > LONG_RECORD_CHUNK_MS && audioRecorder && audioRecorder.state === 'recording') {
           audioRecorder.stop();
-          setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 100);
+          setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
         }
       } catch(e){}
     }, 200);
@@ -1347,17 +1244,20 @@ sendBtn.addEventListener('click', () => {
 });
 inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
 
-function buildSystemPrompt(targetLang, sourceLang) {
+function buildSystemPrompt(targetLang, sourceLang, isImage = false) {
+  if (isImage) {
+    return `Describe this image in detail in ${langNameFor(sourceLang)}, then translate your description to ${langNameFor(targetLang)}. Format: [Original description in ${langNameFor(sourceLang)}] ||| [Translation in ${langNameFor(targetLang)}]`;
+  }
   if (isTranslatorMode) {
     return `You are a highly accurate translation engine. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. You must output ONLY the translated text in ${langNameFor(targetLang)}. Do NOT repeat the original text. Do NOT explain.`;
   }
   return `You are Chat-Core, a helpful assistant. You must reply ONLY in ${langNameFor(targetLang)}. Never use any other language.`;
 }
 
-async function ask(text, sourceLang, targetLang, speaker) {
+async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
   if (isSending) return;
   setBusy(true); setStatus('Processing...');
-  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang) }];
+  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang, isImage) }];
   
   let finalText = text || '';
   if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
@@ -1365,7 +1265,7 @@ async function ask(text, sourceLang, targetLang, speaker) {
   let userContent = finalText;
   if (attachedImageBase64) {
     userContent = [
-      { type: "text", text: finalText || "Analyze this image." }, 
+      { type: "text", text: finalText || "Describe this image in detail." }, 
       { type: "image_url", image_url: { url: attachedImageBase64 } }
     ];
   }
@@ -1378,19 +1278,26 @@ async function ask(text, sourceLang, targetLang, speaker) {
     if (!res.ok) throw new Error(data.detail);
     
     let replyText = data.reply.trim();
-    if (isTranslatorMode && replyText === text) {
-       replyText = "⚠️ Translation failed. Please try again.";
+    
+    if (isImage && replyText.includes('|||')) {
+      const parts = replyText.split('|||');
+      const original = parts[0].trim();
+      const translated = parts[1].trim();
+      addMsg(`📷 ${original}`, speaker === 'A' ? 'user-a' : 'user-b', sourceLang, attachedImageBase64);
+      addMsg(`↳ ${translated}`, 'bot', targetLang);
+      speak(translated, targetLang);
+    } else {
+      if (isTranslatorMode && replyText === text) {
+         replyText = "⚠️ Translation failed. Please try again.";
+      }
+      addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO', isImage ? attachedImageBase64 : null);
+      resetStatus(); speak(replyText, targetLang || langA.value);
     }
-
-    addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO');
-    resetStatus(); speak(replyText, targetLang || langA.value);
+    
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// ==========================================
-// Uploads & Media
-// ==========================================
 uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
 videoAvatarUpload.addEventListener('change', (e) => {
   const file = e.target.files[0]; if (!file) return;
@@ -1420,7 +1327,7 @@ menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; v
 videoUpload.addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
   if (appMode === 'remote' || appMode === 'meeting') return alert('إرسال الفيديوهات غير مدعوم حالياً.');
-  if (file.size > 25 * 1024 * 1024) return alert('حجم الملف كبير جداً!');
+  if (file.size > 100 * 1024 * 1024) return alert('حجم الملف كبير جداً! الحد الأقصى 100MB');
   const targetLang = langB.value;
   addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
   setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
@@ -1430,7 +1337,7 @@ videoUpload.addEventListener('change', async (e) => {
   formData.append('language', langA.value);
   formData.append('duration_ms', '10000');
   try {
-    const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+    const res = await fetchWithTimeout(TRANSCRIBE_URL, { method: 'POST', body: formData }, 300000);
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     if (data.original) addMsg(data.original, 'user-b', 'AUTO'); 
@@ -1486,9 +1393,6 @@ function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongInde
 bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
 
-// ==========================================
-// Friends (Firestore) + نظام الرنين
-// ==========================================
 const FR_TEXT = {
   ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد.', accept: 'قبول', decline: 'رفض', call: 'اتصال', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...', ringing: 'جارٍ الاتصال...', incoming: 'مكالمة واردة...' },
   fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', call: 'Appel', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer', rules: "Base de données inaccessible.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...', ringing: 'Appel en cours...', incoming: 'Appel entrant...' },
@@ -1563,7 +1467,6 @@ function initFriends() {
           showInvite(inv);
         });
       }, e => { lastFriendsError = e; }));
-      // ===== Listener للمكالمات الواردة =====
       friendsUnsubs.push(db.collection('calls').where('to_uid', '==', me).where('status', '==', 'ringing').onSnapshot(s => {
         s.docChanges().forEach(ch => {
           if (ch.type === 'added') {
@@ -1593,10 +1496,8 @@ function teardownFriends() {
   hideIncomingCall();
 }
 
-// ===== نظام الرنين =====
 function playRingtone() {
   if (ringtoneAudio) return;
-  // صوت رنين بسيط باستخدام Web Audio API
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -1611,7 +1512,6 @@ function playRingtone() {
     osc.start();
     osc.stop(ctx.currentTime + 1);
     ringtoneAudio = { ctx, osc, gain };
-    // تكرار الرنين
     window._ringInterval = setInterval(() => {
       try {
         const o = ctx.createOscillator();
@@ -1682,7 +1582,6 @@ async function callFriend(friend) {
     await db.collection('calls').add(callData);
     setStatus(frT('ringing'));
     addMsg(`📞 جاري الاتصال بـ ${friend.name}...`, 'bot');
-    // إلغاء بعد 30 ثانية إذا لم يُقبل
     setTimeout(async () => {
       const calls = await db.collection('calls').where('from_uid', '==', currentUser.uid).where('to_uid', '==', friend.uid).where('status', '==', 'ringing').limit(1).get();
       calls.forEach(doc => doc.ref.update({ status: 'cancelled' }).catch(()=>{}));
@@ -1742,9 +1641,6 @@ $('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.pr
 $('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode)); });
 renderPlaylist();
 
-// ==========================================
-// Core Functions
-// ==========================================
 async function speak(text, lang) {
   if (!text) return;
   stopAudio();
@@ -1856,7 +1752,10 @@ async function handleWSMessage(msg) {
     }
     return;
   }
-  if (type === 'chat_media') { addMsg((msg.from_name || 'صديق') + ' 📷:', 'user-b', msg.from_lang || 'en', msg.data); return; }
+  if (type === 'chat_media') {
+    addMsg((msg.from_name || 'صديق') + ' 📷:', 'user-b', msg.from_lang || 'en', msg.data);
+    return;
+  }
   if (type === 'rtc-offer') { await handleRtcOffer(msg.offer); return; }
   if (type === 'rtc-answer') { await handleRtcAnswer(msg.answer); return; }
   if (type === 'rtc-ice') { await handleRtcIce(msg.candidate); return; }
@@ -1947,26 +1846,7 @@ $('joinMeetingBtn').addEventListener('click', async () => {
   $('meetingJoinOverlay').style.display = 'none';
   await enterMeeting(code, name, lang);
 });
-remoteMicBtn.addEventListener('click', () => {
-  if (isTranslatorMode) { if (isManualTranslating) stopManualTranslation(); else startManualTranslation(); }
-  else {
-    isWebRtcMicOn = !isWebRtcMicOn;
-    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
-    if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn).catch(()=>{});
-    updateTranslatorUI(); resetStatus();
-  }
-});
-floatingMicBtn.addEventListener('click', () => {
-  if (isTranslatorMode) { if (isManualTranslating) stopManualTranslation(); else startManualTranslation(); }
-  else {
-    isWebRtcMicOn = !isWebRtcMicOn;
-    if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
-    if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn).catch(()=>{});
-    updateTranslatorUI(); resetStatus();
-  }
-});
 
-// Friends Chat
 const CHAT_LANGS = [['ar','🇹🇳 العربية'],['fr','🇫🇷 Français'],['en','🇬🇧 English'],['de','🇩🇪 Deutsch'],['tr','🇹🇷 Türkçe'],['it','🇮🇹 Italiano'],['zh','🇨🇳 中文'],['ru','🇷🇺 Русский'],['es','🇪🇸 Español'],['pt','🇵🇹 Português'],['nl','🇳🇱 Nederlands'],['no','🇳🇴 Norsk']];
 function populateChLang() {
   const el = $('chLang'); if (!el || _chLangPopulated) return;
