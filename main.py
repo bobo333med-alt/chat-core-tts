@@ -23,11 +23,15 @@ LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://chat-core-ozzy0gzk.livekit.cl
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
 
-# تم نقل تعريف GROQ_KEYS هنا لإصلاح خطأ NameError
+# مفاتيح OpenRouter للمحادثات والترجمة
+OPENROUTER_API_KEYS = [k.strip() for k in os.environ.get("OPENROUTER_API_KEYS", "").split(",") if k.strip()]
+OPENROUTER_BASE = "https://openrouter.ai/api/v1"
+OPENROUTER_CHAT_MODELS = ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3-8b-instruct"]
+
+# مفاتيح Groq مخصصة للتعرف على الصوت (Whisper) فقط
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
-GROQ_TEXT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
-GROQ_FAST_MODEL = "openai/gpt-oss-20b"
+GROQ_WHISPER_MODEL = "whisper-large-v3"
 
 class RoomManager:
     def __init__(self):
@@ -107,17 +111,22 @@ room_manager = RoomManager()
 async def lifespan(app):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         logger.error("⚠️ LiveKit keys missing!")
+    if not OPENROUTER_API_KEYS:
+        logger.warning("⚠️ OPENROUTER_API_KEYS empty! Chat/Translation may fail.")
     if not GROQ_KEYS:
-        logger.error("⚠️ GROQ_API_KEYS empty!")
+        logger.warning("⚠️ GROQ_API_KEYS empty! Audio transcription will fail.")
     else:
-        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
+        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded for Whisper.")
+    if OPENROUTER_API_KEYS:
+        logger.info(f"✅ {len(OPENROUTER_API_KEYS)} OpenRouter key(s) loaded for Chat.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.2 Ultra", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="21.3 OpenRouter", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
+_api_key_idx = {"i": 0}
 
 def append_session(sid, user_text, reply):
     if not sid: return
@@ -149,37 +158,54 @@ class TTSRequest(BaseModel):
     voice: str = "woman"
     session_id: Optional[str] = None
 
-_groq_idx = {"i": 0}
-def next_groq_key():
-    if not GROQ_KEYS: raise HTTPException(503, detail="لا يوجد مفتاح Groq.")
-    k = GROQ_KEYS[_groq_idx["i"] % len(GROQ_KEYS)]
-    _groq_idx["i"] += 1
+def get_next_key(keys_list):
+    if not keys_list: raise HTTPException(503, detail="No API keys available.")
+    k = keys_list[_api_key_idx["i"] % len(keys_list)]
+    _api_key_idx["i"] += 1
     return k
 
-def _classify_groq_error(e: Exception) -> Tuple[int, str]:
-    status = getattr(e, "status_code", None)
-    msg = str(e)
-    if status == 401 or "invalid_api_key" in msg: return 401, "مفتاح Groq غير صالح."
-    if status == 429 or "rate_limit" in msg: return 429, "تجاوز حد Groq مؤقتاً."
-    return 502, f"خطأ Groq: {msg[:200]}"
-
-async def call_groq(messages, models, temperature=0.7, max_tokens=2000, timeout=30.0):
+async def call_llm(messages, models, temperature=0.7, max_tokens=2000, timeout=30.0):
     last_err = "no model tried"
-    if not GROQ_KEYS: raise HTTPException(503, detail="No GROQ_KEYS.")
-    for model in models:
-        key = next_groq_key()
-        client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=timeout)
-        try:
-            r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
-            return r.choices[0].message.content
-        except Exception as e:
-            last_err = str(e)
-            if "rate_limit" in last_err or "429" in last_err: await asyncio.sleep(0.8)
-            continue
-    raise HTTPException(*_classify_groq_error(Exception(last_err)))
+    
+    # 1. Try OpenRouter First
+    if OPENROUTER_API_KEYS:
+        for model in models:
+            key = get_next_key(OPENROUTER_API_KEYS)
+            client = AsyncOpenAI(
+                base_url=OPENROUTER_BASE, 
+                api_key=key, 
+                timeout=timeout,
+                default_headers={
+                    "HTTP-Referer": "https://chat-core-tts.onrender.com",
+                    "X-Title": "Chat-Core"
+                }
+            )
+            try:
+                r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                return r.choices[0].message.content
+            except Exception as e:
+                last_err = str(e)
+                if "429" in last_err or "rate_limit" in last_err: await asyncio.sleep(0.8)
+                continue
+
+    # 2. Fallback to Groq for text if OpenRouter fails or is empty
+    if GROQ_KEYS:
+        groq_models = ["llama3-8b-8192", "llama3-70b-8192"]
+        for model in groq_models:
+            key = get_next_key(GROQ_KEYS)
+            client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=timeout)
+            try:
+                r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                return r.choices[0].message.content
+            except Exception as e:
+                last_err = str(e)
+                if "429" in last_err or "rate_limit" in last_err: await asyncio.sleep(0.8)
+                continue
+
+    raise HTTPException(503, detail=f"LLM Error: {last_err}")
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
-    return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
+    return await call_llm(messages, OPENROUTER_CHAT_MODELS, temperature, max_tokens)
 
 LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian", "zh": "Chinese", "ru": "Russian", "es": "Spanish", "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"}
 
@@ -195,12 +221,12 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
     item = _trans_cache.get(k)
     if item and time.time() - item[1] < CACHE_TTL: return item[0]
     try:
-        result = await call_groq(
+        result = await call_llm(
             messages=[
                 {"role": "system", "content": f"Translate from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translation."},
                 {"role": "user", "content": text},
             ],
-            models=[GROQ_FAST_MODEL, "openai/gpt-oss-120b"], temperature=0.0, max_tokens=800, timeout=20.0
+            models=OPENROUTER_CHAT_MODELS, temperature=0.0, max_tokens=800, timeout=20.0
         )
         out = (result or "").strip().strip('"').strip("'")
         if out:
@@ -217,10 +243,12 @@ HALLUCINATION_BLACKLIST = [
 ]
 
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
-    key = next_groq_key()
+    if not GROQ_KEYS:
+        raise HTTPException(503, detail="Groq keys required for audio transcription.")
+    key = get_next_key(GROQ_KEYS)
     client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
     with open(temp_path, "rb") as af:
-        kwargs = {"model": "whisper-large-v3", "file": af, "temperature": 0.0, "response_format": "verbose_json"}
+        kwargs = {"model": GROQ_WHISPER_MODEL, "file": af, "temperature": 0.0, "response_format": "verbose_json"}
         if language and language in LANG_NAMES:
             kwargs["language"] = language
         resp = await client.audio.transcriptions.create(**kwargs)
@@ -265,18 +293,12 @@ async def synthesize_tts(text: str, lang: str, voice: str) -> bytes:
     return bytes(buf)
 
 @app.get("/health")
-async def health(): return {"ok": True, "keys": len(GROQ_KEYS)}
-
-@app.get("/health/groq")
-async def health_groq():
-    if not GROQ_KEYS: return {"status": "missing"}
-    try:
-        await call_groq([{"role": "user", "content": "ping"}], [GROQ_FAST_MODEL], temperature=0.0, max_tokens=5, timeout=10.0)
-        return {"status": "ok"}
-    except Exception as e: return {"status": "error", "detail": str(e)}
+async def health(): 
+    return {"ok": True, "openrouter_keys": len(OPENROUTER_API_KEYS), "groq_keys": len(GROQ_KEYS)}
 
 @app.post("/rooms/create")
-async def create_room_endpoint(): return {"code": await room_manager.create_room()}
+async def create_room_endpoint(): 
+    return {"code": await room_manager.create_room()}
 
 @app.post("/get-token")
 async def get_token_endpoint(req: MeetingTokenRequest):
