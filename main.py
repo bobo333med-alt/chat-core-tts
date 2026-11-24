@@ -5,6 +5,7 @@ import secrets
 import logging
 import tempfile
 import hashlib
+import re
 from contextlib import asynccontextmanager
 from typing import List, Optional, Dict, Tuple
 
@@ -25,13 +26,15 @@ LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
 
 OPENROUTER_API_KEYS = [k.strip() for k in os.environ.get("OPENROUTER_API_KEYS", "").split(",") if k.strip()]
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
-OPENROUTER_CHAT_MODELS = ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.1-8b-instruct"]
+OPENROUTER_CHAT_MODELS = ["openai/gpt-oss-120b", "qwen/qwen-2.5-72b-instruct"]
 
 GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
 GROQ_BASE = "https://api.groq.com/openai/v1"
 GROQ_WHISPER_MODEL = "whisper-large-v3"
-# النماذج المحدّثة (بدل llama3-70b-8192 المتقاعد)
-GROQ_CHAT_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+GROQ_CHAT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
+
+# Firebase (للاتصال برنين)
+FIREBASE_CREDENTIALS = os.environ.get("FIREBASE_CREDENTIALS", "")
 
 class RoomManager:
     def __init__(self):
@@ -112,16 +115,16 @@ async def lifespan(app):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         logger.error("⚠️ LiveKit keys missing!")
     if not OPENROUTER_API_KEYS:
-        logger.warning("⚠️ OPENROUTER_API_KEYS empty! Chat/Translation will use Groq fallback.")
+        logger.warning("⚠️ OPENROUTER_API_KEYS empty!")
     else:
-        logger.info(f"✅ {len(OPENROUTER_API_KEYS)} OpenRouter key(s) loaded for Chat.")
+        logger.info(f"✅ {len(OPENROUTER_API_KEYS)} OpenRouter key(s) loaded.")
     if not GROQ_KEYS:
-        logger.error("⚠️ GROQ_API_KEYS empty! Audio transcription will fail.")
+        logger.error("⚠️ GROQ_API_KEYS empty!")
     else:
         logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.4", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="22.0 Smart", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 _sessions: Dict[str, dict] = {}
@@ -158,6 +161,13 @@ class TTSRequest(BaseModel):
     voice: str = "woman"
     session_id: Optional[str] = None
 
+class CallRequest(BaseModel):
+    from_uid: str
+    from_name: str
+    to_uid: str
+    room_code: str
+    call_type: str = "voice"
+
 def get_next_key(keys_list):
     if not keys_list: raise HTTPException(503, detail="No API keys available.")
     k = keys_list[_api_key_idx["i"] % len(keys_list)]
@@ -165,9 +175,7 @@ def get_next_key(keys_list):
     return k
 
 async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0):
-    last_err = "no provider tried"
-
-    # 1. OpenRouter أولاً
+    errors = []
     if OPENROUTER_API_KEYS:
         for model in OPENROUTER_CHAT_MODELS:
             key = get_next_key(OPENROUTER_API_KEYS)
@@ -175,20 +183,15 @@ async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0):
                 base_url=OPENROUTER_BASE,
                 api_key=key,
                 timeout=timeout,
-                default_headers={
-                    "HTTP-Referer": "https://chat-core-tts.onrender.com",
-                    "X-Title": "Chat-Core"
-                }
+                default_headers={"HTTP-Referer": "https://chat-core-tts.onrender.com", "X-Title": "Chat-Core"}
             )
             try:
                 r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
                 return r.choices[0].message.content
             except Exception as e:
-                last_err = str(e)
-                if "429" in last_err or "rate_limit" in last_err: await asyncio.sleep(0.8)
+                errors.append(f"OpenRouter[{model}]: {e}")
+                if "429" in str(e) or "rate_limit" in str(e): await asyncio.sleep(0.8)
                 continue
-
-    # 2. Fallback Groq (نماذج محدّثة)
     if GROQ_KEYS:
         for model in GROQ_CHAT_MODELS:
             key = get_next_key(GROQ_KEYS)
@@ -197,11 +200,10 @@ async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0):
                 r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
                 return r.choices[0].message.content
             except Exception as e:
-                last_err = str(e)
-                if "429" in last_err or "rate_limit" in last_err: await asyncio.sleep(0.8)
+                errors.append(f"Groq[{model}]: {e}")
+                if "429" in str(e) or "rate_limit" in str(e): await asyncio.sleep(0.8)
                 continue
-
-    raise HTTPException(503, detail=f"LLM Error: {last_err}")
+    raise HTTPException(503, detail="LLM Error: " + " | ".join(errors))
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
     return await call_llm(messages, temperature, max_tokens)
@@ -221,10 +223,7 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
     if item and time.time() - item[1] < CACHE_TTL: return item[0]
     try:
         result = await call_llm(
-            messages=[
-                {"role": "system", "content": f"Translate from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translation."},
-                {"role": "user", "content": text},
-            ],
+            messages=[{"role": "system", "content": f"Translate from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translation."}, {"role": "user", "content": text}],
             temperature=0.0, max_tokens=800, timeout=20.0
         )
         out = (result or "").strip().strip('"').strip("'")
@@ -235,17 +234,68 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
     except Exception:
         return text
 
+# ===== ذكاء مكافحة الهلوسة =====
 HALLUCINATION_BLACKLIST = [
     "كلمات شائعة", "شائعة تشير", "تخيلها", "ترمزية", "شائعة بالعربية",
     "الموضوعات في الوصف", "اشتركوا في القناة", "شكراً لكم", "شكرا لكم",
-    "Thank you for watching", "Subscribe to", "Amara.org", "ترجمة"
+    "Thank you for watching", "Subscribe to", "Amara.org", "ترجمة",
+    "لا يوجد نص", "no text", "empty", "silence"
 ]
+
+def _is_meaningful(text: str, min_words: int = 3) -> bool:
+    """التحقق من أن النص ذو معنى حقيقي وليس هلوسة"""
+    if not text or len(text.strip()) < 5:
+        return False
+    words = text.split()
+    if len(words) < min_words:
+        return False
+    # نسبة الحروف إلى الكلمات (نصوص هلوسة غالباً قصيرة جداً أو طويلة جداً بدون معنى)
+    avg_word_len = len(text) / len(words)
+    if avg_word_len < 2 or avg_word_len > 20:
+        return False
+    # التحقق من وجود كلمات مكررة بشكل مفرط
+    unique_words = set(words)
+    if len(unique_words) / len(words) < 0.3:
+        return False
+    return True
+
+def _has_valid_structure(text: str) -> bool:
+    """التحقق من بنية النص (جمل كاملة، علامات ترقيم)"""
+    text = text.strip()
+    if not text:
+        return False
+    # وجود حرف كبير أو بداية جملة
+    if text[0].isalpha() or text[0] in "أابتثجحخدذرزسشصضطظعغفقكلمنهويא":
+        return True
+    # أرقام أو رموز
+    if text[0].isdigit():
+        return True
+    return False
+
+async def _verify_with_llm(text: str, language: str) -> Tuple[bool, str]:
+    """استخدام LLM للتحقق من معنى النص (اختياري للنصوص المشكوك فيها)"""
+    if len(text) < 20:
+        return True, text
+    try:
+        result = await call_llm(
+            messages=[
+                {"role": "system", "content": f"You are a speech recognition validator. The following text was transcribed from audio in {LANG_NAMES.get(language, language)}. If it appears to be coherent speech, reply with the cleaned text. If it appears to be gibberish, hallucination, or meaningless, reply with exactly 'INVALID'."},
+                {"role": "user", "content": text}
+            ],
+            temperature=0.0, max_tokens=500, timeout=15.0
+        )
+        cleaned = (result or "").strip()
+        if cleaned.upper() == "INVALID" or len(cleaned) < 5:
+            return False, text
+        return True, cleaned
+    except Exception:
+        return True, text
 
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
     if not GROQ_KEYS:
         raise HTTPException(503, detail="Groq keys required for audio transcription.")
     key = get_next_key(GROQ_KEYS)
-    client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
+    client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=180.0)
     with open(temp_path, "rb") as af:
         kwargs = {"model": GROQ_WHISPER_MODEL, "file": af, "temperature": 0.0, "response_format": "verbose_json"}
         if language and language in LANG_NAMES:
@@ -255,12 +305,19 @@ async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
 
 def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
     text = (result.get("text") or "").strip()
-    if not text or len(text) < 2: return True, "empty"
-    if duration_ms and duration_ms < 1000: return True, "too_short"
+    if not text or len(text) < 2:
+        return True, "empty"
+    if duration_ms and duration_ms < 800:
+        return True, "too_short"
     for bad_word in HALLUCINATION_BLACKLIST:
-        if bad_word in text: return True, "hallucination"
+        if bad_word.lower() in text.lower():
+            return True, "hallucination"
     no_speech = float(result.get("no_speech_prob") or 0.0)
-    if no_speech > 0.4: return True, "no_speech"
+    if no_speech > 0.6:
+        return True, "no_speech"
+    # التحقق من المعنى
+    if not _is_meaningful(text):
+        return True, "meaningless"
     return False, "ok"
 
 TTS_VOICES = {
@@ -329,24 +386,47 @@ async def tts_endpoint(req: TTSRequest):
     except Exception as e: raise HTTPException(503, detail=f"TTS Error: {e}")
 
 @app.post("/transcribe")
-async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar"), language: str = Form(""), duration_ms: int = Form(0)):
+async def transcribe_endpoint(file: UploadFile = File(...), target_lang: str = Form("ar"), language: str = Form(""), duration_ms: int = Form(0), chunk_index: int = Form(0), total_chunks: int = Form(1)):
+    """دعم التسجيل الطويل: chunk_index و total_chunks لتجميع الأجزاء"""
     contents = await file.read()
-    if len(contents) < 1000: return {"original": "", "translated": "", "reason": "too_small"}
+    if len(contents) < 1000:
+        return {"original": "", "translated": "", "reason": "too_small", "chunk_index": chunk_index}
     suffix = os.path.splitext(file.filename or "")[1] or ".webm"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         temp_path = tmp.name; tmp.write(contents)
     try:
         result = await _run_whisper_verbose(temp_path, language)
         reject, reason = _should_reject(result, duration_ms)
-        if reject: return {"original": "", "translated": "", "reason": reason}
+        if reject:
+            return {"original": "", "translated": "", "reason": reason, "chunk_index": chunk_index}
         original = result.get("text", "").strip()
+        # التحقق الذكي الإضافي للنصوص الطويلة
+        if len(original) > 50 and duration_ms > 10000:
+            is_valid, cleaned = await _verify_with_llm(original, language or "ar")
+            if is_valid and cleaned and cleaned.upper() != "INVALID":
+                original = cleaned
         translated = original
         if target_lang and target_lang != (language or "ar"):
             translated = await translate_text(original, language or "ar", target_lang)
-        return {"original": original, "translated": translated, "reason": "ok"}
+        return {"original": original, "translated": translated, "reason": "ok", "chunk_index": chunk_index, "total_chunks": total_chunks}
     except Exception as e: raise HTTPException(500, detail=f"Transcribe Error: {e}")
     finally:
         if os.path.exists(temp_path): os.remove(temp_path)
+
+# ===== نظام الاتصال برنين =====
+@app.post("/call/initiate")
+async def initiate_call(req: CallRequest):
+    """إنشاء طلب اتصال (يُخزن في Firestore عبر الـ frontend)"""
+    call_id = f"{req.from_uid}_{int(time.time())}"
+    return {"call_id": call_id, "status": "ringing"}
+
+@app.post("/call/accept")
+async def accept_call(call_id: str = Form(...), room_code: str = Form(...)):
+    return {"status": "accepted", "room_code": room_code}
+
+@app.post("/call/reject")
+async def reject_call(call_id: str = Form(...)):
+    return {"status": "rejected"}
 
 @app.websocket("/ws/{room_code}")
 async def ws_endpoint(websocket: WebSocket, room_code: str):
@@ -382,6 +462,8 @@ async def ws_endpoint(websocket: WebSocket, room_code: str):
                 for ws, u in ws_users.items():
                     try: await ws.send_json({"type": "translated", "from_name": my_name, "from_lang": my_lang, "original": text, "translated": translations.get(u["lang"], text), "target_lang": u["lang"], "is_mine": (ws == websocket)})
                     except Exception: pass
+            elif mtype == "call_signal":
+                await room_manager.broadcast(room_code, msg, exclude=websocket)
     except (WebSocketDisconnect, asyncio.TimeoutError): pass
     finally:
         if joined:
