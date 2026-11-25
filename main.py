@@ -112,19 +112,19 @@ room_manager = RoomManager()
 @asynccontextmanager
 async def lifespan(app):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
-        logger.error("⚠️ LiveKit keys missing!")
+        logger.error("LiveKit keys missing!")
     if not OPENROUTER_API_KEYS:
-        logger.warning("⚠️ OPENROUTER_API_KEYS empty! Will use Groq only.")
+        logger.warning("OPENROUTER_API_KEYS empty! Will use Groq only.")
     else:
-        logger.info(f"✅ {len(OPENROUTER_API_KEYS)} OpenRouter key(s) loaded.")
+        logger.info(f"{len(OPENROUTER_API_KEYS)} OpenRouter key(s) loaded.")
     if not GROQ_KEYS:
-        logger.error("⚠️ GROQ_API_KEYS empty! Whisper will fail.")
+        logger.error("GROQ_API_KEYS empty! Whisper will fail.")
     else:
-        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
+        logger.info(f"{len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
 
-app = FastAPI(title="Chat-Core API", version="22.0", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="22.1", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 _sessions: Dict[str, dict] = {}
@@ -188,9 +188,7 @@ async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0, pre
             key = get_next_key(GROQ_KEYS)
             client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=timeout)
             try:
-                r = await client.chat.completions.create(
-                    model=model, messages=messages, temperature=temperature, max_tokens=max_tokens
-                )
+                r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
                 return r.choices[0].message.content
             except Exception as e:
                 errors.append(f"Groq[{model}]: {e}")
@@ -208,15 +206,10 @@ async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0, pre
                 base_url=OPENROUTER_BASE,
                 api_key=key,
                 timeout=timeout,
-                default_headers={
-                    "HTTP-Referer": "https://onrender.com",
-                    "X-Title": "Chat-Core"
-                }
+                default_headers={"HTTP-Referer": "https://onrender.com", "X-Title": "Chat-Core"}
             )
             try:
-                r = await client.chat.completions.create(
-                    model=model, messages=messages, temperature=temperature, max_tokens=max_tokens
-                )
+                r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
                 return r.choices[0].message.content
             except Exception as e:
                 errors.append(f"OpenRouter[{model}]: {e}")
@@ -308,4 +301,3 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
     src_name = LANG_NAMES.get(src_lang, src_lang)
     tgt_name = LANG_NAMES.get(tgt_lang, tgt_lang)
 
-    system_prompt = (
