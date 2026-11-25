@@ -108,8 +108,9 @@ body.meeting-mode .chat-container { max-height: 35vh; }
 body.video-maximized #floatingMicBtn { display: flex; }
 .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
 #chat { flex: 1; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); border-radius: 20px; padding: 15px; overflow-y: auto; }
-.msg { padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.msg { padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); user-select: none; }
 .msg:active { opacity: 0.7; }
+.msg.playing { box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); border: 1px solid #00f0ff; }
 .user-a { background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9)); margin-right: auto; border-bottom-right-radius: 4px; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
 .user-b { background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9)); margin-left: auto; border-bottom-left-radius: 4px; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
 .bot { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px; cursor: default; backdrop-filter: blur(5px); }
@@ -703,10 +704,17 @@ function addMsg(text, className, lang, imageBase64 = null) {
   }
   if (text) {
     div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
+    // ميزة القراءة بالصوت عند الضغط
     div.addEventListener('click', () => {
       if (isSending || appMode === 'remote' || appMode === 'meeting') return;
-      div.style.opacity = '0.5'; setTimeout(() => div.style.opacity = '1', 200);
-      if (isTranslatorMode) speak(text, lang || langA.value);
+      if (div.classList.contains('playing')) {
+        stopAudio();
+        div.classList.remove('playing');
+      } else {
+        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+        div.classList.add('playing');
+        speak(text, lang || langA.value);
+      }
     });
   }
   chatEl.appendChild(div);
@@ -1249,9 +1257,9 @@ function buildSystemPrompt(targetLang, sourceLang, isImage = false) {
     return `Describe this image in detail in ${langNameFor(sourceLang)}, then translate your description to ${langNameFor(targetLang)}. Format: [Original description in ${langNameFor(sourceLang)}] ||| [Translation in ${langNameFor(targetLang)}]`;
   }
   if (isTranslatorMode) {
-    return `You are a highly accurate translation engine. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. You must output ONLY the translated text in ${langNameFor(targetLang)}. Do NOT repeat the original text. Do NOT explain.`;
+    return `You are an expert expressive translator specializing in Arabic dialects and conversational language. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Preserve the tone, emotion, and conversational style. Add proper punctuation and formatting to make the text natural and readable. Output ONLY the translated text.`;
   }
-  return `You are Chat-Core, a helpful assistant. You must reply ONLY in ${langNameFor(targetLang)}. Never use any other language.`;
+  return `You are Chat-Core, a helpful assistant with deep knowledge of Arabic dialects and expressive language. You must reply ONLY in ${langNameFor(targetLang)}. Use natural, conversational tone with proper punctuation and formatting. Never use any other language.`;
 }
 
 async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
@@ -1658,8 +1666,8 @@ async function speak(text, lang) {
     if (myId !== currentSpeechId) return;
     const blob = await res.blob(); const url = URL.createObjectURL(blob);
     currentAudio = new Audio(url);
-    currentAudio.onended = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); };
-    currentAudio.onerror = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); };
+    currentAudio.onended = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
+    currentAudio.onerror = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
     await currentAudio.play().catch(() => {});
     return;
   } catch (e) {}
@@ -1668,17 +1676,18 @@ async function speak(text, lang) {
     try {
       const utt = new SpeechSynthesisUtterance(cleaned);
       utt.lang = localeFor(lang || 'ar');
-      utt.onend = () => { isBotTalking = false; setAvatarState(false); };
-      utt.onerror = () => { isBotTalking = false; setAvatarState(false); };
+      utt.onend = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
+      utt.onerror = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
       speechSynthesis.speak(utt);
-    } catch (e) { isBotTalking = false; setAvatarState(false); }
-  } else { isBotTalking = false; setAvatarState(false); }
+    } catch (e) { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
+  } else { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
 }
 function stopAudio() {
   currentSpeechId++;
   if (currentAudio) { try { currentAudio.pause(); currentAudio.currentTime = 0; } catch (e) {} currentAudio = null; }
   if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (e) {} }
   isBotTalking = false; setAvatarState(false);
+  document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
 }
 function setAvatarState(talking) {
   try {
