@@ -124,7 +124,7 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title="Chat-Core API", version="22.1", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="22.2", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 _sessions: Dict[str, dict] = {}
@@ -165,7 +165,7 @@ class MeetingTokenRequest(BaseModel):
 
 class TTSRequest(BaseModel):
     text: str
-    lang: str = "ar-TN"
+    lang: str = "ar"
     voice: str = "woman"
     session_id: Optional[str] = None
 
@@ -188,7 +188,9 @@ async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0, pre
             key = get_next_key(GROQ_KEYS)
             client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=timeout)
             try:
-                r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                r = await client.chat.completions.create(
+                    model=model, messages=messages, temperature=temperature, max_tokens=max_tokens
+                )
                 return r.choices[0].message.content
             except Exception as e:
                 errors.append(f"Groq[{model}]: {e}")
@@ -209,7 +211,9 @@ async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0, pre
                 default_headers={"HTTP-Referer": "https://onrender.com", "X-Title": "Chat-Core"}
             )
             try:
-                r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                r = await client.chat.completions.create(
+                    model=model, messages=messages, temperature=temperature, max_tokens=max_tokens
+                )
                 return r.choices[0].message.content
             except Exception as e:
                 errors.append(f"OpenRouter[{model}]: {e}")
