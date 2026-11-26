@@ -23,6 +23,19 @@ LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://chat-core-ozzy0gzk.livekit.cl
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
 
+# ===== Groq Configuration (أسماء صحيحة 2026) =====
+GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
+GROQ_BASE = "https://api.groq.com/openai/v1"
+
+# الأسماء الصحيحة والمؤكدة العاملة حالياً
+GROQ_CHAT_MODELS = [
+    "llama-3.3-70b-versatile",  # النموذج الأقوى
+    "gemma2-9b-it",             # بديل سريع
+    "mixtral-8x7b-32768"        # بديل ثالث
+]
+GROQ_FAST_MODEL = "gemma2-9b-it"
+GROQ_WHISPER_MODEL = "whisper-large-v3"
+
 class RoomManager:
     def __init__(self):
         self.rooms = {}
@@ -102,24 +115,17 @@ async def lifespan(app):
     if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         logger.error("⚠️ LiveKit keys missing!")
     if not GROQ_KEYS:
-        logger.error("⚠️ GROQ_API_KEYS empty!")
+        logger.error("⚠️ GROQ_API_KEYS empty! App will not function.")
     else:
-        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
+        logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded successfully.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="21.7 Ultra", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="23.0 Stable", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
-GROQ_KEYS = [k.strip() for k in os.environ.get("GROQ_API_KEYS", "").split(",") if k.strip()]
-GROQ_BASE = "https://api.groq.com/openai/v1"
-
-# النماذج المعتمدة
-GROQ_TEXT_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
-GROQ_VISION_MODEL = "llama-3.2-11b-vision-preview"
-GROQ_FAST_MODEL = "openai/gpt-oss-20b"
 
 _sessions: Dict[str, dict] = {}
 SESSION_MAX_MSGS = 16
+_api_key_idx = {"i": 0}
 
 def append_session(sid, user_text, reply):
     if not sid: return
@@ -151,44 +157,43 @@ class TTSRequest(BaseModel):
     voice: str = "woman"
     session_id: Optional[str] = None
 
-_groq_idx = {"i": 0}
-def next_groq_key():
-    if not GROQ_KEYS: raise HTTPException(503, detail="لا يوجد مفتاح Groq.")
-    k = GROQ_KEYS[_groq_idx["i"] % len(GROQ_KEYS)]
-    _groq_idx["i"] += 1
+def get_next_key():
+    if not GROQ_KEYS: raise HTTPException(503, detail="No Groq API keys available.")
+    k = GROQ_KEYS[_api_key_idx["i"] % len(GROQ_KEYS)]
+    _api_key_idx["i"] += 1
     return k
 
-def _classify_groq_error(e: Exception) -> Tuple[int, str]:
-    status = getattr(e, "status_code", None)
-    msg = str(e)
-    if status == 401 or "invalid_api_key" in msg: return 401, "مفتاح Groq غير صالح."
-    if status == 429 or "rate_limit" in msg: return 429, "تجاوز حد Groq مؤقتاً."
-    return 502, f"خطأ Groq: {msg[:200]}"
-
-async def call_groq(messages, models, temperature=0.7, max_tokens=2000, timeout=30.0):
-    last_err = "no model tried"
-    if not GROQ_KEYS: raise HTTPException(503, detail="No GROQ_KEYS.")
-    for model in models:
-        key = next_groq_key()
+async def call_llm(messages, temperature=0.7, max_tokens=2000, timeout=30.0):
+    if not GROQ_KEYS:
+        raise HTTPException(503, detail="Groq API keys are required.")
+    
+    errors = []
+    for model in GROQ_CHAT_MODELS:
+        key = get_next_key()
         client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=timeout)
         try:
-            r = await client.chat.completions.create(model=model, messages=messages, temperature=temperature, max_tokens=max_tokens)
+            r = await client.chat.completions.create(
+                model=model, 
+                messages=messages, 
+                temperature=temperature, 
+                max_tokens=max_tokens
+            )
             return r.choices[0].message.content
         except Exception as e:
-            last_err = str(e)
-            if "rate_limit" in last_err or "429" in last_err: await asyncio.sleep(0.8)
-            continue
-    raise HTTPException(*_classify_groq_error(Exception(last_err)))
+            err_str = str(e)
+            errors.append(f"{model}: {err_str[:100]}")
+            if "429" in err_str or "rate_limit" in err_str: 
+                await asyncio.sleep(1.0)
+                continue
+            if "404" in err_str or "not_found" in err_str:
+                continue
+            if "401" in err_str or "invalid_api_key" in err_str:
+                raise HTTPException(401, detail="Invalid Groq API key")
+    
+    raise HTTPException(503, detail="All LLM models failed: " + " | ".join(errors))
 
 async def smart_chat(messages, is_vision, temperature, max_tokens):
-    if is_vision:
-        # تمرير الصور إلى نموذج الرؤية
-        try:
-            return await call_groq(messages, [GROQ_VISION_MODEL], temperature, max_tokens, timeout=60.0)
-        except Exception as e:
-            logger.warning(f"Vision model failed, trying text model: {e}")
-            return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
-    return await call_groq(messages, GROQ_TEXT_MODELS, temperature, max_tokens)
+    return await call_llm(messages, temperature, max_tokens)
 
 LANG_NAMES = {"ar": "Arabic", "fr": "French", "en": "English", "de": "German", "tr": "Turkish", "it": "Italian", "zh": "Chinese", "ru": "Russian", "es": "Spanish", "pt": "Portuguese", "nl": "Dutch", "no": "Norwegian"}
 
@@ -205,12 +210,12 @@ async def translate_text(text: str, src_lang: str, tgt_lang: str) -> str:
     if item and time.time() - item[1] < CACHE_TTL: return item[0]
     
     try:
-        result = await call_groq(
+        result = await call_llm(
             messages=[
-                {"role": "system", "content": f"You are a professional translator. Translate the following text from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Output ONLY the translated text. Do not add any notes."},
+                {"role": "system", "content": f"You are an expert expressive translator specializing in Arabic dialects and conversational language. Translate from {LANG_NAMES.get(src_lang, src_lang)} to {LANG_NAMES.get(tgt_lang, tgt_lang)}. Preserve the tone, emotion, and conversational style. Add proper punctuation and formatting. Output ONLY the translated text."},
                 {"role": "user", "content": text},
             ],
-            models=[GROQ_FAST_MODEL, "openai/gpt-oss-120b"], temperature=0.0, max_tokens=1000, timeout=30.0
+            temperature=0.0, max_tokens=1000, timeout=30.0
         )
         out = (result or "").strip().strip('"').strip("'")
         if out:
@@ -246,10 +251,12 @@ HALLUCINATION_BLACKLIST = [
 ]
 
 async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
-    key = next_groq_key()
-    client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=120.0)
+    if not GROQ_KEYS:
+        raise HTTPException(503, detail="Groq keys required for audio transcription.")
+    key = get_next_key()
+    client = AsyncOpenAI(base_url=GROQ_BASE, api_key=key, timeout=180.0)
     with open(temp_path, "rb") as af:
-        kwargs = {"model": "whisper-large-v3", "file": af, "temperature": 0.0, "response_format": "verbose_json"}
+        kwargs = {"model": GROQ_WHISPER_MODEL, "file": af, "temperature": 0.0, "response_format": "verbose_json"}
         if language and language in LANG_NAMES:
             kwargs["language"] = language
         resp = await client.audio.transcriptions.create(**kwargs)
@@ -258,7 +265,7 @@ async def _run_whisper_verbose(temp_path: str, language: str) -> dict:
 def _should_reject(result: dict, duration_ms: int) -> Tuple[bool, str]:
     text = (result.get("text") or "").strip()
     if not text or len(text) < 2: return True, "empty"
-    if duration_ms and duration_ms > 0 and duration_ms < 1000: 
+    if duration_ms and duration_ms > 0 and duration_ms < 800: 
         if float(result.get("no_speech_prob") or 0.0) > 0.5:
             return True, "too_short"
     for bad_word in HALLUCINATION_BLACKLIST:
@@ -296,18 +303,20 @@ async def synthesize_tts(text: str, lang: str, voice: str) -> bytes:
     return bytes(buf)
 
 @app.get("/health")
-async def health(): return {"ok": True, "keys": len(GROQ_KEYS)}
+async def health():
+    return {"ok": True, "groq_keys": len(GROQ_KEYS)}
 
 @app.get("/health/groq")
 async def health_groq():
     if not GROQ_KEYS: return {"status": "missing"}
     try:
-        await call_groq([{"role": "user", "content": "ping"}], [GROQ_FAST_MODEL], temperature=0.0, max_tokens=5, timeout=10.0)
+        await call_llm([{"role": "user", "content": "ping"}], temperature=0.0, max_tokens=5, timeout=10.0)
         return {"status": "ok"}
     except Exception as e: return {"status": "error", "detail": str(e)}
 
 @app.post("/rooms/create")
-async def create_room_endpoint(): return {"code": await room_manager.create_room()}
+async def create_room_endpoint():
+    return {"code": await room_manager.create_room()}
 
 @app.post("/get-token")
 async def get_token_endpoint(req: MeetingTokenRequest):
@@ -321,7 +330,6 @@ async def chat_endpoint(req: ChatRequest):
     if not req.messages: raise HTTPException(400, detail="messages فارغة")
     messages = req.messages
     
-    # إصلاح: إذا لم توجد صورة، تأكد أن النص ليس مصفوفة
     for msg in messages:
         if isinstance(msg.get("content"), list) and not req.is_vision:
             text_parts = [part.get("text", "") for part in msg["content"] if part.get("type") == "text"]
