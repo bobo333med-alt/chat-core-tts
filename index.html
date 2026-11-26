@@ -11,7 +11,7 @@
 :root {
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); 
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   --glass-blur: blur(12px);
   --text-main: #ffffff;
 }
@@ -194,7 +194,7 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
 #longRecordIndicator .dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; animation: pulse 1s infinite; }
 </style>
 </head>
-<body>
+  <body>
 
 <div id="authOverlay">
   <div class="auth-lang-switch">
@@ -428,8 +428,7 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
     <button class="call-btn accept" id="callAccept">📞</button>
   </div>
 </div>
-
-<script>
+    <script>
 'use strict';
 
 const firebaseConfig = {
@@ -995,11 +994,12 @@ async function toggleLocalMic(speaker) {
     let rmsMax = 0;
     let silenceStart = Date.now();
     let intervalId = null;
+    let calibrationInterval = null;
     
-    // Noise Gate ذكي: حساب مستوى الضوضاء الخلفية
+    // Noise Gate محسّن: عتبة 0.015 + حد أدنى 0.02
     let noiseFloor = 0;
     let calibrationCount = 0;
-    const calibrationInterval = setInterval(() => {
+    calibrationInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
         let sum = 0; 
@@ -1008,8 +1008,9 @@ async function toggleLocalMic(speaker) {
         noiseFloor += rms;
         calibrationCount++;
         if (calibrationCount >= 10) {
-          noiseFloor = noiseFloor / calibrationCount;
+          noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
           clearInterval(calibrationInterval);
+          calibrationInterval = null;
         }
       } catch(e){}
     }, 100);
@@ -1021,8 +1022,8 @@ async function toggleLocalMic(speaker) {
         for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
         const rms = Math.sqrt(sum / rmsBuffer.length);
         if (rms > rmsMax) rmsMax = rms;
-        // عتبة ذكية: الضوضاء + 0.03
-        const threshold = noiseFloor + 0.03;
+        // عتبة ذكية: الحد الأدنى 0.02 + noiseFloor + 0.015
+        const threshold = Math.max(0.02, noiseFloor + 0.015);
         if (rms > threshold) silenceStart = Date.now();
         else if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && localRecorder && localRecorder.state === 'recording') {
           localRecorder.stop();
@@ -1174,9 +1175,10 @@ async function startManualTranslation() {
     let chunkIndex = 0;
     let noiseFloor = 0;
     let calibrationCount = 0;
+    let calibrationInterval = null;
 
-    // Noise Gate ذكي
-    const calibrationInterval = setInterval(() => {
+    // Noise Gate محسّن
+    calibrationInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
         let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
@@ -1184,8 +1186,9 @@ async function startManualTranslation() {
         noiseFloor += rms;
         calibrationCount++;
         if (calibrationCount >= 10) {
-          noiseFloor = noiseFloor / calibrationCount;
+          noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
           clearInterval(calibrationInterval);
+          calibrationInterval = null;
         }
       } catch(e){}
     }, 100);
@@ -1235,8 +1238,8 @@ async function startManualTranslation() {
         let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
         const rms = Math.sqrt(sum / rmsBuffer.length);
         
-        // عتبة ذكية
-        const threshold = noiseFloor + 0.03;
+        // عتبة ذكية محسّنة
+        const threshold = Math.max(0.02, noiseFloor + 0.015);
         if (rms > threshold) {
           if (rms > rmsMax) rmsMax = rms;
           silenceStart = Date.now();
@@ -1261,6 +1264,7 @@ async function startManualTranslation() {
     
     window._vadInterval = vadInterval;
     window._rawTrack = rawTrack;
+    window._calibrationInterval = calibrationInterval;
 
   } catch (e) {
     console.error("Mic access failed", e);
@@ -1272,6 +1276,7 @@ function stopManualTranslation() {
   isManualTranslating = false;
   
   if (window._vadInterval) { clearInterval(window._vadInterval); window._vadInterval = null; }
+  if (window._calibrationInterval) { clearInterval(window._calibrationInterval); window._calibrationInterval = null; }
   if (window._rawTrack) { try { window._rawTrack.stop(); } catch(e){} window._rawTrack = null; }
   
   if (audioRecorder && audioRecorder.state === 'recording') {
@@ -1478,11 +1483,8 @@ function renderFriendsUI() {
   friendsCache.forEach(f => {
     const row = frRow(f.name || '?');
     const ch = chatsByFriend[f.uid]; const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
-    // زر الدردشة
     row.appendChild(frBtn('💬' + (un ? ' ' + un : ''), un ? '#ef4444' : '#0ea5e9', () => openChat(f)));
-    // زر الاتصال 📞 - واضح وكبير
     row.appendChild(frBtn('📞', '#1d4ed8', () => callFriend(f)));
-    // زر الحذف
     row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
     listEl.appendChild(row);
   });
@@ -1699,7 +1701,6 @@ async function speak(text, lang) {
   const myId = ++currentSpeechId;
   isBotTalking = true; setAvatarState(true);
   
-  // Retry mechanism for TTS
   let retryCount = 0;
   const maxRetries = 2;
   
@@ -1725,7 +1726,6 @@ async function speak(text, lang) {
     }
   }
   
-  // Fallback to speechSynthesis
   if (myId !== currentSpeechId) return;
   if ('speechSynthesis' in window) {
     try {
