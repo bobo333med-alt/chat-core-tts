@@ -130,7 +130,7 @@ async def lifespan(app):
         logger.info(f"✅ {len(GROQ_KEYS)} Groq key(s) loaded.")
     yield
 
-app = FastAPI(title="Chat-Core API", version="24.0 OpenRouter", lifespan=lifespan)
+app = FastAPI(title="Chat-Core API", version="24.1 Stable", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 _sessions: Dict[str, dict] = {}
