@@ -3,434 +3,859 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Chat-Core - Translator</title>
+<title>Chat-Core - Messenger</title>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  --glass-blur: blur(12px);
-  --text-main: #ffffff;
+  --messenger-bg: #0f0f1e;
+  --messenger-header: #1a1a2e;
+  --messenger-sidebar: #16162a;
+  --messenger-footer: #1a1a2e;
+  --messenger-bubble-sender: #0084ff;
+  --messenger-bubble-receiver: #3a3a4a;
+  --messenger-text: #ffffff;
+  --messenger-border: rgba(255,255,255,0.1);
 }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: radial-gradient(circle at 50% 0%, #1a2a6c 0%, #0d1b3e 50%, #050a1f 100%);
-  color: var(--text-main);
-  display: flex; flex-direction: column; padding: 10px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  height: 100dvh; transition: opacity 0.3s;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--messenger-bg);
+  color: var(--messenger-text);
+  height: 100dvh;
 }
-@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-@keyframes ringPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } }
-@keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes pulse { 50% { transform: scale(1.1); } }
-.glass-panel { background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 0 20px rgba(255,255,255,0.05); border-radius: 20px; }
-#authOverlay { position: fixed; inset: 0; background: rgba(13, 27, 62, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; backdrop-filter: blur(20px); }
-.auth-lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px; border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
-.lang-btn { background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.3s; }
-.lang-btn.active { background: rgba(0, 240, 255, 0.3); color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
-.auth-box { background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); padding: 30px 20px; border-radius: 24px; width: 100%; max-width: 350px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); text-align: center; margin: auto; }
-.auth-box h1 { color: #00f0ff; margin-bottom: 5px; font-size: 26px; text-shadow: 0 0 15px rgba(0,240,255,0.6); }
-.auth-box h2 { color: #fff; margin-bottom: 20px; font-size: 18px; font-weight: normal; }
-.auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; outline: none; font-size: 14px; transition: 0.3s; }
-.auth-input:focus { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0,240,255,0.3); }
-.auth-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00b09b, #96c93d); color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 15px; box-shadow: 0 4px 15px rgba(0,176,155,0.4); }
-.auth-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,176,155,0.6); }
-.auth-btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; box-shadow: none; }
-.auth-btn.outline:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
-.social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 14px; }
-.social-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
-#authError { color: #ff6b6b; font-size: 13px; margin-bottom: 10px; min-height: 18px; word-wrap: break-word; }
-.divider { display: flex; align-items: center; margin: 20px 0; color: rgba(255,255,255,0.5); font-size: 12px; }
-.divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.2); margin: 0 10px; }
-.overlay { position: fixed; inset: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
-.overlay h1 { font-size: 32px; color: #00f0ff; margin-bottom: 5px; text-shadow: 0 0 15px rgba(0,240,255,0.4); }
-.overlay h2 { font-size: 20px; color: #fff; margin-bottom: 15px; font-weight: normal; }
-.mode-btn { padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer; width: 100%; max-width: 280px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.3); background: rgba(255,255,255,0.05); }
-.mode-btn:active { transform: scale(0.96); }
-#btnLocal { border-color: rgba(138, 43, 226, 0.5); background: linear-gradient(90deg, rgba(138,43,226,0.2), rgba(0,0,0,0)); }
-#btnRemote { border-color: rgba(46, 139, 87, 0.5); background: linear-gradient(90deg, rgba(46,139,87,0.2), rgba(0,0,0,0)); }
-#btnMeeting { border-color: rgba(30, 144, 255, 0.5); background: linear-gradient(90deg, rgba(30,144,255,0.2), rgba(0,0,0,0)); }
-#btnFriends { border-color: rgba(255, 165, 0, 0.5); background: linear-gradient(90deg, rgba(255,165,0,0.2), rgba(0,0,0,0)); position: relative; }
-#btnLogout { border-color: rgba(255, 69, 0, 0.5); background: linear-gradient(90deg, rgba(255,69,0,0.2), rgba(0,0,0,0)); margin-top: 20px; }
-.join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; background: rgba(26, 42, 108, 0.6); padding: 25px 20px; border-radius: 24px; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.5); align-items: stretch; }
-.join-form input[type="text"], .join-form select, .join-form input[type="email"], .join-form input[type="password"] { padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; outline: none; transition: 0.3s; }
-.join-form input:focus, .join-form select:focus { border-color: #00f0ff; }
-.join-form button { padding: 14px; border-radius: 12px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s; }
-#createRoomBtn, #createMeetingBtn { background: linear-gradient(135deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.3); }
-#joinRoomBtn, #joinMeetingBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); box-shadow: 0 4px 15px rgba(69,104,220,0.3); }
-#backToLandingBtn, #backToLandingFromMeetBtn { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); margin-top: 5px; }
-#backToLandingBtn:hover, #backToLandingFromMeetBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
-.top-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(26, 42, 108, 0.6); padding: 8px 15px; border-radius: 16px; width: 95%; max-width: 400px; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-.user-section { display: flex; align-items: center; gap: 6px; }
-.lang-select { padding: 0 5px; border-radius: 8px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); font-size: 10px; outline: none; width: 85px !important; height: 28px; text-align: center; }
-.mic-btn { width: 44px; height: 44px; border-radius: 50%; border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-.mic-btn.blue { background: #6366f1; } .mic-btn.green { background: #10b981; }
-.mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 15px rgba(239,68,68,0.6); }
-.mic-btn:disabled { background: #475569 !important; opacity: 0.5; }
-#avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
-#avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,240,255,0.2); z-index: 1; transition: all 0.3s; border: 2px solid rgba(255,255,255,0.2); }
-#avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-#avatar-video { display: none; }
-#avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; }
-#avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; border: none; }
-#avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
-#avatar-wrap.fullscreen #closeFullscreen { display: flex; }
-#removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; background: #000; border: 2px solid #fff; cursor: pointer; z-index: 999; color: white; font-weight: bold; font-size: 14px; align-items: center; justify-content: center; }
-body.remote-mode #avatar-wrap, body.meeting-mode #avatar-wrap { display: none !important; }
-#closeFullscreen, #closeVideoFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-.inner-white-dot { width: 14px; height: 14px; background: #fff; border-radius: 50%; }
-#closeFullscreen { top: 80px; right: 20px; } #closeVideoFullscreen { top: 20px; right: 20px; }
-#videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.5); cursor: pointer; transition: all 0.3s; z-index: 500; border: 1px solid rgba(255,255,255,0.1); }
-#remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-#localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid rgba(255,255,255,0.5); background: #1e293b; z-index: 2; pointer-events: auto; }
-#videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; pointer-events: none; }
-#tapToPlayOverlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7); color: #fff; z-index: 10; align-items: center; justify-content: center; flex-direction: column; font-weight: bold; font-size: 16px; cursor: pointer; }
-body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100vw; z-index: 99999; margin: 0; border-radius: 0; }
-body.video-maximized #remoteVideo { object-fit: cover; }
-body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
-body.video-maximized #closeVideoFullscreen { display: flex; }
-body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
-#meetingGridContainer { display: none; position: relative; width: 100%; flex: 1; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 10px; overflow-y: auto; margin-bottom: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-#videoGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-content: start; }
-.participant-box { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
-.participant-box video { width: 100%; height: 100%; object-fit: cover; }
-.participant-name { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #fff; z-index: 2; }
-body.meeting-mode .chat-container { max-height: 35vh; }
-#floatingMicBtn { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #11998e, #38ef7d); color: white; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(56,239,125,0.4); z-index: 100000; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s; }
-#floatingMicBtn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 20px rgba(239,68,68,0.8); }
-body.video-maximized #floatingMicBtn { display: flex; }
-.chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
-#chat { flex: 1; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-radius: 20px; padding: 15px; overflow-y: auto; }
-.msg { padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); user-select: none; }
-.msg:active { opacity: 0.7; }
-.msg.playing { box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); border: 1px solid #00f0ff; }
-.user-a { background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9)); margin-right: auto; border-bottom-right-radius: 4px; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-.user-b { background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9)); margin-left: auto; border-bottom-left-radius: 4px; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-.bot { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px; cursor: default; backdrop-filter: blur(5px); }
-.lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
-#clearBtn { position: absolute; bottom: 2px; left: 10px; width: 32px; height: 32px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-#clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
-#imagePreviewContainer { display: none; position: absolute; bottom: 60px; right: 10px; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-#imagePreview { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
-#cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-.row { display: flex; gap: 8px; align-items: center; flex-shrink: 0; position: relative; }
-input[type=text] { flex: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; order: 3; outline: none; backdrop-filter: blur(5px); }
-input[type=text]:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,0.1); }
-button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-#musicBtn { background: rgba(255,255,255,0.1); color: #fff; order: 1; font-size: 18px; border: 1px solid rgba(255,255,255,0.2); }
-#mediaBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); color: #ffffff; order: 2; font-size: 24px; width: 38px; height: 38px; padding-bottom: 2px; font-weight: normal; }
-#remoteMicBtn { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; order: 2; width: 46px; height: 46px; border-radius: 50%; box-shadow: 0 4px 15px rgba(56,239,125,0.4); display: none; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.2); }
-#remoteMicBtn.recording { background: #ef4444 !important; box-shadow: 0 0 20px rgba(239,68,68,0.8); animation: pulse 1s infinite; }
-#toggleCamBtn { background: rgba(255,255,255,0.1); color: #fff; order: 2; width: 46px; height: 46px; border-radius: 50%; display: none; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s ease; }
-#toggleCamBtn.off { background: #ef4444; }
-#sendBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); order: 4; color: #fff; }
-#sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
-#stopAudioBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; outline: none; }
-#stopAudioBtn svg { fill: #2d3748; width: 14px; height: 14px; }
-#status { text-align: center; font-size: 13px; color: #00f0ff; margin-top: 6px; min-height: 18px; font-weight: bold; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
-.extra-controls { display: flex; gap: 8px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; width: 100%; padding: 0 5px; align-items: center; }
-.extra-controls button, .extra-controls select { padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #fff; font-size: 11px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); transition: 0.3s; }
-.extra-controls button:active { transform: scale(0.95); }
-.toggle-btn { background: rgba(255,255,255,0.1) !important; color: white !important; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2) !important; }
-.toggle-btn.active { background: rgba(16, 185, 129, 0.3) !important; border-color: #10b981 !important; color: #10b981 !important; box-shadow: 0 0 10px rgba(16,185,129,0.2); }
-.btn-back { background: rgba(239, 68, 68, 0.3) !important; border-color: #ef4444 !important; color: #fff !important; }
-body.remote-mode #extraControls, body.meeting-mode #extraControls { justify-content: space-between; padding: 0 10px; }
-body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex: 1 1 30%; }
-#actionMenu { display: none; position: fixed; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.action-btn { padding: 10px 15px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
-.action-btn:hover { background: rgba(255,255,255,0.15); }
-#musicMenu { display: none; position: fixed; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px; z-index: 2000; width: 220px; max-height: 300px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-#musicMenu h4 { font-size: 13px; margin-bottom: 10px; text-align: center; color: #00f0ff; }
-.music-item { padding: 8px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-bottom: 5px; background: rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-.music-item:hover { background: rgba(255,255,255,0.15); } .music-item.active { background: rgba(0, 240, 255, 0.2); color: #00f0ff; font-weight: bold; border: 1px solid rgba(0,240,255,0.3); }
-.music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
-.music-item.add-more { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); } 
-.music-item.stop-btn { background: rgba(153, 27, 27, 0.3); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 8px; } 
-.music-item.pause-btn { background: rgba(71, 85, 105, 0.5); margin-bottom: 8px; }
-.song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
-.delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 15px; }
-#remoteBar { display: none; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 16px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-#remoteBar .room-info { display: flex; align-items: center; gap: 10px; justify-content: center; flex: 1; }
-#remoteBar strong { color: #00f0ff; letter-spacing: 2px; font-size: 15px; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
-#copyRoomBtn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s; }
-#copyRoomBtn:hover { background: rgba(255,255,255,0.2); }
-#friendsOverlay .join-form { max-width: 360px; }
-#frMyCode { color: #00f0ff; letter-spacing: 3px; font-size: 20px; text-shadow: 0 0 10px rgba(0,240,255,0.4); }
-#frCopyCode { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-#frCopyCode:hover { background: rgba(255,255,255,0.2); }
-#frAddBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; padding: 0 15px; border-radius: 12px; cursor: pointer; font-size: 18px; }
-#frMsg { color: #fbbf24; }
-#frRequestsBox { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; margin-top: 5px; }
-#frRequests > div, #frList > div { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px; }
-#frRequests button, #frList button { border-radius: 6px; padding: 4px 8px; font-size: 11px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-#frRequests button:active, #frList button:active { transform: scale(0.9); }
-#chatOverlay { background: transparent; }
-#chMsgs { background: rgba(26, 42, 108, 0.6); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-radius: 16px; }
-#chMsgs > div { border-radius: 12px; font-size: 14px; padding: 10px 14px; }
-#chInput { border-radius: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 12px 15px; }
-#chSend { background: linear-gradient(135deg, #4568dc, #b06ab3); border-radius: 50%; width: 46px; height: 46px; box-shadow: 0 4px 15px rgba(69,104,220,0.3); }
-#chBack { background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; }
-.checkbox-row { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 13px; color: rgba(255,255,255,0.7); cursor: pointer; }
-.checkbox-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #00f0ff; }
-#callOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 9999998; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
-#callOverlay.active { display: flex; animation: slideIn 0.3s ease; }
-.call-avatar { width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 60px; animation: ringPulse 1.5s infinite; box-shadow: 0 0 40px rgba(102, 126, 234, 0.5); }
-.call-name { font-size: 28px; font-weight: bold; color: #fff; }
-.call-status { font-size: 16px; color: rgba(255,255,255,0.7); }
-.call-actions { display: flex; gap: 40px; }
-.call-btn { width: 70px; height: 70px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
-.call-btn.accept { background: #10b981; color: #fff; }
-.call-btn.decline { background: #ef4444; color: #fff; }
-.call-btn:active { transform: scale(0.9); }
-#longRecordIndicator { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.9); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; z-index: 100001; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5); }
-#longRecordIndicator.active { display: flex; align-items: center; gap: 10px; }
-#longRecordIndicator .dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; animation: pulse 1s infinite; }
+
+/* Auth Overlay */
+#authOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 30, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999999;
+  backdrop-filter: blur(20px);
+}
+
+.auth-box {
+  background: rgba(26, 26, 46, 0.8);
+  backdrop-filter: blur(20px);
+  padding: 30px 20px;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 350px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  border: 1px solid var(--messenger-border);
+  text-align: center;
+}
+
+.auth-box h1 {
+  color: #0084ff;
+  margin-bottom: 5px;
+  font-size: 26px;
+  text-shadow: 0 0 15px rgba(0,132,255,0.6);
+}
+
+.auth-box h2 {
+  color: #fff;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: normal;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  border: 1px solid var(--messenger-border);
+  background: rgba(0,0,0,0.4);
+  color: #fff;
+  outline: none;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.auth-input:focus {
+  border-color: #0084ff;
+  box-shadow: 0 0 15px rgba(0,132,255,0.3);
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #0084ff, #0066cc);
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: 0.3s;
+  font-size: 15px;
+  box-shadow: 0 4px 15px rgba(0,132,255,0.4);
+}
+
+.auth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,132,255,0.6);
+}
+
+.auth-btn-outline {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: 15px;
+}
+
+.auth-btn-outline:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+#authError {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-bottom: 10px;
+  min-height: 18px;
+}
+
+/* Landing Overlay */
+#landingOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--messenger-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  z-index: 99999;
+}
+
+#landingOverlay h1 {
+  color: #0084ff;
+  font-size: 32px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 15px rgba(0,132,255,0.4);
+}
+
+.mode-btn {
+  padding: 16px 20px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--messenger-border);
+  color: #fff;
+  cursor: pointer;
+  width: 100%;
+  max-width: 280px;
+  font-weight: bold;
+  background: var(--messenger-header);
+  transition: all 0.3s;
+}
+
+.mode-btn:hover {
+  background: #252545;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* Remote Mode Container (Messenger Style) */
+#remoteModeContainer {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--messenger-bg);
+  z-index: 100;
+}
+
+/* Header */
+.messenger-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--messenger-header);
+  border-bottom: 1px solid var(--messenger-border);
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  gap: 15px;
+  z-index: 1000;
+}
+
+.header-toggle {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.header-toggle:hover {
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+
+.header-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.header-status {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.header-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.header-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.header-btn.active {
+  color: #0084ff;
+  background: rgba(0,132,255,0.2);
+}
+
+/* Sidebar */
+.messenger-sidebar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  background: var(--messenger-sidebar);
+  border-right: 1px solid var(--messenger-border);
+  transform: translateX(-100%);
+  transition: transform 0.3s;
+  z-index: 999;
+  overflow-y: auto;
+}
+
+.messenger-sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  padding: 15px;
+  border-bottom: 1px solid var(--messenger-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-header h3 {
+  font-size: 16px;
+  color: #fff;
+}
+
+.sidebar-header button {
+  background: #0084ff;
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.sidebar-header button:hover {
+  background: #0066cc;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--messenger-border);
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.friend-item:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0084ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.friend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.friend-name {
+  font-size: 14px;
+  color: #fff;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-status {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+
+.friend-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.friend-action-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.friend-action-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.friend-action-btn.call {
+  color: #0084ff;
+}
+
+.friend-action-btn.call:hover {
+  background: rgba(0,132,255,0.2);
+}
+
+.friend-action-btn.delete {
+  color: #ff4444;
+}
+
+.friend-action-btn.delete:hover {
+  background: rgba(255,68,68,0.2);
+}
+
+/* Chat Area */
+.messenger-chat {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 70px;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  cursor: pointer;
+  transition: all 0.3s;
+  user-select: none;
+}
+
+.msg:active {
+  opacity: 0.7;
+}
+
+.msg.user-a {
+  align-self: flex-end;
+  background: var(--messenger-bubble-sender);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg.user-b {
+  align-self: flex-start;
+  background: var(--messenger-bubble-receiver);
+  color: #fff;
+  border-bottom-left-radius: 4px;
+}
+
+.msg.bot {
+  align-self: center;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  font-style: italic;
+  font-size: 13px;
+  max-width: 80%;
+}
+
+.msg.playing {
+  box-shadow: 0 0 20px rgba(0, 132, 255, 0.6);
+  border: 2px solid #0084ff;
+}
+
+.lang-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 6px;
+  margin-right: 6px;
+  opacity: 0.8;
+  font-weight: bold;
+}
+
+/* Footer */
+.messenger-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: var(--messenger-footer);
+  border-top: 1px solid var(--messenger-border);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.footer-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.footer-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.footer-btn.mic {
+  background: #0084ff;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.footer-btn.mic.recording {
+  background: #ff4444;
+  animation: pulse 1s infinite;
+}
+
+.footer-input {
+  flex: 1;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid var(--messenger-border);
+  border-radius: 20px;
+  padding: 12px 15px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.footer-input:focus {
+  border-color: #0084ff;
+  background: rgba(255,255,255,0.15);
+}
+
+.footer-send {
+  background: #0084ff;
+  border: none;
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.footer-send:hover {
+  background: #0066cc;
+  transform: scale(1.1);
+}
+
+.footer-send:disabled {
+  background: #666;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Call Overlay */
+#callOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  backdrop-filter: blur(20px);
+  z-index: 9999998;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
+#callOverlay.active {
+  display: flex;
+}
+
+.call-avatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0084ff, #0066cc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+  animation: ringPulse 1.5s infinite;
+}
+
+.call-name {
+  font-size: 28px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.call-status {
+  font-size: 16px;
+  color: rgba(255,255,255,0.7);
+}
+
+.call-actions {
+  display: flex;
+  gap: 40px;
+}
+
+.call-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.call-btn.accept {
+  background: #00c853;
+  color: #fff;
+}
+
+.call-btn.accept:hover {
+  background: #00a843;
+  transform: scale(1.1);
+}
+
+.call-btn.decline {
+  background: #ff4444;
+  color: #fff;
+}
+
+.call-btn.decline:hover {
+  background: #cc0000;
+  transform: scale(1.1);
+}
+
+/* Add Friend Form */
+#addFriendForm {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--messenger-sidebar);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--messenger-border);
+  z-index: 10000;
+  min-width: 300px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+#addFriendForm h3 {
+  color: #fff;
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+
+#addFriendForm input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--messenger-border);
+  background: rgba(0,0,0,0.3);
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 10px;
+  outline: none;
+}
+
+#addFriendForm input:focus {
+  border-color: #0084ff;
+}
+
+#addFriendForm button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0084ff;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 5px;
+  transition: 0.3s;
+}
+
+#addFriendForm button:hover {
+  background: #0066cc;
+}
+
+#addFriendForm button:last-child {
+  background: #666;
+}
+
+#addFriendForm button:last-child:hover {
+  background: #555;
+}
+
+/* Status */
+#status {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 132, 255, 0.9);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 1001;
+  display: none;
+  backdrop-filter: blur(10px);
+}
+
+#status.show {
+  display: block;
+}
+
+/* Media Menu */
+#mediaMenu {
+  display: none;
+  position: fixed;
+  bottom: 80px;
+  left: 10px;
+  background: var(--messenger-sidebar);
+  border: 1px solid var(--messenger-border);
+  border-radius: 12px;
+  padding: 10px;
+  z-index: 1001;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.media-option {
+  display: block;
+  width: 100%;
+  padding: 10px 15px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: right;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+
+.media-option:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Animations */
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 132, 255, 0.7); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(0, 132, 255, 0); }
+}
+
+@keyframes pulse {
+  50% { transform: scale(1.1); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
 </style>
 </head>
-  <body>
+<body>
 
+<!-- Auth Overlay -->
 <div id="authOverlay">
-  <div class="auth-lang-switch">
-    <button class="lang-btn active" onclick="changeAuthLang('ar')">AR</button>
-    <button class="lang-btn" onclick="changeAuthLang('fr')">FR</button>
-    <button class="lang-btn" onclick="changeAuthLang('en')">EN</button>
-  </div>
   <div class="auth-box">
     <h1>🌐 Chat-Core</h1>
     <h2 id="authTitle">تسجيل الدخول</h2>
     <div id="authError"></div>
     <input type="email" id="authEmail" class="auth-input" placeholder="البريد الإلكتروني">
     <input type="password" id="authPassword" class="auth-input" placeholder="كلمة المرور">
-    <button id="authSubmitBtn" class="auth-btn" onclick="handleEmailAuth()">دخول</button>
-    <button id="authToggleBtn" class="auth-btn outline" onclick="toggleAuthMode()">إنشاء حساب جديد</button>
-    <div class="divider" id="authDivider">أو</div>
-    <button class="social-btn" onclick="loginWithGoogle()" id="btnAuthGoogle">🌐 Google</button>
-    <button class="social-btn" onclick="loginWithGithub()" id="btnAuthGithub">🐙 GitHub</button>
-    <button class="social-btn" onclick="loginWithTwitter()" id="btnAuthTwitter">🐦 X</button>
+    <button id="authSubmitBtn" class="auth-btn">دخول</button>
+    <button id="authToggleBtn" class="auth-btn-outline">إنشاء حساب جديد</button>
   </div>
 </div>
 
-<button id="floatingMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
-
-<div class="overlay" id="landingOverlay" style="display:none;">
+<!-- Landing Overlay -->
+<div id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
-  <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:15px;">اختر وضع التشغيل</p>
-  <button class="mode-btn" id="btnLocal"><span>🌐 Face-to-Face</span></button>
-  <button class="mode-btn" id="btnRemote"><span>💬 Remote Mode</span></button>
-  <button class="mode-btn" id="btnMeeting"><span>➕ Meeting Room</span></button>
-  <button class="mode-btn" id="btnFriends"><span>👥 <span id="btnFriendsLabel">الأصدقاء</span></span><span id="friendsBadge" style="display:none; position:absolute; top:-6px; right:-6px; min-width:24px; height:24px; border-radius:12px; background:#ef4444; font-size:12px; line-height:24px; text-align:center; padding:0 6px; box-shadow:0 0 10px rgba(239,68,68,0.5);">0</span></button>
-  <button class="mode-btn" id="btnLogout"><span>🚪 تسجيل الخروج</span></button>
+  <p style="color:rgba(255,255,255,0.6); margin-bottom:15px;">اختر وضع التشغيل</p>
+  <button class="mode-btn" id="btnLocal">🌐 Face-to-Face</button>
+  <button class="mode-btn" id="btnRemote">💬 Remote Mode</button>
+  <button class="mode-btn" id="btnLogout">🚪 تسجيل الخروج</button>
 </div>
 
-<div class="overlay" id="friendsOverlay" style="display:none;">
-  <h2>👥 <span id="frTitle">الأصدقاء</span></h2>
-  <div class="join-form">
-    <div style="text-align:center; font-size:13px; color:rgba(255,255,255,0.7);" id="frMyCodeLabel">كود الصداقة الخاص بك</div>
-    <div style="display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom: 5px;">
-      <strong id="frMyCode">--------</strong>
-      <button id="frCopyCode">📋</button>
+<!-- Remote Mode Container (Messenger Style) -->
+<div id="remoteModeContainer">
+  <!-- Header -->
+  <div class="messenger-header">
+    <button class="header-toggle" id="toggleSidebar">☰</button>
+    <div class="header-info">
+      <div class="header-name" id="remoteHeaderName">Remote Chat</div>
+      <div class="header-status" id="remoteHeaderStatus">متصل</div>
     </div>
-    <div id="joinRowFr" style="display:flex; gap:8px; margin-bottom: 10px;">
-      <input type="text" id="frAddInput" placeholder="كود صديق" maxlength="8" style="flex:1; text-transform:uppercase; text-align:center; letter-spacing:2px;">
-      <button id="frAddBtn">➕</button>
-    </div>
-    <div id="frMsg" style="min-height:16px; font-size:13px; text-align:center;"></div>
-    <div id="frRequestsBox" style="display:none;">
-      <div style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:8px;" id="frReqTitle">طلبات الصداقة</div>
-      <div id="frRequests" style="display:flex; flex-direction:column; gap:8px;"></div>
-    </div>
-    <div style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:8px; margin-top:5px;" id="frListTitle">قائمة الأصدقاء</div>
-    <div id="frList" style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto;"></div>
-    <button id="frBackBtn" style="background:transparent; color:rgba(255,255,255,0.6); text-decoration:underline; font-weight:normal; border:none; margin-top:10px; font-size:14px;">← رجوع</button>
-  </div>
-</div>
-
-<div class="overlay" id="chatOverlay" style="display:none; justify-content:flex-start; gap:10px; padding:15px;">
-  <div style="width:100%; max-width:420px; display:flex; align-items:center; gap:10px; flex-shrink:0;">
-    <button id="chBack">←</button>
-    <strong id="chName" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; color:#fff;"></strong>
-    <select id="chLang" class="lang-select" style="width:100px; height:34px; font-size:12px; border-radius:10px;" title="Translate to"></select>
-  </div>
-  <div id="chMsgs" style="flex:1; width:100%; max-width:420px; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:8px;"></div>
-  <div id="chStatus" style="min-height:16px; font-size:12px; color:#fbbf24; width:100%; max-width:420px; text-align:center; font-weight:bold;"></div>
-  <div style="display:flex; gap:10px; width:100%; max-width:420px; flex-shrink:0; padding-bottom:env(safe-area-inset-bottom);">
-    <input type="text" id="chInput" maxlength="2000" style="flex:1;">
-    <button id="chSend">➤</button>
-  </div>
-</div>
-
-<div id="inviteToast" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:360px; background:rgba(30,41,59,0.9); backdrop-filter:blur(15px); border:1px solid rgba(255,165,0,0.5); border-radius:16px; padding:15px; z-index:9999990; box-shadow:0 10px 30px rgba(0,0,0,0.5); font-size:14px; color:#fff;">
-  <div id="inviteText" style="margin-bottom:12px; font-weight:bold;"></div>
-  <div style="display:flex; gap:10px;">
-    <button id="inviteJoin" style="flex:1; padding:10px; border:none; border-radius:10px; background:linear-gradient(135deg,#11998e,#38ef7d); color:#fff; font-weight:bold; cursor:pointer; box-shadow:0 4px 10px rgba(56,239,125,0.3);">انضمام</button>
-    <button id="inviteDecline" style="flex:1; padding:10px; border:none; border-radius:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; font-weight:bold; cursor:pointer;">تجاهل</button>
-  </div>
-</div>
-
-<div class="overlay" id="remoteJoinOverlay" style="display:none;">
-  <h2>💬 Remote Mode</h2>
-  <div class="join-form">
-    <input type="text" id="playerName" placeholder="Your Name" maxlength="30">
-    <select id="playerLang">
-      <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
-      <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
-      <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
-      <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
-    </select>
-    <label class="checkbox-row"><input type="checkbox" id="remoteTransCheck" checked> 🌐 تفعيل ترجمة الصوت</label>
-    <button id="createRoomBtn">➕ Create Room</button>
-    <div id="orText" style="text-align:center; color:rgba(255,255,255,0.5); font-size:13px; margin:5px 0;">أو</div>
-    <div id="joinRow">
-      <input type="text" id="joinCodeInput" placeholder="Room Code" maxlength="6">
-      <button id="joinRoomBtn">Join</button>
-    </div>
-    <button id="backToLandingBtn">← Back</button>
-  </div>
-</div>
-
-<div class="overlay" id="meetingJoinOverlay" style="display:none;">
-  <h2>➕ Meeting Room</h2>
-  <div class="join-form">
-    <input type="text" id="meetPlayerName" placeholder="Your Name" maxlength="30">
-    <select id="meetPlayerLang">
-      <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
-      <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
-      <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
-      <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
-    </select>
-    <label class="checkbox-row"><input type="checkbox" id="meetingTransCheck" checked> 🌐 تفعيل ترجمة الصوت</label>
-    <button id="createMeetingBtn">➕ Create Meeting</button>
-    <div style="text-align:center; color:rgba(255,255,255,0.5); font-size:13px; margin:5px 0;">أو</div>
-    <div id="joinRow">
-      <input type="text" id="joinMeetingCodeInput" placeholder="Meeting Code" maxlength="12">
-      <button id="joinMeetingBtn">Join</button>
-    </div>
-    <button id="backToLandingFromMeetBtn">← Back</button>
-  </div>
-</div>
-
-<div id="remoteBar">
-  <button id="transToggleBtnRoom" class="toggle-btn active" style="font-size: 11px; padding: 6px 12px; border-radius:8px;">🌐 ON</button>
-  <div class="room-info">
-    <span>Room: <strong id="roomCodeLabel">------</strong></span>
-    <button id="copyRoomBtn">📋 Copy</button>
-  </div>
-  <span id="onlineCount">1/4</span>
-</div>
-
-<div class="top-header" id="topHeader" style="display:none;">
-  <div class="top-bar" id="topBar">
-    <div class="user-section" id="friendSection">
-      <span style="font-size:9px; color:rgba(255,255,255,0.6);">Friend</span>
-      <select id="langB" class="lang-select">
-        <option value="fr">French</option><option value="ar">Arabic</option><option value="en">English</option>
-        <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
-        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
-        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
-      </select>
-      <button id="micB" class="mic-btn green" title="Talk">🎤</button>
-    </div>
-    <div class="user-section" id="youSection">
-      <span style="font-size:9px; color:rgba(255,255,255,0.6);">You</span>
-      <select id="langA" class="lang-select">
-        <option value="ar">Arabic</option><option value="fr">French</option><option value="en">English</option>
-        <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
-        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
-        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
-      </select>
-      <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
+    <div class="header-actions">
+      <button class="header-btn" id="transToggleBtn" title="الترجمة">🌐</button>
+      <button class="header-btn" id="callBtn" title="اتصال">📞</button>
+      <button class="header-btn" id="backBtn" title="رجوع">←</button>
     </div>
   </div>
-</div>
 
-<div class="extra-controls" id="extraControls" style="display:none;">
-  <button id="transToggleBtnLocal" class="toggle-btn active">🌐 Translator ON</button>
-  <select id="voiceSelect">
-    <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
-  </select>
-  <button id="uploadBtn">📁 Avatar</button>
-  <button id="backBtn" class="btn-back">Back</button>
-</div>
-
-<div id="videoContainer">
-  <video id="remoteVideo" autoplay playsinline></video>
-  <video id="localVideo" autoplay playsinline muted></video>
-  <div id="videoStatus">📡 متصل بالكاميرا</div>
-  <div id="tapToPlayOverlay">▶️ اضغط لتشغيل الفيديو</div>
-  <button id="closeVideoFullscreen" title="إغلاق"><div class="inner-white-dot"></div></button>
-</div>
-
-<div id="meetingGridContainer"><div id="videoGrid"></div></div>
-
-<div id="avatar-wrap" style="display:none;">
-  <div id="avatar-container">
-    <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
-    <video id="avatar-video" autoplay loop muted playsinline></video>
+  <!-- Sidebar (Friends) -->
+  <div class="messenger-sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3>الأصدقاء</h3>
+      <button id="addFriendBtn">➕</button>
+    </div>
+    <div id="friendsList"></div>
   </div>
-  <button id="removeAvatarBtn" title="إغلاق الأفاتار">✕</button>
-  <button id="closeFullscreen" title="Close"><div class="inner-white-dot"></div></button>
-</div>
 
-<div class="chat-container" id="chatContainer" style="display:none;">
-  <div id="chat"></div>
-  <button id="clearBtn" title="Clear Chat"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
-</div>
+  <!-- Chat Area -->
+  <div class="messenger-chat" id="chat"></div>
 
-<div id="imagePreviewContainer">
-  <img id="imagePreview" src="" alt="Preview">
-  <button id="cancelImageBtn">✕</button>
-</div>
-
-<div class="row" id="inputRow" style="display:none;">
-  <button class="btn" id="musicBtn" title="Music">🎵</button>
-  <button class="btn" id="mediaBtn" title="Media">+</button>
-  <button class="btn" id="toggleCamBtn" title="Toggle Camera"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg></button>
-  <button class="btn" id="remoteMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
-  <div style="flex: 1; position: relative; display: flex; align-items: center; order: 3;">
-    <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" />
-    <button id="stopAudioBtn" title="Stop Audio"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+  <!-- Footer -->
+  <div class="messenger-footer">
+    <button class="footer-btn mic" id="micBtn" title="تسجيل صوتي">🎤</button>
+    <input type="text" class="footer-input" id="textInput" placeholder="اكتب رسالة...">
+    <button class="footer-btn" id="mediaBtn" title="وسائط">+</button>
+    <button class="footer-send" id="sendBtn" title="إرسال">➤</button>
   </div>
-  <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
-</div>
-<div id="status" class="status-text" style="display:none;">Ready</div>
-
-<div id="actionMenu">
-  <button class="action-btn" id="menuCamera">📸 Camera</button>
-  <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
-  <button class="action-btn" id="menuVideo">🎬 Video</button>
-</div>
-<input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
-<input type="file" id="galleryUpload" accept="image/*" style="display: none;">
-<input type="file" id="videoUpload" accept="video/*,audio/*" style="display: none;">
-<input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
-<input type="file" id="videoAvatarUpload" accept="video/*" style="display: none;">
-<audio id="bgAudio"></audio>
-<div id="musicMenu"><h4>🎵 Playlist</h4><div id="musicList"></div></div>
-
-<div id="longRecordIndicator">
-  <div class="dot"></div>
-  <span id="longRecordTime">00:00</span>
 </div>
 
+<!-- Add Friend Form -->
+<div id="addFriendForm">
+  <h3>إضافة صديق</h3>
+  <input type="text" id="friendCodeInput" placeholder="كود الصديق">
+  <button id="confirmAddFriend">إضافة</button>
+  <button id="cancelAddFriend">إلغاء</button>
+</div>
+
+<!-- Call Overlay -->
 <div id="callOverlay">
   <div class="call-avatar">📞</div>
   <div class="call-name" id="callName">Unknown</div>
-  <div class="call-status" id="callStatus">Incoming call...</div>
+  <div class="call-status" id="callStatus">مكالمة واردة...</div>
   <div class="call-actions">
     <button class="call-btn decline" id="callDecline">✕</button>
     <button class="call-btn accept" id="callAccept">📞</button>
   </div>
 </div>
-    <script>
+
+<!-- Status -->
+<div id="status"></div>
+
+<!-- Media Menu -->
+<div id="mediaMenu">
+  <button class="media-option" id="cameraBtn">📸 كاميرا</button>
+  <button class="media-option" id="galleryBtn">🖼️ معرض</button>
+  <button class="media-option" id="videoBtn">🎬 فيديو</button>
+</div>
+
+<input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="galleryUpload" accept="image/*" style="display:none;">
+<input type="file" id="videoUpload" accept="video/*" style="display:none;">  
+<script>
 'use strict';
 
+// 1. Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
   authDomain: "chat-core-app.firebaseapp.com",
@@ -444,591 +869,384 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 let db = null;
 
-let isLoginMode = true, currentUser = null, currentAuthLang = 'ar';
+// 2. Global Variables
+let currentUser = null;
+let myFriendCode = null;
+let friendsCache = [];
+let currentIncomingCall = null;
+let isTranslatorMode = true; // Default ON
+let ws = null;
+let currentRoomCode = '';
+let myLang = 'ar';
 
-const AUTH_TRANS = {
-  'ar': { loginTitle: 'تسجيل الدخول', registerTitle: 'إنشاء حساب جديد', email: 'البريد الإلكتروني', pass: 'كلمة المرور', btnLogin: 'دخول', btnRegister: 'تسجيل', toggleToReg: 'إنشاء حساب جديد', toggleToLogin: 'لديك حساب بالفعل؟ سجل دخولك', or: 'أو', google: 'تسجيل الدخول بواسطة Google', github: 'تسجيل الدخول بواسطة GitHub', twitter: 'تسجيل الدخول بواسطة X' },
-  'fr': { loginTitle: 'Connexion', registerTitle: 'Créer un compte', email: 'Adresse e-mail', pass: 'Mot de passe', btnLogin: 'Se connecter', btnRegister: "S'inscrire", toggleToReg: 'Créer un compte', toggleToLogin: 'Déjà un compte ? Connectez-vous', or: 'Ou', google: 'Continuer avec Google', github: 'Continuer avec GitHub', twitter: 'Continuer avec X' },
-  'en': { loginTitle: 'Login', registerTitle: 'Create Account', email: 'Email Address', pass: 'Password', btnLogin: 'Login', btnRegister: 'Register', toggleToReg: 'Create Account', toggleToLogin: 'Already have an account? Login', or: 'Or', google: 'Continue with Google', github: 'Continue with GitHub', twitter: 'Continue with X' }
-};
+// 3. UI Helpers
+const $ = id => document.getElementById(id);
+function showStatus(msg) {
+  const s = $('status');
+  s.textContent = msg;
+  s.classList.add('show');
+  setTimeout(() => s.classList.remove('show'), 3000);
+}
 
-function changeAuthLang(lang) {
-  currentAuthLang = lang;
-  localStorage.setItem('authLang', lang);
-  const htmlRoot = document.getElementById('htmlRoot');
-  htmlRoot.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
-  htmlRoot.setAttribute('lang', lang);
-  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase()).classList.add('active');
-  const t = AUTH_TRANS[lang];
-  document.getElementById('authTitle').textContent = isLoginMode ? t.loginTitle : t.registerTitle;
-  document.getElementById('authEmail').placeholder = t.email;
-  document.getElementById('authPassword').placeholder = t.pass;
-  document.getElementById('authSubmitBtn').textContent = isLoginMode ? t.btnLogin : t.btnRegister;
-  document.getElementById('authToggleBtn').textContent = isLoginMode ? t.toggleToReg : t.toggleToLogin;
-  document.getElementById('authDivider').textContent = t.or;
-  document.getElementById('btnAuthGoogle').textContent = '🌐 ' + t.google;
-  document.getElementById('btnAuthGithub').textContent = '🐙 ' + t.github;
-  document.getElementById('btnAuthTwitter').textContent = '🐦 ' + t.twitter;
-}
-function toggleAuthMode() { isLoginMode = !isLoginMode; changeAuthLang(currentAuthLang); document.getElementById('authError').textContent = ''; }
-function showAuthError(msg) { document.getElementById('authError').textContent = msg; }
-function handleEmailAuth() {
-  const email = document.getElementById('authEmail').value;
-  const password = document.getElementById('authPassword').value;
-  if(!email || !password) return showAuthError("Please fill all fields");
-  showAuthError(""); document.getElementById('authSubmitBtn').textContent = "...";
-  if(isLoginMode) auth.signInWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
-  else auth.createUserWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
-}
-function loginWithGoogle() { const p = new firebase.auth.GoogleAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
-function loginWithGithub() { const p = new firebase.auth.GithubAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
-function loginWithTwitter() { const p = new firebase.auth.TwitterAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
-function logoutUser() { auth.signOut().then(() => { window.location.reload(); }); }
-auth.getRedirectResult().then((r) => { if (r.credential) console.log("redirect ok"); }).catch((e) => showAuthError(e.message));
+// 4. Auth Logic
+let isLoginMode = true;
+$('authSubmitBtn').addEventListener('click', () => {
+  const email = $('authEmail').value;
+  const pass = $('authPassword').value;
+  if(!email || !pass) return $('authError').textContent = "أدخل البيانات";
+  $('authSubmitBtn').textContent = "...";
+  const p = isLoginMode ? auth.signInWithEmailAndPassword(email, pass) : auth.createUserWithEmailAndPassword(email, pass);
+  p.catch(e => { $('authError').textContent = e.message; $('authSubmitBtn').textContent = isLoginMode ? 'دخول' : 'تسجيل'; });
+});
+$('authToggleBtn').addEventListener('click', () => {
+  isLoginMode = !isLoginMode;
+  $('authTitle').textContent = isLoginMode ? 'تسجيل الدخول' : 'حساب جديد';
+  $('authSubmitBtn').textContent = isLoginMode ? 'دخول' : 'تسجيل';
+  $('authToggleBtn').textContent = isLoginMode ? 'إنشاء حساب' : 'لدي حساب';
+  $('authError').textContent = '';
+});
+
 auth.onAuthStateChanged(user => {
-  const authOverlay = document.getElementById('authOverlay');
-  const landingOverlay = document.getElementById('landingOverlay');
-  if (user) {
+  if(user) {
     currentUser = user;
-    authOverlay.style.display = 'none';
-    landingOverlay.style.display = 'flex';
-    const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
-    document.getElementById('playerName').value = displayName;
-    document.getElementById('meetPlayerName').value = displayName;
-    if (typeof initFriends === 'function') initFriends();
+    $('authOverlay').style.display = 'none';
+    $('landingOverlay').style.display = 'flex';
   } else {
     currentUser = null;
-    authOverlay.style.display = 'flex';
-    landingOverlay.style.display = 'none';
-    if (typeof teardownFriends === 'function') teardownFriends();
+    $('authOverlay').style.display = 'flex';
+    $('landingOverlay').style.display = 'none';
+    $('remoteModeContainer').style.display = 'none';
   }
 });
-const savedLang = localStorage.getItem('authLang') || 'ar';
-changeAuthLang(savedLang);
 
-const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
-const SERVER_URL = BASE_SERVER_URL + "/chat";
-const TTS_URL = BASE_SERVER_URL + "/tts";
-const ROOM_CREATE_URL = BASE_SERVER_URL + "/rooms/create";
-const TOKEN_URL = BASE_SERVER_URL + "/get-token";
-const TRANSCRIBE_URL = BASE_SERVER_URL + "/transcribe";
-const WS_BASE = BASE_SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://');
-const REQUEST_TIMEOUT_MS = 60000;
-const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
+// 5. Navigation
+$('btnLocal').addEventListener('click', () => showStatus('وضع Face-to-Face قيد التطوير'));
+$('btnLogout').addEventListener('click', () => auth.signOut());
 
-const LONG_RECORD_CHUNK_MS = 5 * 60 * 1000;
-const LONG_RECORD_SILENCE_MS = 3000;
-const MAX_RECORD_DURATION_MS = 60 * 60 * 1000;
-
-const _scriptPromises = {};
-function loadScript(src) {
-  if (!_scriptPromises[src]) {
-    _scriptPromises[src] = new Promise((resolve, reject) => {
-      const s = document.createElement('script'); s.src = src; s.async = true;
-      s.onload = resolve; s.onerror = () => { delete _scriptPromises[src]; reject(new Error('Failed to load ' + src)); };
+$('btnRemote').addEventListener('click', async () => {
+  $('landingOverlay').style.display = 'none';
+  $('remoteModeContainer').style.display = 'block';
+  
+  // Load Firestore dynamically
+  if(!db) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js";
+      s.onload = resolve; s.onerror = reject;
       document.head.appendChild(s);
     });
+    db = firebase.firestore();
   }
-  return _scriptPromises[src];
+  
+  await initFriends();
+  connectRemote('GLOBAL', 'User', 'ar'); // Default room for demo
+});
+
+$('backBtn').addEventListener('click', () => {
+  $('remoteModeContainer').style.display = 'none';
+  $('landingOverlay').style.display = 'flex';
+  if(ws) ws.close();
+});
+
+// 6. Sidebar & UI Toggles
+$('toggleSidebar').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+$('transToggleBtn').addEventListener('click', function() {
+  isTranslatorMode = !isTranslatorMode;
+  this.classList.toggle('active', isTranslatorMode);
+  showStatus(isTranslatorMode ? 'الترجمة مفعلة 🌐' : 'الترجمة معطلة');
+});
+
+// 7. Friends System
+async function initFriends() {
+  if(!currentUser) return;
+  const uid = currentUser.uid;
+  const name = currentUser.displayName || currentUser.email.split('@')[0];
+  
+  // Get or Create Friend Code
+  const userRef = db.collection('users').doc(uid);
+  const snap = await userRef.get();
+  if(snap.exists && snap.data().code) {
+    myFriendCode = snap.data().code;
+  } else {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    await userRef.set({ code, name }, { merge: true });
+    myFriendCode = code;
+  }
+
+  // Listen to Friends
+  db.collection('users').doc(uid).collection('friends').onSnapshot(snap => {
+    friendsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderFriends();
+  });
+
+  // Listen to Calls
+  db.collection('calls').where('to_uid', '==', uid).where('status', '==', 'ringing').onSnapshot(snap => {
+    snap.docChanges().forEach(ch => {
+      if(ch.type === 'added') {
+        const call = { id: ch.doc.id, ...ch.doc.data() };
+        showIncomingCall(call);
+      }
+    });
+  });
 }
-const loadLiveKit = () => window.LivekitClient ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js');
-const loadFirestore = () => (firebase.firestore ? Promise.resolve() : loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js'));
-function wakeServer() { try { fetch(BASE_SERVER_URL + '/health', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} }
-wakeServer();
 
-const $ = id => document.getElementById(id);
-const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn'), stopAudioBtn = $('stopAudioBtn');
-const micA = $('micA'), micB = $('micB'), remoteMicBtn = $('remoteMicBtn'), floatingMicBtn = $('floatingMicBtn'), toggleCamBtn = $('toggleCamBtn');
-const langA = $('langA'), langB = $('langB');
-const clearBtn = $('clearBtn'), statusEl = $('status');
-const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
-const backBtn = $('backBtn');
-const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount');
-const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen'), tapToPlayOverlay = $('tapToPlayOverlay');
-const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
-const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuVideo = $('menuVideo');
-const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
-const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
-const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
-const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid');
-const transToggleBtnRoom = $('transToggleBtnRoom');
-const transToggleBtnLocal = $('transToggleBtnLocal');
-const voiceSelect = $('voiceSelect');
-const longRecordIndicator = $('longRecordIndicator');
-const longRecordTime = $('longRecordTime');
-const callOverlay = $('callOverlay');
+function renderFriends() {
+  const list = $('friendsList');
+  list.innerHTML = '';
+  if(friendsCache.length === 0) {
+    list.innerHTML = '<div style="padding:20px; text-align:center; color:rgba(255,255,255,0.5);">لا يوجد أصدقاء<br>اضغط ➕ للإضافة</div>';
+    return;
+  }
+  
+  friendsCache.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'friend-item';
+    div.innerHTML = `
+      <div class="friend-avatar">${f.name.charAt(0).toUpperCase()}</div>
+      <div class="friend-info">
+        <div class="friend-name">${f.name}</div>
+        <div class="friend-status">متصل الآن</div>
+      </div>
+      <div class="friend-actions">
+        <button class="friend-action-btn call" onclick="callFriend('${f.id}', '${f.name}')">📞</button>
+        <button class="friend-action-btn delete" onclick="removeFriend('${f.id}')">🗑️</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
 
-$('btnLogout').addEventListener('click', logoutUser);
+// Expose to window for inline onclick
+window.callFriend = async (uid, name) => {
+  const roomCode = 'ROOM' + Math.random().toString(36).substring(2, 6).toUpperCase();
+  await db.collection('calls').add({
+    from_uid: currentUser.uid,
+    from_name: currentUser.displayName || 'Me',
+    to_uid: uid,
+    room_code: roomCode,
+    status: 'ringing',
+    createdAt: Date.now()
+  });
+  showStatus(`جاري الاتصال بـ ${name}... 📞`);
+};
 
-let appMode = 'none';
-let chatHistory = [], isSending = false, isCompressing = false;
-let isTranslatorMode = false;
-let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
-let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
-let pc = null, localStream = null;
-let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
-let iceCandidatesQueue = [];
-let isCameraOn = true;
-let isWebRtcMicOn = true;
-let livekitRoom = null;
+window.removeFriend = async (uid) => {
+  if(confirm('حذف هذا الصديق؟')) {
+    await db.collection('users').doc(currentUser.uid).collection('friends').doc(uid).delete();
+    await db.collection('users').doc(uid).collection('friends').doc(currentUser.uid).delete();
+  }
+};
 
+// Add Friend UI
+$('addFriendBtn').addEventListener('click', () => $('addFriendForm').style.display = 'block');
+$('cancelAddFriend').addEventListener('click', () => $('addFriendForm').style.display = 'none');
+$('confirmAddFriend').addEventListener('click', async () => {
+  const code = $('friendCodeInput').value.trim().toUpperCase();
+  if(!code) return;
+  
+  // Find user by code
+  const users = await db.collection('users').where('code', '==', code).get();
+  if(users.empty) return showStatus('كود غير صحيح ❌');
+  
+  const targetUser = users.docs[0];
+  const targetUid = targetUser.id;
+  const targetName = targetUser.data().name;
+  
+  // Add to friends
+  const batch = db.batch();
+  batch.set(db.collection('users').doc(currentUser.uid).collection('friends').doc(targetUid), { name: targetName, uid: targetUid });
+  batch.set(db.collection('users').doc(targetUid).collection('friends').doc(currentUser.uid), { name: currentUser.displayName || 'Me', uid: currentUser.uid });
+  await batch.commit();
+  
+  $('addFriendForm').style.display = 'none';
+  $('friendCodeInput').value = '';
+  showStatus(`تمت إضافة ${targetName} ✅`);
+});
+
+// 8. Call System
+function showIncomingCall(call) {
+  currentIncomingCall = call;
+  $('callName').textContent = call.from_name;
+  $('callStatus').textContent = 'مكالمة واردة...';
+  $('callOverlay').classList.add('active');
+  playRingtone();
+}
+
+function playRingtone() {
+  // Simple beep using AudioContext
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
+}
+
+$('callDecline').addEventListener('click', async () => {
+  if(currentIncomingCall) {
+    await db.collection('calls').doc(currentIncomingCall.id).update({ status: 'rejected' });
+  }
+  $('callOverlay').classList.remove('active');
+});
+
+$('callAccept').addEventListener('click', async () => {
+  if(currentIncomingCall) {
+    await db.collection('calls').doc(currentIncomingCall.id).update({ status: 'accepted' });
+    $('callOverlay').classList.remove('active');
+    showStatus(`تم قبول المكالمة مع ${currentIncomingCall.from_name}`);
+    // Here you would normally start WebRTC video/audio
+  }
+});
+
+// 9. Remote Chat (WebSocket)
+function connectRemote(room, name, lang) {
+  currentRoomCode = room;
+  myLang = lang;
+  $('remoteHeaderName').textContent = 'Remote Chat';
+  $('remoteHeaderStatus').textContent = 'متصل';
+  
+  const wsUrl = `wss://chat-core-tts.onrender.com/ws/${room}`;
+  ws = new WebSocket(wsUrl);
+  
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'join', name, lang }));
+    addMsg('bot', 'تم الاتصال بالغرفة 💬');
+  };
+  
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if(msg.type === 'translated') {
+      if(!msg.is_mine) {
+        addMsg('user-b', `${msg.from_name}: ${msg.original}`, msg.from_lang);
+        if(msg.translated && isTranslatorMode) {
+          addMsg('bot', `↳ ${msg.translated}`);
+        }
+      }
+    }
+  };
+}
+
+function sendRemoteMessage(text) {
+  if(ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'message', text, translate: isTranslatorMode }));
+    addMsg('user-a', text, myLang);
+  }
+}
+
+// 10. Chat UI
+function addMsg(type, text, lang = '') {
+  const chat = $('chat');
+  const div = document.createElement('div');
+  div.className = `msg ${type}`;
+  
+  if(lang && type !== 'bot') {
+    div.innerHTML = `<span class="lang-tag">${lang.toUpperCase()}</span> ${text}`;
+  } else {
+    div.textContent = text;
+  }
+  
+  // Click to speak (TTS placeholder)
+  div.addEventListener('click', () => {
+    document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+    div.classList.add('playing');
+    // speak(text, lang); // Will be implemented in Part 3
+  });
+  
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// 11. Input Handling
+$('sendBtn').addEventListener('click', () => {
+  const text = $('textInput').value.trim();
+  if(text) {
+    sendRemoteMessage(text);
+    $('textInput').value = '';
+  }
+});
+
+$('textInput').addEventListener('keypress', (e) => {
+  if(e.key === 'Enter') $('sendBtn').click();
+});
+
+$('micBtn').addEventListener('click', function() {
+  this.classList.toggle('recording');
+  showStatus(this.classList.contains('recording') ? 'جارٍ التسجيل... 🎤' : 'تم الإرسال');
+  // Full audio logic in Part 3
+});
+
+// Media Menu
+$('mediaBtn').addEventListener('click', () => {
+  const m = $('mediaMenu');
+  m.style.display = m.style.display === 'block' ? 'none' : 'block';
+});
+
+document.addEventListener('click', (e) => {
+  if(!$('mediaBtn').contains(e.target) && !$('mediaMenu').contains(e.target)) {
+    $('mediaMenu').style.display = 'none';
+  }
+});
+  <script>
+// 12. Audio Processing & Smart Voice Isolation
 let localRecorder = null;
 let localStreamMic = null;
 let localChunks = [];
 let localStartTime = 0;
-let currentSpeaker = null;
-let isLocalProcessing = false;
+let isRecording = false;
+let audioCtx = null;
+let analyser = null;
+let noiseFloor = 0;
 
-let isManualTranslating = false;
-let audioRecorder = null;
-let translationStartTime = 0;
-let translationAudioCtx = null;
-let myIsCaller = false;
-let _rtcInitiated = false;
-let _chLangPopulated = false;
-
-let longRecordChunks = [];
-let longRecordStartTime = 0;
-let longRecordTimer = null;
-let longRecordChunkIndex = 0;
-let longRecordSilenceTimer = null;
-
-let currentIncomingCall = null;
-let ringtoneAudio = null;
-let callUnsub = null;
-
-const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
-function showAppUI() {
-  UI_ELEMENTS.forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.style.display = (id === 'inputRow' || id === 'chatContainer' || id === 'topHeader' || id === 'extraControls' || id === 'avatar-wrap') ? 'flex' : 'block';
-  });
-}
-
-const UI_TEXT = {
-  'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', createMeet: '➕ إنشاء اجتماع', or: 'أو', code: 'كود الغرفة', codeMeet: 'كود الاجتماع', join: 'انضمام', back: '← رجوع' },
-  'fr': { name: 'Votre Nom', create: '➕ Créer un salon', createMeet: '➕ Créer une réunion', or: 'Ou', code: 'Code du salon', codeMeet: 'Code de réunion', join: 'Rejoindre', back: '← Retour' },
-  'en': { name: 'Your Name', create: '➕ Create Room', createMeet: '➕ Create Meeting', or: 'Or', code: 'Room Code', codeMeet: 'Meeting Code', join: 'Join', back: '← Back' }
-};
-$('playerLang').addEventListener('change', (e) => {
-  const lang = e.target.value;
-  const t = UI_TEXT[lang] || UI_TEXT['en'];
-  $('playerName').placeholder = t.name;
-  $('createRoomBtn').textContent = t.create;
-  $('orText').textContent = t.or;
-  $('joinCodeInput').placeholder = t.code;
-  $('joinRoomBtn').textContent = t.join;
-  $('backToLandingBtn').textContent = t.back;
-});
-const updateMeetForm = () => {
-  const lang = $('meetPlayerLang').value;
-  const t = UI_TEXT[lang] || UI_TEXT['en'];
-  $('meetPlayerName').placeholder = t.name;
-  $('createMeetingBtn').textContent = t.createMeet;
-  $('joinMeetingCodeInput').placeholder = t.codeMeet;
-  $('joinMeetingBtn').textContent = t.join;
-  $('backToLandingFromMeetBtn').textContent = t.back;
-};
-$('meetPlayerLang').addEventListener('change', updateMeetForm);
-updateMeetForm();
-
-function updateTranslatorUI() {
-  const textRoom = isTranslatorMode ? '🌐 ON' : '🌐 OFF';
-  const textLocal = isTranslatorMode ? '🌐 Translator ON' : '🌐 Translator OFF';
-  if (transToggleBtnRoom) { transToggleBtnRoom.textContent = textRoom; transToggleBtnRoom.classList.toggle('active', isTranslatorMode); }
-  if (transToggleBtnLocal) { transToggleBtnLocal.textContent = textLocal; transToggleBtnLocal.classList.toggle('active', isTranslatorMode); }
-  if (remoteMicBtn && (appMode === 'remote' || appMode === 'meeting')) {
-    if (isTranslatorMode) {
-      remoteMicBtn.style.background = isManualTranslating ? '#ef4444' : 'linear-gradient(135deg, #11998e, #38ef7d)';
-      remoteMicBtn.classList.toggle('recording', isManualTranslating);
-    } else {
-      remoteMicBtn.style.background = isWebRtcMicOn ? 'linear-gradient(135deg, #11998e, #38ef7d)' : '#ef4444';
-      remoteMicBtn.classList.remove('recording');
-    }
-  }
-  if (floatingMicBtn) {
-    floatingMicBtn.classList.toggle('recording', isManualTranslating || (!isTranslatorMode && !isWebRtcMicOn));
-    floatingMicBtn.style.background = (isManualTranslating || (!isTranslatorMode && !isWebRtcMicOn)) ? '#ef4444' : 'linear-gradient(135deg, #11998e, #38ef7d)';
-  }
-}
-function setTranslatorMode(isOn) {
-  isTranslatorMode = isOn;
-  updateTranslatorUI();
-  if (appMode === 'remote' || appMode === 'meeting') {
-    if (isOn) {
-      if (isManualTranslating) stopManualTranslation();
-      if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
-      if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(false).catch(()=>{});
-      isWebRtcMicOn = false;
-      setStatus('Translator Mode: Press Mic to talk');
-    } else {
-      if (isManualTranslating) stopManualTranslation();
-      if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
-      if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
-      isWebRtcMicOn = true;
-      setStatus('Phone Mode: Mic is live');
-    }
-  }
-  resetStatus();
-}
-if (transToggleBtnRoom) transToggleBtnRoom.addEventListener('click', () => setTranslatorMode(!isTranslatorMode));
-if (transToggleBtnLocal) transToggleBtnLocal.addEventListener('click', () => setTranslatorMode(!isTranslatorMode));
-
-function setStatus(s) { statusEl.textContent = s; }
-function resetStatus() {
-  if (appMode === 'remote' || appMode === 'meeting') {
-    if (isTranslatorMode) setStatus(isManualTranslating ? '🎤 Recording... Press mic to stop & translate' : 'Translator Mode: Press mic to talk');
-    else setStatus('Phone Mode: Mic is live');
-  } else {
-    setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬');
-  }
-}
-function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function addMsg(text, className, lang, imageBase64 = null) {
-  const div = document.createElement('div');
-  div.className = 'msg ' + className;
-  div.setAttribute('dir', 'auto');
-  const displayLang = lang ? String(lang).toUpperCase() : 'AUTO';
-  if (displayLang !== 'AUTO' || className === 'user-b' || className === 'user-a') {
-    const tag = document.createElement('span'); tag.className = 'lang-tag'; tag.textContent = displayLang;
-    div.appendChild(tag);
-  }
-  if (imageBase64) {
-    const img = document.createElement('img');
-    img.src = imageBase64; img.style.maxWidth = '150px'; img.style.borderRadius = '8px'; img.style.display = 'block'; img.style.marginTop = '5px'; img.style.border = '2px solid rgba(255,255,255,0.2)'; img.style.cursor = 'pointer';
-    img.onclick = (e) => { e.stopPropagation(); window.open(imageBase64, '_blank'); };
-    div.appendChild(img);
-  }
-  if (text) {
-    div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
-    div.addEventListener('click', () => {
-      if (isSending || appMode === 'remote' || appMode === 'meeting') return;
-      if (div.classList.contains('playing')) {
-        stopAudio();
-        div.classList.remove('playing');
-      } else {
-        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-        div.classList.add('playing');
-        speak(text, lang || langA.value);
-      }
-    });
-  }
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-function unlockAudio() {
-  if ('speechSynthesis' in window) { try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {} }
-  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
-}
-document.body.addEventListener('click', unlockAudio, { once: true });
-function fetchWithTimeout(url, options, timeoutMs) {
-  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
-}
-function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
-function localeFor(code) { return { 'ar': 'ar', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
-function cleanTextForTTS(text) { if (!text) return ""; return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim(); }
-function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
-  return new Promise((resolve) => {
-    const img = new Image(); img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas'); let width = img.width, height = img.height;
-      if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-      canvas.width = width; canvas.height = height;
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(base64Str);
-  });
-}
-
-function setModeUI(mode) {
-  appMode = mode;
-  UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
-  remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none'; toggleCamBtn.style.display = 'none';
-  mediaBtn.style.display = 'none'; musicBtn.style.display = 'none';
-  uploadBtn.style.display = 'none'; voiceSelect.style.display = 'none';
-  videoContainer.style.display = 'none'; meetingGridContainer.style.display = 'none';
-  $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
-  tapToPlayOverlay.style.display = 'none';
-  if (mode === 'local') {
-    document.body.classList.remove('remote-mode', 'meeting-mode');
-    showAppUI();
-    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
-    uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
-    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'inline-block';
-    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'none';
-    $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
-  } else if (mode === 'remote') {
-    document.body.classList.remove('meeting-mode'); document.body.classList.add('remote-mode');
-    showAppUI();
-    remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; voiceSelect.style.display = 'inline-block';
-    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
-    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
-  } else if (mode === 'meeting') {
-    document.body.classList.remove('remote-mode'); document.body.classList.add('meeting-mode');
-    showAppUI();
-    remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; meetingGridContainer.style.display = 'block'; voiceSelect.style.display = 'inline-block';
-    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
-    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
-  }
-  updateTranslatorUI();
-}
-$('btnLocal').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; setModeUI('local'); resetStatus(); });
-$('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
-$('btnMeeting').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('meetingJoinOverlay').style.display = 'flex'; });
-$('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
-$('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
-
-async function cleanupAll() {
-  if (isManualTranslating) stopManualTranslation();
-  if (localRecorder && localRecorder.state === 'recording') localRecorder.stop();
-  stopAudio();
-  if (appMode === 'remote' || appMode === 'meeting') {
-    shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
-    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    if (pc) { pc.close(); pc = null; }
-    if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
-    iceCandidatesQueue = []; videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
-    videoGrid.innerHTML = ''; appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none';
-    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
-    chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
-  } else {
-    chatEl.innerHTML = ''; chatHistory = []; appMode = 'none'; setModeUI('none');
-    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
-    $('landingOverlay').style.display = 'flex';
-  }
-}
-
-backBtn.addEventListener('click', cleanupAll);
-
-tapToPlayOverlay.addEventListener('click', () => {
-  remoteVideo.muted = false;
-  remoteVideo.play().then(() => { tapToPlayOverlay.style.display = 'none'; }).catch(e => console.log(e));
-});
-videoContainer.addEventListener('click', (e) => { if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target) || e.target === tapToPlayOverlay) return; document.body.classList.toggle('video-maximized'); });
-localVideo.addEventListener('click', (e) => { e.stopPropagation(); });
-closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
-langA.addEventListener('change', () => {
-  if (appMode === 'remote' || appMode === 'meeting') {
-    myLang = langA.value;
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'change_lang', lang: myLang }));
-    addMsg(`تم تغيير لغتك إلى ${langA.options[langA.selectedIndex].text}`, 'bot');
-  }
-});
-$('copyRoomBtn').addEventListener('click', () => {
-  if (!currentRoomCode) return;
-  navigator.clipboard.writeText(currentRoomCode).then(() => { setStatus('Code copied!'); setTimeout(resetStatus, 2000); }).catch(() => alert('Room Code: ' + currentRoomCode));
-});
-avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return; avatarWrap.classList.toggle('fullscreen'); });
-closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
-clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
-stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); if (localRecorder && localRecorder.state === 'recording') localRecorder.stop(); });
-toggleCamBtn.addEventListener('click', async () => {
-  isCameraOn = !isCameraOn;
-  toggleCamBtn.classList.toggle('off', !isCameraOn);
-  toggleCamBtn.innerHTML = isCameraOn
-    ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
-    : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
-  if (localStream) { const videoTrack = localStream.getVideoTracks()[0]; if (videoTrack) { videoTrack.enabled = isCameraOn; } }
-  if (livekitRoom) { try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); } }
-});
-
-function handleTrackSubscribed(track, publication, participant) {
-  if (track.kind === 'video' || track.kind === 'audio') {
-    let boxId = 'participant-' + participant.identity;
-    let box = document.getElementById(boxId);
-    if (!box) {
-      box = document.createElement('div'); box.id = boxId; box.className = 'participant-box';
-      let nameLabel = document.createElement('div'); nameLabel.className = 'participant-name'; nameLabel.textContent = participant.name || participant.identity;
-      box.appendChild(nameLabel); videoGrid.appendChild(box);
-    }
-    if (track.kind === 'video') {
-      const videoEl = track.attach(); videoEl.autoplay = true; videoEl.playsInline = true;
-      videoEl.style.width = '100%'; videoEl.style.height = '100%'; videoEl.style.objectFit = 'cover';
-      const oldVideo = box.querySelector('video'); if (oldVideo) oldVideo.remove();
-      box.insertBefore(videoEl, box.firstChild);
-    } else if (track.kind === 'audio') {
-      const audioEl = track.attach(); audioEl.autoplay = true; box.appendChild(audioEl);
-    }
-  }
-}
-function handleTrackUnsubscribed(track, publication, participant) { track.detach().forEach(el => el.remove()); }
-function handleParticipantDisconnected(participant) { let box = document.getElementById('participant-' + participant.identity); if (box) box.remove(); }
-
-async function connectLiveKit(roomCode, participantName) {
-  try {
-    setStatus("جاري تجهيز الفيديو...");
-    await loadLiveKit();
-    setStatus("⏳ جاري الاتصال بالسيرفر...");
-    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 70000);
-    const res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_name: roomCode, participant_name: participantName }), signal: controller.signal });
-    clearTimeout(timeout);
-    if (!res.ok) { let errMsg = "فشل الاتصال بالسيرفر"; try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){} throw new Error(errMsg); }
-    const { token, url } = await res.json();
-    setStatus("جاري الاتصال بالاجتماع...");
-    if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
-    videoGrid.innerHTML = '';
-    livekitRoom = new LivekitClient.Room({ adaptiveStream: true, dynacast: true });
-    livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
-    livekitRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
-    livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
-    livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
-      setStatus("✅ متصل بالاجتماع");
-      try { await livekitRoom.localParticipant.setCameraEnabled(true); isCameraOn = true; toggleCamBtn.classList.remove('off'); } catch (err) { console.warn("Camera error", err); }
-      try { await livekitRoom.localParticipant.setMicrophoneEnabled(!isTranslatorMode); isWebRtcMicOn = !isTranslatorMode; } catch (err) { console.warn("Mic error", err); }
-      try { await livekitRoom.startAudio(); } catch(e) {}
-      if (!livekitRoom.canPlaybackAudio) {
-        addMsg("⚠️ اضغط على الشاشة لتفعيل الصوت.", "bot");
-        document.body.addEventListener('click', () => { if(livekitRoom) livekitRoom.startAudio(); }, { once: true });
-      }
-      resetStatus();
-    });
-    livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => { setStatus("انقطع الاتصال"); addMsg("⚠️ تم قطع الاتصال بالاجتماع.", "bot"); });
-    livekitRoom.on(LivekitClient.RoomEvent.Reconnecting, () => setStatus("جاري إعادة الاتصال..."));
-    livekitRoom.on(LivekitClient.RoomEvent.MediaDevicesError, (e) => { console.error(e); addMsg("⚠️ خطأ في أجهزة الوسائط.", "bot"); });
-    livekitRoom.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
-      if (publication.track.kind === 'video') {
-        let boxId = 'participant-' + participant.identity; let box = document.getElementById(boxId);
-        if (!box) {
-          box = document.createElement('div'); box.id = boxId; box.className = 'participant-box';
-          let nameLabel = document.createElement('div'); nameLabel.className = 'participant-name'; nameLabel.textContent = (participant.name || participant.identity) + " (You)";
-          box.appendChild(nameLabel); videoGrid.appendChild(box);
-        }
-        const oldVideo = box.querySelector('video'); if (oldVideo) oldVideo.remove();
-        const videoEl = publication.track.attach(); videoEl.autoplay = true; videoEl.playsInline = true; videoEl.muted = true;
-        videoEl.style.width = '100%'; videoEl.style.height = '100%'; videoEl.style.objectFit = 'cover';
-        box.insertBefore(videoEl, box.firstChild);
-      }
-    });
-    await livekitRoom.connect(url, token);
-  } catch (e) {
-    console.error(e);
-    if (e.name === 'AbortError') { addMsg("⚠️ الخادم يستغرق وقتاً طويلاً.", 'bot'); setStatus("فشل الاتصال"); }
-    else { addMsg("⚠️ فشل الانضمام للاجتماع: " + e.message, 'bot'); setStatus("خطأ في الاجتماع"); }
-  }
-}
-
-async function startVideoCall(isCaller = false) {
-  if (!localStream) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
-      });
-      localVideo.srcObject = localStream; videoContainer.style.display = 'block';
-      isCameraOn = true; toggleCamBtn.classList.remove('off');
-      isWebRtcMicOn = !isTranslatorMode;
-      localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
-      resetStatus();
-    } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك.', 'bot'); return; }
-  }
-  if (!pc) {
-    const iceServers = [
-      { urls: 'stun:stun.relay.metered.ca:80' },
-      { urls: 'turn:global.relay.metered.ca:80', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
-      { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
-    ];
-    pc = new RTCPeerConnection({ iceServers: iceServers });
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-    pc.ontrack = (event) => {
-      remoteVideo.srcObject = event.streams[0];
-      remoteVideo.play().catch(e => { tapToPlayOverlay.style.display = 'flex'; });
-      setStatus('✅ تم الاتصال بالفيديو!');
-    };
-    pc.onicecandidate = (event) => { if (event.candidate && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); } };
-    pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-        setStatus('⚠️ إعادة الاتصال بالفيديو...');
-        pc.restartIce();
-        if(isCaller) pc.createOffer({iceRestart: true}).then(offer => { pc.setLocalDescription(offer); ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); });
-      }
-    };
-  }
-  if (isCaller) {
-    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); setStatus('📡 جاري طلب الاتصال...');
-  }
-}
-
-async function toggleLocalMic(speaker) {
-  if (isLocalProcessing) return;
-  unlockAudio();
+async function toggleLocalMic() {
+  const btn = $('micBtn');
   
-  if (localRecorder && localRecorder.state === 'recording') {
-    localRecorder.stop();
-    micA.classList.remove('recording'); 
-    micB.classList.remove('recording');
-    setStatus('⏳ Processing...');
+  if (isRecording) {
+    // Stop Recording
+    if (localRecorder && localRecorder.state === 'recording') {
+      localRecorder.stop();
+    }
+    btn.classList.remove('recording');
+    isRecording = false;
+    showStatus('جارٍ معالجة الصوت... ⏳');
     return;
   }
-  
-  if (localRecorder) { try { localRecorder.stop(); } catch(e){} }
-  
-  currentSpeaker = speaker;
-  const lang = speaker === 'A' ? langA.value : langB.value;
-  const targetLang = speaker === 'A' ? langB.value : langA.value;
-  const btn = speaker === 'A' ? micA : micB;
-  
+
+  // Start Recording
   try {
     localStreamMic = await navigator.mediaDevices.getUserMedia({ 
       audio: { 
         echoCancellation: true, 
         noiseSuppression: true, 
-        autoGainControl: true,
-        channelCount: 1,
-        sampleRate: 48000
+        autoGainControl: true 
       } 
     });
     
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaStreamSource(localStreamMic);
-    const analyser = audioCtx.createAnalyser();
+    analyser = audioCtx.createAnalyser();
     analyser.fftSize = 512;
     source.connect(analyser);
+    
     const rmsBuffer = new Float32Array(analyser.fftSize);
-    let rmsMax = 0;
-    let silenceStart = Date.now();
-    let intervalId = null;
-    let calibrationInterval = null;
-    
-    // Noise Gate محسّن: عتبة 0.015 + حد أدنى 0.02
-    let noiseFloor = 0;
     let calibrationCount = 0;
-    calibrationInterval = setInterval(() => {
-      try {
-        analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; 
-        for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        const rms = Math.sqrt(sum / rmsBuffer.length);
-        noiseFloor += rms;
-        calibrationCount++;
-        if (calibrationCount >= 10) {
-          noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
-          clearInterval(calibrationInterval);
-          calibrationInterval = null;
-        }
-      } catch(e){}
-    }, 100);
     
-    intervalId = setInterval(() => {
-      try {
-        analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; 
-        for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        const rms = Math.sqrt(sum / rmsBuffer.length);
-        if (rms > rmsMax) rmsMax = rms;
-        // عتبة ذكية: الحد الأدنى 0.02 + noiseFloor + 0.015
-        const threshold = Math.max(0.02, noiseFloor + 0.015);
-        if (rms > threshold) silenceStart = Date.now();
-        else if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && localRecorder && localRecorder.state === 'recording') {
-          localRecorder.stop();
-        }
-      } catch(e){}
+    // Smart Noise Gate Calibration
+    const calibrate = setInterval(() => {
+      analyser.getFloatTimeDomainData(rmsBuffer);
+      let sum = 0;
+      for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i] * rmsBuffer[i];
+      const rms = Math.sqrt(sum / rmsBuffer.length);
+      noiseFloor += rms;
+      calibrationCount++;
+      
+      if (calibrationCount >= 10) {
+        noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
+        clearInterval(calibrate);
+      }
     }, 100);
 
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
@@ -1038,686 +1256,96 @@ async function toggleLocalMic(speaker) {
     localRecorder.ondataavailable = e => { if (e.data.size > 0) localChunks.push(e.data); };
     
     localRecorder.onstop = async () => {
-      if (intervalId) clearInterval(intervalId);
-      if (calibrationInterval) clearInterval(calibrationInterval);
-      if (localStreamMic) localStreamMic.getTracks().forEach(t => t.stop());
-      try { if (audioCtx.state !== 'closed') await audioCtx.close(); } catch(e){}
+      clearInterval(calibrate);
+      localStreamMic.getTracks().forEach(t => t.stop());
+      audioCtx.close();
       
       const durationMs = Date.now() - localStartTime;
-      
-      if (durationMs < 800 || rmsMax < 0.005) { 
-        isLocalProcessing = false; unlockMics(); 
-        if (durationMs >= 800) addMsg('⚠️ لم يُسمع صوت واضح.', 'bot');
-        return; 
+      if (durationMs < 800) {
+        showStatus('⚠️ مدة قصيرة جداً');
+        return;
       }
       
-      const blob = new Blob(localChunks, { type: localRecorder.mimeType });
-      setStatus('⏳ جاري استخراج النص والترجمة...');
-      
-      const formData = new FormData();
-      formData.append('file', blob, 'audio.webm');
-      formData.append('target_lang', targetLang); 
-      formData.append('language', lang); 
-      formData.append('duration_ms', String(durationMs));
-      
-      try {
-        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.original && data.original.length > 1) {
-            addMsg(`You: ${data.original}`, speaker === 'A' ? 'user-a' : 'user-b', lang);
-            if (isTranslatorMode) {
-              if (data.translated) {
-                addMsg(`↳ ${data.translated}`, 'bot', targetLang);
-                speak(data.translated, targetLang);
-              }
-            } else {
-              ask(data.original, lang, targetLang, speaker);
-            }
-          } else {
-            addMsg(`⚠️ لم يتم التعرف على كلام.`, 'bot');
-          }
-        }
-      } catch(e) { console.warn('Audio upload failed', e); addMsg('⚠️ فشل إرسال الصوت.', 'bot'); }
-      
-      isLocalProcessing = false;
-      unlockMics();
+      const blob = new Blob(localChunks, { type: mimeType });
+      await processAudio(blob, durationMs);
     };
     
     localRecorder.start(1000);
     localStartTime = Date.now();
+    isRecording = true;
     btn.classList.add('recording');
-    micA.disabled = speaker !== 'A';
-    micB.disabled = speaker !== 'B';
-    setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
+    showStatus('جارٍ التسجيل... اضغط للإيقاف 🎤');
+    
   } catch (e) {
-    addMsg("⚠️ تعذر الوصول للمايك: " + e.message, "bot");
-    isLocalProcessing = false;
-    unlockMics();
+    showStatus('⚠️ تعذر الوصول للميكروفون');
+    console.error(e);
   }
 }
-function unlockMics() {
-  micA.disabled = false; micB.disabled = false;
-  micA.classList.remove('recording'); micB.classList.remove('recording');
-  resetStatus();
-}
-micA.addEventListener('click', () => toggleLocalMic('A'));
-micB.addEventListener('click', () => toggleLocalMic('B'));
 
-async function ensureMicStream() {
-  if (localStream) return localStream;
+async function processAudio(blob, durationMs) {
+  const formData = new FormData();
+  formData.append('file', blob, 'audio.webm');
+  formData.append('target_lang', myLang);
+  formData.append('language', myLang);
+  formData.append('duration_ms', String(durationMs));
+  
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: false,
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
+    const res = await fetch('https://chat-core-tts.onrender.com/transcribe', { 
+      method: 'POST', 
+      body: formData 
     });
-    isWebRtcMicOn = true;
-    return localStream;
-  } catch (err) {
-    addMsg('⚠️ تعذر الوصول للمايك: ' + err.message, 'bot');
-    return null;
-  }
-}
-
-async function toggleRemoteMic() {
-  if (isTranslatorMode) {
-    if (isManualTranslating) stopManualTranslation();
-    else startManualTranslation();
-    return;
-  }
-  
-  isWebRtcMicOn = !isWebRtcMicOn;
-  
-  if (appMode === 'remote') {
-    const stream = await ensureMicStream();
-    if (stream) {
-      stream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
-    }
-  }
-  
-  if (appMode === 'meeting' && livekitRoom) {
-    try {
-      await livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn);
-    } catch(e) {
-      console.warn('Mic toggle error:', e);
-    }
-  }
-  
-  updateTranslatorUI();
-  resetStatus();
-}
-
-remoteMicBtn.addEventListener('click', toggleRemoteMic);
-floatingMicBtn.addEventListener('click', toggleRemoteMic);
-
-async function startManualTranslation() {
-  if (isManualTranslating) return;
-  try {
-    const transStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
-    });
-    const rawTrack = transStream.getAudioTracks()[0];
-
-    translationAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const source = translationAudioCtx.createMediaStreamSource(new MediaStream([rawTrack]));
-    const hp = translationAudioCtx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 80;
-    const analyser = translationAudioCtx.createAnalyser();
-    analyser.fftSize = 512;
-    const destination = translationAudioCtx.createMediaStreamDestination();
-    source.connect(hp); hp.connect(analyser); analyser.connect(destination);
-
-    const filteredTrack = destination.stream.getAudioTracks()[0];
-    const rmsBuffer = new Float32Array(analyser.fftSize);
-    let rmsMax = 0;
-    let silenceStart = Date.now();
-    let chunkStartTime = Date.now();
-    let chunkIndex = 0;
-    let noiseFloor = 0;
-    let calibrationCount = 0;
-    let calibrationInterval = null;
-
-    // Noise Gate محسّن
-    calibrationInterval = setInterval(() => {
-      try {
-        analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        const rms = Math.sqrt(sum / rmsBuffer.length);
-        noiseFloor += rms;
-        calibrationCount++;
-        if (calibrationCount >= 10) {
-          noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
-          clearInterval(calibrationInterval);
-          calibrationInterval = null;
+    
+    if (res.ok) {
+      const data = await res.json();
+      if (data.original && data.original.length > 1) {
+        addMsg('user-a', data.original, myLang);
+        if (isTranslatorMode && data.translated) {
+          addMsg('bot', `↳ ${data.translated}`);
+          speak(data.translated, myLang);
         }
-      } catch(e){}
-    }, 100);
-
-    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    
-    const startNewChunk = () => {
-      let chunks = [];
-      audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
-      audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      audioRecorder.onstop = async () => {
-        const durationMs = Date.now() - chunkStartTime;
-        if (chunks.length === 0 || durationMs < 800 || rmsMax < 0.005) return;
-        
-        const blob = new Blob(chunks, { type: mimeType });
-        const formData = new FormData();
-        formData.append('file', blob, 'audio.webm');
-        formData.append('target_lang', myLang);
-        formData.append('language', myLang);
-        formData.append('duration_ms', String(durationMs));
-        formData.append('chunk_index', String(chunkIndex));
-        
-        try {
-          const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.original && data.original.length > 1) {
-              addMsg(`You: ${data.original}`, 'user-a', myLang);
-              sendRemoteMessage(data.original);
-            }
-          }
-        } catch(e) { console.warn('Audio chunk upload failed', e); }
-        chunkIndex++;
-      };
-      audioRecorder.start(1000);
-      chunkStartTime = Date.now();
-      rmsMax = 0;
-      silenceStart = Date.now();
-    };
-
-    startNewChunk();
-
-    const vadInterval = setInterval(() => {
-      if (!isManualTranslating) return;
-      try {
-        analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        const rms = Math.sqrt(sum / rmsBuffer.length);
-        
-        // عتبة ذكية محسّنة
-        const threshold = Math.max(0.02, noiseFloor + 0.015);
-        if (rms > threshold) {
-          if (rms > rmsMax) rmsMax = rms;
-          silenceStart = Date.now();
-        } else {
-          if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && audioRecorder && audioRecorder.state === 'recording') {
-             audioRecorder.stop();
-             setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
-          }
-        }
-        
-        if (Date.now() - chunkStartTime > LONG_RECORD_CHUNK_MS && audioRecorder && audioRecorder.state === 'recording') {
-          audioRecorder.stop();
-          setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
-        }
-      } catch(e){}
-    }, 200);
-
-    translationStartTime = Date.now();
-    isManualTranslating = true;
-    updateTranslatorUI();
-    setStatus('🎤 Recording... Press mic to stop & translate');
-    
-    window._vadInterval = vadInterval;
-    window._rawTrack = rawTrack;
-    window._calibrationInterval = calibrationInterval;
-
-  } catch (e) {
-    console.error("Mic access failed", e);
-    addMsg("⚠️ تعذر الوصول للمايك.", 'bot');
-  }
-}
-function stopManualTranslation() {
-  if (!isManualTranslating) return;
-  isManualTranslating = false;
-  
-  if (window._vadInterval) { clearInterval(window._vadInterval); window._vadInterval = null; }
-  if (window._calibrationInterval) { clearInterval(window._calibrationInterval); window._calibrationInterval = null; }
-  if (window._rawTrack) { try { window._rawTrack.stop(); } catch(e){} window._rawTrack = null; }
-  
-  if (audioRecorder && audioRecorder.state === 'recording') {
-    audioRecorder.stop();
-  }
-  
-  try { if (translationAudioCtx && translationAudioCtx.state !== 'closed') translationAudioCtx.close(); } catch(e){}
-  translationAudioCtx = null;
-  
-  updateTranslatorUI();
-}
-
-sendBtn.addEventListener('click', () => {
-  const t = inputEl.value.trim();
-  if (appMode === 'remote' || appMode === 'meeting') { if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; } }
-  else { if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; } }
-});
-inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
-
-function buildSystemPrompt(targetLang, sourceLang, isImage = false) {
-  if (isImage) {
-    return `Describe this image in detail in ${langNameFor(sourceLang)}, then translate your description to ${langNameFor(targetLang)}. Format: [Original description in ${langNameFor(sourceLang)}] ||| [Translation in ${langNameFor(targetLang)}]`;
-  }
-  if (isTranslatorMode) {
-    return `You are an expert expressive translator specializing in Arabic dialects and conversational language. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Preserve the tone, emotion, and conversational style. Add proper punctuation and formatting to make the text natural and readable. Output ONLY the translated text.`;
-  }
-  return `You are Chat-Core, a helpful assistant with deep knowledge of Arabic dialects and expressive language. You must reply ONLY in ${langNameFor(targetLang)}. Use natural, conversational tone with proper punctuation and formatting. Never use any other language.`;
-}
-
-async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
-  if (isSending) return;
-  setBusy(true); setStatus('Processing...');
-  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang, isImage) }];
-  
-  let finalText = text || '';
-  if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
-  
-  let userContent = finalText;
-  if (attachedImageBase64) {
-    userContent = [
-      { type: "text", text: finalText || "Describe this image in detail." }, 
-      { type: "image_url", image_url: { url: attachedImageBase64 } }
-    ];
-  }
-  
-  messages.push({ role: 'user', content: userContent });
-  
-  try {
-    const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail);
-    
-    let replyText = data.reply.trim();
-    
-    if (isImage && replyText.includes('|||')) {
-      const parts = replyText.split('|||');
-      const original = parts[0].trim();
-      const translated = parts[1].trim();
-      addMsg(`📷 ${original}`, speaker === 'A' ? 'user-a' : 'user-b', sourceLang, attachedImageBase64);
-      addMsg(`↳ ${translated}`, 'bot', targetLang);
-      speak(translated, targetLang);
-    } else {
-      if (isTranslatorMode && replyText === text) {
-         replyText = "⚠️ Translation failed. Please try again.";
+      } else {
+        showStatus('⚠️ لم يتم التقاط صوت واضح');
       }
-      addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO', isImage ? attachedImageBase64 : null);
-      resetStatus(); speak(replyText, targetLang || langA.value);
     }
-    
-    attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
-  } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
-}
-
-uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
-videoAvatarUpload.addEventListener('change', (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
-  currentAvatarObjectUrl = URL.createObjectURL(file);
-  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block'; avatarVideo.src = currentAvatarObjectUrl;
-  if (isBotTalking) avatarVideo.play().catch(()=>{});
-  removeAvatarBtn.style.display = 'flex';
-});
-removeAvatarBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); 
-  avatarVideo.pause(); 
-  avatarVideo.removeAttribute('src'); 
-  avatarVideo.load();
-  avatarVideo.style.display = 'none'; 
-  avatarLogo.style.display = 'block'; 
-  removeAvatarBtn.style.display = 'none';
-  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
-});
-mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = 'none'; if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none'; else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; } });
-musicBtn.addEventListener('click', (e) => { e.stopPropagation(); actionMenu.style.display = 'none'; if (musicMenu.style.display === 'block') musicMenu.style.display = 'none'; else { const rect = musicBtn.getBoundingClientRect(); musicMenu.style.display = 'block'; musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; musicMenu.style.left = Math.max(10, rect.left - 80) + 'px'; } });
-document.addEventListener('click', (e) => { if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; });
-menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
-menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
-menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
-
-videoUpload.addEventListener('change', async (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  if (appMode === 'remote' || appMode === 'meeting') return alert('إرسال الفيديوهات غير مدعوم حالياً.');
-  if (file.size > 100 * 1024 * 1024) return alert('حجم الملف كبير جداً! الحد الأقصى 100MB');
-  const targetLang = langB.value;
-  addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
-  setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
-  const formData = new FormData(); 
-  formData.append('file', file); 
-  formData.append('target_lang', targetLang);
-  formData.append('language', langA.value);
-  formData.append('duration_ms', '10000');
-  try {
-    const res = await fetchWithTimeout(TRANSCRIBE_URL, { method: 'POST', body: formData }, 300000);
-    if (!res.ok) throw new Error('Server error');
-    const data = await res.json();
-    if (data.original) addMsg(data.original, 'user-b', 'AUTO'); 
-    if (data.translated && data.translated !== data.original) addMsg(data.translated, 'bot', targetLang);
-    setStatus('✅ تمت الترجمة بنجاح!');
-  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); }
-  finally { setBusy(false); e.target.value = ''; }
-});
-
-async function handleImage(e) {
-  const file = e.target.files[0]; if (!file) return;
-  isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    const compressed = await compressImage(ev.target.result);
-    if (appMode === 'remote' || appMode === 'meeting') {
-      if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed })); addMsg('', 'user-a', myLang, compressed); }
-      isCompressing = false; sendBtn.disabled = isSending; setStatus('');
-    } else {
-      attachedFileText = null; attachedImageBase64 = compressed;
-      imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
-      isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
-    }
-  };
-  reader.readAsDataURL(file);
-}
-galleryUpload.addEventListener('change', handleImage);
-cameraUpload.addEventListener('change', handleImage);
-cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.'); });
-audioUpload.addEventListener('change', (e) => {
-  const files = e.target.files;
-  for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
-  renderPlaylist(); e.target.value = '';
-});
-function renderPlaylist() {
-  musicList.innerHTML = '';
-  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause';
-  pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
-  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
-  playlist.forEach((song, index) => {
-    const div = document.createElement('div'); div.className = 'music-item';
-    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
-    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
-    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
-    div.appendChild(name); div.appendChild(del);
-    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
-    div.onclick = () => { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); } else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); } };
-    musicList.appendChild(div);
-  });
-}
-function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
-bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
-bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
-
-const FR_TEXT = {
-  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد.', accept: 'قبول', decline: 'رفض', call: 'اتصال', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...', ringing: 'جارٍ الاتصال...', incoming: 'مكالمة واردة...' },
-  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', call: 'Appel', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer', rules: "Base de données inaccessible.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...', ringing: 'Appel en cours...', incoming: 'Appel entrant...' },
-  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet.', accept: 'Accept', decline: 'Decline', call: 'Call', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...', ringing: 'Ringing...', incoming: 'Incoming call...' }
-};
-const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
-let friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
-let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
-let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [];
-const frMsgEl = $('frMsg');
-function setFrMsg(t) { frMsgEl.textContent = t || ''; }
-function myDisplayName() { return (currentUser && (currentUser.displayName || (currentUser.email || 'user').split('@')[0])) || 'User'; }
-function genFriendCode() { const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes); return Array.from(bytes, b => alphabet[b % alphabet.length]).join(''); }
-function frErrText(e) { const c = e && e.code; if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules'); return (e && e.message) || String(e); }
-function applyFriendsLang() {
-  $('frTitle').textContent = frT('friends'); $('btnFriendsLabel').textContent = frT('friends');
-  $('frMyCodeLabel').textContent = frT('myCode'); $('frAddInput').placeholder = frT('codePh');
-  $('frReqTitle').textContent = frT('requests'); $('frListTitle').textContent = frT('list'); $('frBackBtn').textContent = frT('back');
-  $('inviteJoin').textContent = frT('join'); $('inviteDecline').textContent = frT('ignore');
-}
-applyFriendsLang();
-const _origChangeAuthLang = changeAuthLang;
-changeAuthLang = function (lang) { _origChangeAuthLang(lang); applyFriendsLang(); renderFriendsUI(); };
-function frBtn(label, bg, onClick) { const b = document.createElement('button'); b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`; b.addEventListener('click', onClick); return b; }
-function frRow(name) { const row = document.createElement('div'); row.style.cssText = 'display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:8px 10px;'; const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:#fff;'; row.appendChild(n); return row; }
-function renderFriendsUI() {
-  const badge = $('friendsBadge');
-  const totalUnread = currentUser ? Object.values(chatsByFriend).reduce((n, c) => n + (c['unread_' + currentUser.uid] || 0), 0) : 0;
-  const badgeCount = requestsCache.length + totalUnread;
-  badge.style.display = badgeCount ? 'block' : 'none'; badge.textContent = badgeCount;
-  $('frRequestsBox').style.display = requestsCache.length ? 'block' : 'none';
-  const reqEl = $('frRequests'); reqEl.innerHTML = '';
-  requestsCache.forEach(r => { const row = frRow(r.fromName || '?'); row.appendChild(frBtn(frT('accept'), '#10b981', () => acceptRequest(r))); row.appendChild(frBtn(frT('decline'), '#475569', () => declineRequest(r))); reqEl.appendChild(row); });
-  const listEl = $('frList'); listEl.innerHTML = '';
-  if (!friendsCache.length) { const e = document.createElement('div'); e.textContent = frT('empty'); e.style.cssText = 'font-size:12px; color:rgba(255,255,255,0.5); text-align:center; padding:8px;'; listEl.appendChild(e); }
-  friendsCache.forEach(f => {
-    const row = frRow(f.name || '?');
-    const ch = chatsByFriend[f.uid]; const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
-    row.appendChild(frBtn('💬' + (un ? ' ' + un : ''), un ? '#ef4444' : '#0ea5e9', () => openChat(f)));
-    row.appendChild(frBtn('📞', '#1d4ed8', () => callFriend(f)));
-    row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
-    listEl.appendChild(row);
-  });
-  if (myFriendCode) $('frMyCode').textContent = myFriendCode;
-}
-async function ensureMyCode() {
-  const uref = db.collection('users').doc(currentUser.uid);
-  const snap = await uref.get();
-  if (snap.exists && snap.data().code) { myFriendCode = snap.data().code; return; }
-  for (let i = 0; i < 5; i++) {
-    const code = genFriendCode(); const cref = db.collection('codes').doc(code);
-    try { await db.runTransaction(async tx => { const c = await tx.get(cref); if (c.exists) throw new Error('taken'); tx.set(cref, { uid: currentUser.uid, name: myDisplayName() }); tx.set(uref, { code, name: myDisplayName() }, { merge: true }); }); myFriendCode = code; return; } catch (e) { if (e.message !== 'taken') throw e; }
-  }
-  throw new Error('Could not allocate a friend code');
-}
-function initFriends() {
-  if (friendsReady) return Promise.resolve();
-  if (friendsInitPromise) return friendsInitPromise;
-  friendsInitPromise = (async () => {
-    try {
-      await loadFirestore();
-      db = firebase.firestore();
-      await ensureMyCode();
-      const me = currentUser.uid;
-      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => { friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => { requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('invites').where('to', '==', me).onSnapshot(s => {
-        s.docChanges().forEach(ch => {
-          if (ch.type !== 'added') return;
-          const inv = { id: ch.doc.id, ...ch.doc.data() };
-          if (Date.now() - (inv.createdAt || 0) > 120000) { ch.doc.ref.delete().catch(() => {}); return; }
-          showInvite(inv);
-        });
-      }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('calls').where('to_uid', '==', me).where('status', '==', 'ringing').onSnapshot(s => {
-        s.docChanges().forEach(ch => {
-          if (ch.type === 'added') {
-            const call = { id: ch.doc.id, ...ch.doc.data() };
-            if (Date.now() - (call.createdAt || 0) > 60000) { ch.doc.ref.delete().catch(() => {}); return; }
-            showIncomingCall(call);
-          } else if (ch.type === 'modified') {
-            const call = { id: ch.doc.id, ...ch.doc.data() };
-            if (call.status === 'rejected' || call.status === 'ended') {
-              hideIncomingCall();
-            }
-          }
-        });
-      }, e => { console.warn('calls listener error', e); }));
-      friendsReady = true; lastFriendsError = null; renderFriendsUI();
-    } catch (e) { console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e; }
-  })();
-  friendsInitPromise.catch(() => {});
-  return friendsInitPromise;
-}
-function teardownFriends() {
-  friendsUnsubs.forEach(u => { try { u(); } catch (e) {} });
-  friendsUnsubs = []; friendsReady = false; friendsInitPromise = null; myFriendCode = null;
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-  chatsByFriend = {}; chatOpenWith = null; chatMsgsCache = []; $('chatOverlay').style.display = 'none';
-  friendsCache = []; requestsCache = []; currentInvite = null; $('inviteToast').style.display = 'none'; renderFriendsUI();
-  hideIncomingCall();
-}
-
-function playRingtone() {
-  if (ringtoneAudio) return;
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(440, ctx.currentTime);
-    osc.frequency.setValueAtTime(480, ctx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 1);
-    ringtoneAudio = { ctx, osc, gain };
-    window._ringInterval = setInterval(() => {
-      try {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(440, ctx.currentTime);
-        o.frequency.setValueAtTime(480, ctx.currentTime + 0.5);
-        g.gain.setValueAtTime(0.3, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-        o.connect(g); g.connect(ctx.destination);
-        o.start(); o.stop(ctx.currentTime + 1);
-      } catch(e){}
-    }, 2000);
-  } catch(e) { console.warn('Ringtone failed', e); }
-}
-function stopRingtone() {
-  if (window._ringInterval) { clearInterval(window._ringInterval); window._ringInterval = null; }
-  if (ringtoneAudio) {
-    try { ringtoneAudio.ctx.close(); } catch(e){}
-    ringtoneAudio = null;
+  } catch (e) {
+    showStatus('⚠️ فشل إرسال الصوت');
   }
 }
-function showIncomingCall(call) {
-  if (currentIncomingCall) return;
-  currentIncomingCall = call;
-  $('callName').textContent = call.from_name || 'Unknown';
-  $('callStatus').textContent = frT('incoming');
-  callOverlay.classList.add('active');
-  playRingtone();
-}
-function hideIncomingCall() {
-  currentIncomingCall = null;
-  callOverlay.classList.remove('active');
-  stopRingtone();
-}
-async function acceptCall() {
-  if (!currentIncomingCall || !db) return;
-  const call = currentIncomingCall;
-  hideIncomingCall();
-  try {
-    await db.collection('calls').doc(call.id).update({ status: 'accepted', acceptedAt: Date.now() });
-    const roomCode = call.room_code || 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    const name = ($('meetPlayerName').value || myDisplayName()).trim();
-    enterMeeting(roomCode, name, $('meetPlayerLang').value);
-  } catch(e) { console.warn('accept call error', e); }
-}
-async function declineCall() {
-  if (!currentIncomingCall || !db) return;
-  const call = currentIncomingCall;
-  hideIncomingCall();
-  try {
-    await db.collection('calls').doc(call.id).update({ status: 'rejected', rejectedAt: Date.now() });
-  } catch(e) { console.warn('decline call error', e); }
-}
-async function callFriend(friend) {
-  if (!db || !currentUser) return;
-  const roomCode = 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const callData = {
-    from_uid: currentUser.uid,
-    from_name: myDisplayName(),
-    to_uid: friend.uid,
-    room_code: roomCode,
-    call_type: 'voice',
-    status: 'ringing',
-    createdAt: Date.now()
-  };
-  try {
-    await db.collection('calls').add(callData);
-    setStatus(frT('ringing'));
-    addMsg(`📞 جاري الاتصال بـ ${friend.name}...`, 'bot');
-    setTimeout(async () => {
-      const calls = await db.collection('calls').where('from_uid', '==', currentUser.uid).where('to_uid', '==', friend.uid).where('status', '==', 'ringing').limit(1).get();
-      calls.forEach(doc => doc.ref.update({ status: 'cancelled' }).catch(()=>{}));
-    }, 30000);
-  } catch(e) { setFrMsg(frErrText(e)); }
-}
-$('callAccept').addEventListener('click', acceptCall);
-$('callDecline').addEventListener('click', declineCall);
 
-async function sendFriendRequest(raw) {
-  const code = (raw || '').trim().toUpperCase(); if (!code) return;
-  if (code === myFriendCode) return setFrMsg(frT('self'));
-  try {
-    const c = await db.collection('codes').doc(code).get();
-    if (!c.exists) return setFrMsg(frT('notfound'));
-    const to = c.data().uid;
-    if (friendsCache.some(f => f.uid === to)) return setFrMsg(frT('already'));
-    const incoming = requestsCache.find(r => r.from === to);
-    if (incoming) { await acceptRequest(incoming); return; }
-    await db.collection('friend_requests').doc(currentUser.uid + '_' + to).set({ from: currentUser.uid, fromName: myDisplayName(), to, createdAt: Date.now() });
-    setFrMsg(frT('sent')); $('frAddInput').value = '';
-  } catch (e) { setFrMsg(frErrText(e)); }
-}
-async function acceptRequest(r) {
-  try {
-    const me = currentUser.uid, other = r.from, now = Date.now();
-    const batch = db.batch();
-    batch.set(db.collection('users').doc(other).collection('friends').doc(me), { uid: me, name: myDisplayName(), since: now });
-    batch.set(db.collection('users').doc(me).collection('friends').doc(other), { uid: other, name: r.fromName || '?', since: now });
-    batch.delete(db.collection('friend_requests').doc(r.id));
-    await batch.commit();
-  } catch (e) { setFrMsg(frErrText(e)); }
-}
-async function declineRequest(r) { try { await db.collection('friend_requests').doc(r.id).delete(); } catch (e) { setFrMsg(frErrText(e)); } }
-async function removeFriend(f) {
-  if (!confirm(frT('confirmRemove'))) return;
-  try {
-    const me = currentUser.uid;
-    const batch = db.batch();
-    batch.delete(db.collection('users').doc(me).collection('friends').doc(f.uid));
-    batch.delete(db.collection('users').doc(f.uid).collection('friends').doc(me));
-    await batch.commit();
-  } catch (e) { setFrMsg(frErrText(e)); }
-}
-function showInvite(inv) { currentInvite = inv; $('inviteText').textContent = frT('invite')(inv.fromName || '?'); $('inviteToast').style.display = 'block'; }
-async function dismissInvite(deleteDoc = true) { const inv = currentInvite; currentInvite = null; $('inviteToast').style.display = 'none'; if (inv && deleteDoc) { try { await db.collection('invites').doc(inv.id).delete(); } catch (e) {} } }
-$('inviteDecline').addEventListener('click', () => dismissInvite());
-$('inviteJoin').addEventListener('click', async () => { const inv = currentInvite; if (!inv) return; await dismissInvite(); if (appMode !== 'none') { backBtn.click(); await new Promise(r => setTimeout(r, 500)); } enterMeeting(inv.room, ($('meetPlayerName').value || myDisplayName()).trim(), $('meetPlayerLang').value); });
-$('btnFriends').addEventListener('click', async () => {
-  $('landingOverlay').style.display = 'none'; $('friendsOverlay').style.display = 'flex';
-  applyFriendsLang(); renderFriendsUI();
-  if (!friendsReady) { setFrMsg(frT('wait')); try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); } } else { setFrMsg(''); }
-});
-$('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
-$('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
-$('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
-$('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode)); });
-renderPlaylist();
+// 13. Text-to-Speech (TTS) with Retry
+let currentAudio = null;
+let currentSpeechId = 0;
 
 async function speak(text, lang) {
   if (!text) return;
-  stopAudio();
-  const cleaned = cleanTextForTTS(text);
+  const cleaned = text.replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').trim();
   if (!cleaned) return;
-  const myId = ++currentSpeechId;
-  isBotTalking = true; setAvatarState(true);
   
+  const myId = ++currentSpeechId;
   let retryCount = 0;
   const maxRetries = 2;
   
   while (retryCount <= maxRetries) {
     try {
-      const voice = voiceSelect ? voiceSelect.value : 'woman';
-      const res = await fetch(TTS_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleaned.slice(0, 4000), lang: lang || 'ar', voice, session_id: SESSION_ID })
+      const res = await fetch('https://chat-core-tts.onrender.com/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleaned.slice(0, 4000), lang: lang || 'ar', voice: 'woman' })
       });
-      if (!res.ok) throw new Error('tts ' + res.status);
-      if (myId !== currentSpeechId) return;
-      const blob = await res.blob(); const url = URL.createObjectURL(blob);
+      
+      if (!res.ok) throw new Error('TTS Error');
+      if (myId !== currentSpeechId) return; // Cancelled by new speech
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
       currentAudio = new Audio(url);
-      currentAudio.onended = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
-      currentAudio.onerror = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
-      await currentAudio.play().catch(() => {});
+      
+      currentAudio.onended = () => { 
+        URL.revokeObjectURL(url); 
+        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+      };
+      
+      await currentAudio.play();
       return;
     } catch (e) {
       retryCount++;
@@ -1726,265 +1354,168 @@ async function speak(text, lang) {
     }
   }
   
-  if (myId !== currentSpeechId) return;
+  // Fallback to Browser SpeechSynthesis
   if ('speechSynthesis' in window) {
-    try {
-      const utt = new SpeechSynthesisUtterance(cleaned);
-      utt.lang = localeFor(lang || 'ar');
-      utt.onend = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
-      utt.onerror = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
-      speechSynthesis.speak(utt);
-    } catch (e) { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
-  } else { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
+    const utt = new SpeechSynthesisUtterance(cleaned);
+    utt.lang = lang || 'ar';
+    speechSynthesis.speak(utt);
+  }
 }
+
 function stopAudio() {
   currentSpeechId++;
-  if (currentAudio) { try { currentAudio.pause(); currentAudio.currentTime = 0; } catch (e) {} currentAudio = null; }
-  if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (e) {} }
-  isBotTalking = false; setAvatarState(false);
+  if (currentAudio) { 
+    currentAudio.pause(); 
+    currentAudio = null; 
+  }
+  if ('speechSynthesis' in window) { 
+    speechSynthesis.cancel(); 
+  }
   document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
 }
-function setAvatarState(talking) {
-  try {
-    if (avatarVideo && avatarVideo.style.display === 'block' && avatarVideo.src) {
-      if (talking) avatarVideo.play().catch(() => {});
-      else { avatarVideo.pause(); try { avatarVideo.currentTime = 0; } catch (e) {} }
-    }
-  } catch (e) {}
-}
-function startPing() {
-  stopPing();
-  pingInterval = setInterval(() => {
-    if (ws && ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify({ type: 'ping' })); } catch (e) {} }
-  }, 20000);
-}
-function stopPing() { if (pingInterval) { clearInterval(pingInterval); pingInterval = null; } }
-function connectWS(roomCode) {
-  try { if (ws) ws.close(); } catch (e) {}
-  ws = new WebSocket(WS_BASE + '/ws/' + String(roomCode).toUpperCase());
-  ws.onopen = () => { try { ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); } catch (e) {} startPing(); };
-  ws.onmessage = (evt) => { try { handleWSMessage(JSON.parse(evt.data)); } catch (e) { console.warn('ws parse', e); } };
-  ws.onerror = () => setStatus('⚠️ خطأ في الاتصال');
-  ws.onclose = () => {
-    stopPing();
-    if (shouldReconnect && hasJoinedOnce && currentRoomCode) {
-      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-      wsReconnectTimer = setTimeout(() => { if (shouldReconnect && currentRoomCode) connectWS(currentRoomCode); }, 3000);
+
+// 14. WebSocket Connection Logic
+function connectRemote(room, name, lang) {
+  currentRoomCode = room;
+  myLang = lang;
+  $('remoteHeaderName').textContent = 'Remote Chat';
+  $('remoteHeaderStatus').textContent = 'متصل';
+  
+  const wsUrl = `wss://chat-core-tts.onrender.com/ws/${room}`;
+  
+  if (ws) ws.close();
+  ws = new WebSocket(wsUrl);
+  
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'join', name, lang }));
+    addMsg('bot', 'تم الاتصال بالغرفة 💬');
+  };
+  
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'translated') {
+        if (!msg.is_mine) {
+          addMsg('user-b', `${msg.from_name}: ${msg.original}`, msg.from_lang);
+          if (msg.translated && isTranslatorMode) {
+            addMsg('bot', `↳ ${msg.translated}`);
+            speak(msg.translated, msg.target_lang);
+          }
+        }
+      } else if (msg.type === 'user_joined') {
+        addMsg('bot', `👋 انضم ${msg.name}`);
+      } else if (msg.type === 'user_left') {
+        addMsg('bot', `👋 غادر ${msg.name}`);
+      }
+    } catch (err) {
+      console.warn('WS Parse Error', err);
     }
   };
+  
+  ws.onclose = () => {
+    $('remoteHeaderStatus').textContent = 'انقطع الاتصال';
+  };
 }
+
 function sendRemoteMessage(text) {
-  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-  try { ws.send(JSON.stringify({ type: 'message', text, translate: !!isTranslatorMode })); } catch (e) {}
-}
-async function handleWSMessage(msg) {
-  if (!msg || !msg.type) return;
-  const type = msg.type;
-  if (type === 'pong') return;
-  if (type === 'error') { addMsg('⚠️ ' + (msg.message || 'خطأ'), 'bot'); return; }
-  if (type === 'joined') {
-    hasJoinedOnce = true;
-    const n = (msg.users || []).length;
-    if (onlineCount) onlineCount.textContent = n + '/50';
-    setStatus('✅ متصل');
-    if (msg.history && msg.history.length) {
-      addMsg('📜 سجل سابق:', 'bot');
-      msg.history.forEach(h => {
-        addMsg((h.from || '?') + ': ' + (h.original || ''), 'user-b', h.from_lang || 'en');
-        if (h.translated && h.translated !== h.original) addMsg('↳ ' + h.translated, 'bot', myLang);
-      });
-    }
-    if (appMode === 'remote' && myIsCaller && !_rtcInitiated && n > 1) {
-      _rtcInitiated = true; setTimeout(() => startVideoCall(true), 300);
-    }
-    return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'message', text, translate: isTranslatorMode }));
+    addMsg('user-a', text, myLang);
   }
-  if (type === 'user_joined') {
-    addMsg('👋 ' + (msg.name || 'مستخدم') + ' انضم', 'bot');
-    if (appMode === 'remote' && myIsCaller && !_rtcInitiated) {
-      _rtcInitiated = true; setTimeout(() => startVideoCall(true), 300);
+}
+
+// 15. Chat UI Enhancements
+function addMsg(type, text, lang = '') {
+  const chat = $('chat');
+  const div = document.createElement('div');
+  div.className = `msg ${type}`;
+  
+  if (lang && type !== 'bot') {
+    div.innerHTML = `<span class="lang-tag">${lang.toUpperCase()}</span> ${text}`;
+  } else {
+    div.textContent = text;
+  }
+  
+  // Click to speak
+  div.addEventListener('click', () => {
+    if (div.classList.contains('playing')) {
+      stopAudio();
+    } else {
+      document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+      div.classList.add('playing');
+      speak(text, lang);
     }
-    return;
+  });
+  
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// 16. Input Handling
+$('sendBtn').addEventListener('click', () => {
+  const text = $('textInput').value.trim();
+  if (text) {
+    sendRemoteMessage(text);
+    $('textInput').value = '';
   }
-  if (type === 'user_left') { addMsg('👋 ' + (msg.name || 'مستخدم') + ' غادر', 'bot'); return; }
-  if (type === 'translated') {
-    if (msg.is_mine) return;
-    addMsg((msg.from_name || 'صديق') + ': ' + (msg.original || ''), 'user-b', msg.from_lang || 'en');
-    if (msg.translated && msg.translated !== msg.original) {
-      addMsg('↳ ' + msg.translated, 'bot', msg.target_lang || myLang);
-      if (!msg.no_tts && isTranslatorMode) speak(msg.translated, msg.target_lang || myLang);
-    }
-    return;
-  }
-  if (type === 'chat_media') {
-    addMsg((msg.from_name || 'صديق') + ' 📷:', 'user-b', msg.from_lang || 'en', msg.data);
-    return;
-  }
-  if (type === 'rtc-offer') { await handleRtcOffer(msg.offer); return; }
-  if (type === 'rtc-answer') { await handleRtcAnswer(msg.answer); return; }
-  if (type === 'rtc-ice') { await handleRtcIce(msg.candidate); return; }
-}
-async function handleRtcOffer(offer) {
-  try {
-    if (!pc) await startVideoCall(false);
-    await pc.setRemoteDescription(offer);
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'rtc-answer', answer }));
-    for (const c of iceCandidatesQueue) { try { await pc.addIceCandidate(c); } catch (e) {} }
-    iceCandidatesQueue = [];
-  } catch (e) { console.warn('rtc offer', e); }
-}
-async function handleRtcAnswer(answer) {
-  try {
-    if (!pc || pc.signalingState !== 'have-local-offer') return;
-    await pc.setRemoteDescription(answer);
-    for (const c of iceCandidatesQueue) { try { await pc.addIceCandidate(c); } catch (e) {} }
-    iceCandidatesQueue = [];
-  } catch (e) { console.warn('rtc answer', e); }
-}
-async function handleRtcIce(candidate) {
-  if (!candidate) return;
-  if (!pc || !pc.remoteDescription) { iceCandidatesQueue.push(candidate); return; }
-  try { await pc.addIceCandidate(candidate); } catch (e) {}
-}
-async function connectRemote(roomCode, participantName, lang, isCaller) {
-  myName = participantName; myLang = lang;
-  currentRoomCode = String(roomCode).toUpperCase();
-  myIsCaller = !!isCaller; hasJoinedOnce = false; shouldReconnect = true;
-  _rtcInitiated = false; iceCandidatesQueue = [];
-  isTranslatorMode = $('remoteTransCheck') ? $('remoteTransCheck').checked : false;
-  roomCodeLabel.textContent = currentRoomCode;
-  setModeUI('remote');
-  setStatus('⏳ جاري الاتصال بالغرفة...');
-  connectWS(currentRoomCode);
-}
-async function enterMeeting(roomCode, participantName, lang) {
-  myName = participantName; myLang = lang;
-  currentRoomCode = String(roomCode).toUpperCase();
-  hasJoinedOnce = false; shouldReconnect = true;
-  isTranslatorMode = $('meetingTransCheck') ? $('meetingTransCheck').checked : false;
-  roomCodeLabel.textContent = currentRoomCode;
-  setModeUI('meeting');
-  setStatus('⏳ جاري الاتصال بالاجتماع...');
-  connectWS(currentRoomCode);
-  await connectLiveKit(currentRoomCode, participantName);
-}
-$('createRoomBtn').addEventListener('click', async () => {
-  const name = ($('playerName').value || myDisplayName()).trim();
-  const lang = $('playerLang').value || 'ar';
-  if (!name) return alert('أدخل اسمك');
-  try {
-    setStatus('⏳ جاري إنشاء الغرفة...');
-    const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.code) throw new Error('no code');
-    $('remoteJoinOverlay').style.display = 'none';
-    await connectRemote(data.code, name, lang, true);
-  } catch (e) { alert('فشل إنشاء الغرفة: ' + e.message); }
-});
-$('joinRoomBtn').addEventListener('click', async () => {
-  const name = ($('playerName').value || myDisplayName()).trim();
-  const lang = $('playerLang').value || 'ar';
-  const code = ($('joinCodeInput').value || '').trim().toUpperCase();
-  if (!name) return alert('أدخل اسمك');
-  if (!code) return alert('أدخل كود الغرفة');
-  $('remoteJoinOverlay').style.display = 'none';
-  await connectRemote(code, name, lang, false);
-});
-$('createMeetingBtn').addEventListener('click', async () => {
-  const name = ($('meetPlayerName').value || myDisplayName()).trim();
-  const lang = $('meetPlayerLang').value || 'ar';
-  if (!name) return alert('أدخل اسمك');
-  const code = 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  $('meetingJoinOverlay').style.display = 'none';
-  await enterMeeting(code, name, lang);
-});
-$('joinMeetingBtn').addEventListener('click', async () => {
-  const name = ($('meetPlayerName').value || myDisplayName()).trim();
-  const lang = $('meetPlayerLang').value || 'ar';
-  const code = ($('joinMeetingCodeInput').value || '').trim().toUpperCase();
-  if (!name) return alert('أدخل اسمك');
-  if (!code) return alert('أدخل كود الاجتماع');
-  $('meetingJoinOverlay').style.display = 'none';
-  await enterMeeting(code, name, lang);
 });
 
-const CHAT_LANGS = [['ar','🇹🇳 العربية'],['fr','🇫🇷 Français'],['en','🇬🇧 English'],['de','🇩🇪 Deutsch'],['tr','🇹🇷 Türkçe'],['it','🇮🇹 Italiano'],['zh','🇨🇳 中文'],['ru','🇷🇺 Русский'],['es','🇪🇸 Español'],['pt','🇵🇹 Português'],['nl','🇳🇱 Nederlands'],['no','🇳🇴 Norsk']];
-function populateChLang() {
-  const el = $('chLang'); if (!el || _chLangPopulated) return;
-  el.innerHTML = '';
-  CHAT_LANGS.forEach(([v, label]) => { const o = document.createElement('option'); o.value = v; o.textContent = label; el.appendChild(o); });
-  _chLangPopulated = true;
-}
-async function openChat(friend) {
-  if (!db || !currentUser || !friend) return;
-  chatOpenWith = friend; chatMsgsCache = []; populateChLang();
-  $('chName').textContent = friend.name || '?';
-  $('chLang').value = myLang || 'ar';
-  $('chMsgs').innerHTML = ''; $('chStatus').textContent = 'جارٍ التحميل...';
-  $('chatOverlay').style.display = 'flex';
-  const chatId = [currentUser.uid, friend.uid].sort().join('_');
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} }
-  chatUnsub = db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt', 'asc').limit(100)
-    .onSnapshot(snap => {
-      chatMsgsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderChatMsgs(); $('chStatus').textContent = '';
-      try { db.collection('chats').doc(chatId).set({ ['unread_' + currentUser.uid]: 0 }, { merge: true }); } catch (e) {}
-    }, err => { $('chStatus').textContent = '⚠️ ' + (err.message || ''); });
-}
-function renderChatMsgs() {
-  const box = $('chMsgs'); box.innerHTML = '';
-  chatMsgsCache.forEach(m => {
-    const mine = m.from === currentUser.uid;
-    const div = document.createElement('div');
-    div.style.cssText = 'max-width:85%; padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.5; word-wrap:break-word; border:1px solid rgba(255,255,255,0.1); ' +
-      (mine ? 'align-self:flex-end; background:linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9)); color:#fff; border-bottom-right-radius:4px;' : 'align-self:flex-start; background:rgba(255,255,255,0.1); color:#fff; border-bottom-left-radius:4px;');
-    let html = escapeHtml(m.text || '');
-    if (m.translated && m.translated !== m.text) html += '<br><span style="font-size:12px; opacity:0.75; font-style:italic; margin-top:4px; display:block;">↳ ' + escapeHtml(m.translated) + '</span>';
-    div.innerHTML = html; box.appendChild(div);
-  });
-  box.scrollTop = box.scrollHeight;
-}
-async function sendChatMessage() {
-  const text = ($('chInput').value || '').trim();
-  if (!text || !chatOpenWith || !db || !currentUser) return;
-  const targetLang = $('chLang').value || 'en';
-  $('chInput').value = ''; $('chStatus').textContent = '⏳ جاري الترجمة...';
-  let translated = '';
-  try {
-    const res = await fetch(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [
-        { role: 'system', content: 'Translate from ' + langNameFor(myLang) + ' to ' + langNameFor(targetLang) + '. Output ONLY the translation.' },
-        { role: 'user', content: text }
-      ], is_translation: true })
-    });
-    const data = await res.json(); translated = (data.reply || '').trim();
-  } catch (e) { translated = ''; }
-  try {
-    const chatId = [currentUser.uid, chatOpenWith.uid].sort().join('_');
-    const now = Date.now();
-    await db.collection('chats').doc(chatId).collection('messages').add({
-      from: currentUser.uid, fromName: myDisplayName(), text, translated,
-      fromLang: myLang, targetLang, createdAt: now
-    });
-    await db.collection('chats').doc(chatId).set({
-      lastMessage: text, lastAt: now,
-      ['unread_' + chatOpenWith.uid]: firebase.firestore.FieldValue.increment(1)
-    }, { merge: true });
-    $('chStatus').textContent = '';
-  } catch (e) { $('chStatus').textContent = '⚠️ فشل الإرسال: ' + (e.message || ''); }
-}
-if ($('chBack')) $('chBack').addEventListener('click', () => {
-  $('chatOverlay').style.display = 'none';
-  if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-  chatOpenWith = null;
+$('textInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') $('sendBtn').click();
 });
-if ($('chSend')) $('chSend').addEventListener('click', sendChatMessage);
-if ($('chInput')) $('chInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+
+$('micBtn').addEventListener('click', toggleLocalMic);
+
+// 17. Media Menu
+$('mediaBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const m = $('mediaMenu');
+  m.style.display = m.style.display === 'block' ? 'none' : 'block';
 });
+
+document.addEventListener('click', (e) => {
+  if (!$('mediaBtn').contains(e.target) && !$('mediaMenu').contains(e.target)) {
+    $('mediaMenu').style.display = 'none';
+  }
+});
+
+$('cameraBtn').addEventListener('click', () => $('cameraUpload').click());
+$('galleryBtn').addEventListener('click', () => $('galleryUpload').click());
+$('videoBtn').addEventListener('click', () => $('videoUpload').click());
+
+// 18. File Uploads
+$('cameraUpload').addEventListener('change', handleImage);
+$('galleryUpload').addEventListener('change', handleImage);
+
+async function handleImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const img = new Image();
+    img.src = ev.target.result;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxWidth = 800;
+      let width = img.width, height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      
+      addMsg('user-a', '📷 صورة', myLang);
+      // Send to server for vision processing (if implemented)
+    };
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
 </script>
 </body>
 </html>
