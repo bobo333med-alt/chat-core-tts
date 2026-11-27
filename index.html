@@ -851,7 +851,7 @@ body {
 
 <input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display:none;">
 <input type="file" id="galleryUpload" accept="image/*" style="display:none;">
-<input type="file" id="videoUpload" accept="video/*" style="display:none;">  
+<input type="file" id="videoUpload" accept="video/*" style="display:none;">
 <script>
 'use strict';
 
@@ -1190,332 +1190,241 @@ document.addEventListener('click', (e) => {
     $('mediaMenu').style.display = 'none';
   }
 });
-  <script>
-// 12. Audio Processing & Smart Voice Isolation
+ <!-- أكمل من الجزء 2 مباشرة -->
+<script>
+// 12. Audio Recording with Smart Noise Gate
 let localRecorder = null;
 let localStreamMic = null;
 let localChunks = [];
-let localStartTime = 0;
 let isRecording = false;
-let audioCtx = null;
-let analyser = null;
-let noiseFloor = 0;
 
-async function toggleLocalMic() {
-  const btn = $('micBtn');
-  
-  if (isRecording) {
-    // Stop Recording
-    if (localRecorder && localRecorder.state === 'recording') {
-      localRecorder.stop();
-    }
-    btn.classList.remove('recording');
-    isRecording = false;
-    showStatus('جارٍ معالجة الصوت... ⏳');
-    return;
+$('micBtn').addEventListener('click', async () => {
+  if(isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
   }
+});
 
-  // Start Recording
+async function startRecording() {
   try {
-    localStreamMic = await navigator.mediaDevices.getUserMedia({ 
-      audio: { 
-        echoCancellation: true, 
-        noiseSuppression: true, 
-        autoGainControl: true 
-      } 
+    localStreamMic = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 48000
+      }
     });
     
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioCtx.createMediaStreamSource(localStreamMic);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 512;
-    source.connect(analyser);
+    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+      ? 'audio/webm;codecs=opus' 
+      : 'audio/webm';
     
-    const rmsBuffer = new Float32Array(analyser.fftSize);
-    let calibrationCount = 0;
-    
-    // Smart Noise Gate Calibration
-    const calibrate = setInterval(() => {
-      analyser.getFloatTimeDomainData(rmsBuffer);
-      let sum = 0;
-      for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i] * rmsBuffer[i];
-      const rms = Math.sqrt(sum / rmsBuffer.length);
-      noiseFloor += rms;
-      calibrationCount++;
-      
-      if (calibrationCount >= 10) {
-        noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
-        clearInterval(calibrate);
-      }
-    }, 100);
-
-    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     localRecorder = new MediaRecorder(localStreamMic, { mimeType });
     localChunks = [];
     
-    localRecorder.ondataavailable = e => { if (e.data.size > 0) localChunks.push(e.data); };
+    localRecorder.ondataavailable = e => {
+      if(e.data.size > 0) localChunks.push(e.data);
+    };
     
     localRecorder.onstop = async () => {
-      clearInterval(calibrate);
-      localStreamMic.getTracks().forEach(t => t.stop());
-      audioCtx.close();
-      
-      const durationMs = Date.now() - localStartTime;
-      if (durationMs < 800) {
-        showStatus('⚠️ مدة قصيرة جداً');
-        return;
+      if(localStreamMic) {
+        localStreamMic.getTracks().forEach(t => t.stop());
       }
       
+      if(localChunks.length === 0) return;
+      
       const blob = new Blob(localChunks, { type: mimeType });
-      await processAudio(blob, durationMs);
+      showStatus('⏳ جاري معالجة الصوت...');
+      
+      // Send to server for transcription
+      const formData = new FormData();
+      formData.append('file', blob, 'audio.webm');
+      formData.append('target_lang', myLang);
+      formData.append('language', myLang);
+      
+      try {
+        const res = await fetch('https://chat-core-tts.onrender.com/transcribe', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if(res.ok) {
+          const data = await res.json();
+          if(data.original) {
+            addMsg('user-a', data.original, myLang);
+            sendRemoteMessage(data.original);
+          }
+        }
+      } catch(e) {
+        showStatus('❌ فشل إرسال الصوت');
+      }
+      
+      isRecording = false;
+      $('micBtn').classList.remove('recording');
     };
     
     localRecorder.start(1000);
-    localStartTime = Date.now();
     isRecording = true;
-    btn.classList.add('recording');
-    showStatus('جارٍ التسجيل... اضغط للإيقاف 🎤');
+    $('micBtn').classList.add('recording');
+    showStatus('🎤 جارٍ التسجيل... اضغط للإيقاف');
     
-  } catch (e) {
-    showStatus('⚠️ تعذر الوصول للميكروفون');
-    console.error(e);
+  } catch(e) {
+    showStatus('❌ لا يمكن الوصول للميكروفون');
   }
 }
 
-async function processAudio(blob, durationMs) {
-  const formData = new FormData();
-  formData.append('file', blob, 'audio.webm');
-  formData.append('target_lang', myLang);
-  formData.append('language', myLang);
-  formData.append('duration_ms', String(durationMs));
-  
-  try {
-    const res = await fetch('https://chat-core-tts.onrender.com/transcribe', { 
-      method: 'POST', 
-      body: formData 
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      if (data.original && data.original.length > 1) {
-        addMsg('user-a', data.original, myLang);
-        if (isTranslatorMode && data.translated) {
-          addMsg('bot', `↳ ${data.translated}`);
-          speak(data.translated, myLang);
-        }
-      } else {
-        showStatus('⚠️ لم يتم التقاط صوت واضح');
-      }
-    }
-  } catch (e) {
-    showStatus('⚠️ فشل إرسال الصوت');
+function stopRecording() {
+  if(localRecorder && localRecorder.state === 'recording') {
+    localRecorder.stop();
   }
 }
 
-// 13. Text-to-Speech (TTS) with Retry
+// 13. Text-to-Speech (TTS)
 let currentAudio = null;
 let currentSpeechId = 0;
 
-async function speak(text, lang) {
-  if (!text) return;
-  const cleaned = text.replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').trim();
-  if (!cleaned) return;
+function speak(text, lang = 'ar') {
+  if(!text) return;
   
-  const myId = ++currentSpeechId;
-  let retryCount = 0;
-  const maxRetries = 2;
-  
-  while (retryCount <= maxRetries) {
-    try {
-      const res = await fetch('https://chat-core-tts.onrender.com/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleaned.slice(0, 4000), lang: lang || 'ar', voice: 'woman' })
-      });
-      
-      if (!res.ok) throw new Error('TTS Error');
-      if (myId !== currentSpeechId) return; // Cancelled by new speech
-      
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      currentAudio = new Audio(url);
-      
-      currentAudio.onended = () => { 
-        URL.revokeObjectURL(url); 
-        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-      };
-      
-      await currentAudio.play();
-      return;
-    } catch (e) {
-      retryCount++;
-      if (retryCount > maxRetries) break;
-      await new Promise(r => setTimeout(r, 500));
-    }
+  // Stop previous audio
+  if(currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
   }
   
-  // Fallback to Browser SpeechSynthesis
-  if ('speechSynthesis' in window) {
-    const utt = new SpeechSynthesisUtterance(cleaned);
-    utt.lang = lang || 'ar';
-    speechSynthesis.speak(utt);
-  }
-}
-
-function stopAudio() {
-  currentSpeechId++;
-  if (currentAudio) { 
-    currentAudio.pause(); 
-    currentAudio = null; 
-  }
-  if ('speechSynthesis' in window) { 
-    speechSynthesis.cancel(); 
-  }
-  document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-}
-
-// 14. WebSocket Connection Logic
-function connectRemote(room, name, lang) {
-  currentRoomCode = room;
-  myLang = lang;
-  $('remoteHeaderName').textContent = 'Remote Chat';
-  $('remoteHeaderStatus').textContent = 'متصل';
+  const speechId = ++currentSpeechId;
   
-  const wsUrl = `wss://chat-core-tts.onrender.com/ws/${room}`;
-  
-  if (ws) ws.close();
-  ws = new WebSocket(wsUrl);
-  
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', name, lang }));
-    addMsg('bot', 'تم الاتصال بالغرفة 💬');
-  };
-  
-  ws.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'translated') {
-        if (!msg.is_mine) {
-          addMsg('user-b', `${msg.from_name}: ${msg.original}`, msg.from_lang);
-          if (msg.translated && isTranslatorMode) {
-            addMsg('bot', `↳ ${msg.translated}`);
-            speak(msg.translated, msg.target_lang);
-          }
-        }
-      } else if (msg.type === 'user_joined') {
-        addMsg('bot', `👋 انضم ${msg.name}`);
-      } else if (msg.type === 'user_left') {
-        addMsg('bot', `👋 غادر ${msg.name}`);
-      }
-    } catch (err) {
-      console.warn('WS Parse Error', err);
-    }
-  };
-  
-  ws.onclose = () => {
-    $('remoteHeaderStatus').textContent = 'انقطع الاتصال';
-  };
-}
-
-function sendRemoteMessage(text) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'message', text, translate: isTranslatorMode }));
-    addMsg('user-a', text, myLang);
-  }
-}
-
-// 15. Chat UI Enhancements
-function addMsg(type, text, lang = '') {
-  const chat = $('chat');
-  const div = document.createElement('div');
-  div.className = `msg ${type}`;
-  
-  if (lang && type !== 'bot') {
-    div.innerHTML = `<span class="lang-tag">${lang.toUpperCase()}</span> ${text}`;
-  } else {
-    div.textContent = text;
-  }
-  
-  // Click to speak
-  div.addEventListener('click', () => {
-    if (div.classList.contains('playing')) {
-      stopAudio();
-    } else {
+  // Try Edge TTS first
+  fetch('https://chat-core-tts.onrender.com/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: text.slice(0, 4000),
+      lang: lang,
+      voice: 'woman'
+    })
+  })
+  .then(res => {
+    if(!res.ok) throw new Error('TTS failed');
+    return res.blob();
+  })
+  .then(blob => {
+    if(speechId !== currentSpeechId) return;
+    
+    const url = URL.createObjectURL(blob);
+    currentAudio = new Audio(url);
+    
+    currentAudio.onended = () => {
+      URL.revokeObjectURL(url);
       document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-      div.classList.add('playing');
-      speak(text, lang);
-    }
-  });
-  
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+    };
+    
+    currentAudio.onerror = () => {
+      URL.revokeObjectURL(url);
+      // Fallback to browser TTS
+      fallbackTTS(text, lang);
+    };
+    
+    currentAudio.play().catch(() => fallbackTTS(text, lang));
+  })
+  .catch(() => fallbackTTS(text, lang));
 }
 
-// 16. Input Handling
-$('sendBtn').addEventListener('click', () => {
-  const text = $('textInput').value.trim();
-  if (text) {
-    sendRemoteMessage(text);
-    $('textInput').value = '';
+function fallbackTTS(text, lang) {
+  if('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang === 'ar' ? 'ar-SA' : lang === 'fr' ? 'fr-FR' : 'en-US';
+    utterance.onend = () => {
+      document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+    };
+    speechSynthesis.speak(utterance);
   }
-});
+}
 
-$('textInput').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') $('sendBtn').click();
-});
-
-$('micBtn').addEventListener('click', toggleLocalMic);
-
-// 17. Media Menu
-$('mediaBtn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const m = $('mediaMenu');
-  m.style.display = m.style.display === 'block' ? 'none' : 'block';
-});
-
-document.addEventListener('click', (e) => {
-  if (!$('mediaBtn').contains(e.target) && !$('mediaMenu').contains(e.target)) {
-    $('mediaMenu').style.display = 'none';
-  }
-});
-
+// 14. Media Upload Handlers
 $('cameraBtn').addEventListener('click', () => $('cameraUpload').click());
 $('galleryBtn').addEventListener('click', () => $('galleryUpload').click());
 $('videoBtn').addEventListener('click', () => $('videoUpload').click());
 
-// 18. File Uploads
-$('cameraUpload').addEventListener('change', handleImage);
-$('galleryUpload').addEventListener('change', handleImage);
+$('cameraUpload').addEventListener('change', handleImageUpload);
+$('galleryUpload').addEventListener('change', handleImageUpload);
 
-async function handleImage(e) {
+async function handleImageUpload(e) {
   const file = e.target.files[0];
-  if (!file) return;
+  if(!file) return;
   
   const reader = new FileReader();
   reader.onload = async (ev) => {
-    const img = new Image();
-    img.src = ev.target.result;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const maxWidth = 800;
-      let width = img.width, height = img.height;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+    const base64 = ev.target.result;
+    addMsg('user-a', '📷 صورة', myLang);
+    
+    // Send to server for vision analysis
+    try {
+      const res = await fetch('https://chat-core-tts.onrender.com/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: 'صف هذه الصورة' },
+              { type: 'image_url', image_url: { url: base64 } }
+            ]
+          }],
+          is_vision: true
+        })
+      });
       
-      addMsg('user-a', '📷 صورة', myLang);
-      // Send to server for vision processing (if implemented)
-    };
+      if(res.ok) {
+        const data = await res.json();
+        addMsg('bot', data.reply);
+      }
+    } catch(err) {
+      showStatus('❌ فشل تحليل الصورة');
+    }
   };
   reader.readAsDataURL(file);
-  e.target.value = '';
 }
 
+$('videoUpload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  
+  if(file.size > 100 * 1024 * 1024) {
+    return showStatus('❌ حجم الفيديو كبير جداً (الحد 100MB)');
+  }
+  
+  showStatus('⏳ جاري معالجة الفيديو...');
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('target_lang', myLang);
+  formData.append('language', myLang);
+  
+  try {
+    const res = await fetch('https://chat-core-tts.onrender.com/transcribe', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if(res.ok) {
+      const data = await res.json();
+      if(data.original) {
+        addMsg('user-a', `🎬 ${data.original}`, myLang);
+      }
+    }
+  } catch(err) {
+    showStatus('❌ فشل معالجة الفيديو');
+  }
+  
+  e.target.value = '';
+});
+
+// 15. Initialize
+console.log('Chat-Core Messenger initialized ✅');
 </script>
 </body>
-</html>
+</html> 
