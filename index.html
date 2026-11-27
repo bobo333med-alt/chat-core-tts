@@ -15,7 +15,6 @@
   --bubble-sender: #0084ff;
   --bubble-receiver: #3a3a4a;
   --border: rgba(255,255,255,0.1);
-  --glass: rgba(26, 42, 108, 0.6);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
@@ -26,7 +25,7 @@ body {
   height: 100dvh;
 }
 
-/* ===== AUTH ===== */
+/* AUTH */
 #authOverlay {
   position: fixed; inset: 0; background: rgba(13, 27, 62, 0.95);
   display: flex; align-items: center; justify-content: center;
@@ -61,7 +60,7 @@ body {
 .auth-btn-outline:hover { background: rgba(255,255,255,0.1); }
 #authError { color: #ff6b6b; font-size: 13px; margin-bottom: 10px; min-height: 18px; }
 
-/* ===== MODE SELECTION ===== */
+/* MODE SELECTION */
 #modeSelection {
   display: none; position: fixed; inset: 0; background: transparent;
   flex-direction: column; align-items: center; justify-content: center;
@@ -83,11 +82,11 @@ body {
 .mode-btn.remote { border-color: rgba(46, 139, 87, 0.5); background: linear-gradient(90deg, rgba(46,139,87,0.2), rgba(0,0,0,0)); }
 .mode-btn.logout { border-color: rgba(255, 69, 0, 0.5); background: linear-gradient(90deg, rgba(255,69,0,0.2), rgba(0,0,0,0)); margin-top: 10px; }
 
-/* ===== MAIN APP ===== */
+/* MAIN APP */
 #app { display: none; height: 100vh; flex-direction: column; }
 #app.active { display: flex; }
 
-/* ===== HEADER ===== */
+/* HEADER */
 .header {
   background: var(--header); padding: 10px 12px;
   display: flex; align-items: center; gap: 10px;
@@ -107,7 +106,7 @@ body {
 }
 .header-status { font-size: 11px; color: rgba(255,255,255,0.6); }
 
-/* ===== FACE-TO-FACE CONTROLS ===== */
+/* FACE-TO-FACE CONTROLS */
 .face-controls {
   display: none; background: var(--header); padding: 10px;
   border-bottom: 1px solid var(--border); gap: 8px; flex-shrink: 0;
@@ -129,7 +128,7 @@ body {
 .face-mic.b { background: #10b981; color: #fff; }
 .face-mic.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; }
 
-/* ===== SIDEBAR ===== */
+/* SIDEBAR */
 .sidebar {
   position: fixed; top: 56px; right: 0; bottom: 0; width: 280px;
   background: var(--sidebar); border-left: 1px solid var(--border);
@@ -170,7 +169,7 @@ body {
 .friend-action.call { color: #0084ff; }
 .friend-action.delete { color: #ff4444; }
 
-/* ===== CHAT AREA ===== */
+/* CHAT AREA */
 .chat-area {
   flex: 1; overflow-y: auto; padding: 12px;
   display: flex; flex-direction: column; gap: 8px;
@@ -202,7 +201,7 @@ body {
   margin-left: 5px; font-weight: bold;
 }
 
-/* ===== FOOTER ===== */
+/* FOOTER */
 .footer {
   background: var(--header); padding: 8px 10px;
   display: flex; align-items: center; gap: 8px;
@@ -233,7 +232,7 @@ body {
 .footer-send:hover { background: #0066cc; transform: scale(1.1); }
 .footer-send:disabled { background: #666; cursor: not-allowed; transform: none; }
 
-/* ===== AVATAR ===== */
+/* AVATAR */
 #avatarWrap {
   width: 90px; height: 90px; margin: 8px auto;
   position: relative; cursor: pointer;
@@ -248,7 +247,7 @@ body {
 #avatarLogo, #avatarVideo { width: 100%; height: 100%; object-fit: cover; display: block; }
 #avatarVideo { display: none; }
 
-/* ===== STATUS ===== */
+/* STATUS */
 #status {
   position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%);
   background: rgba(0, 240, 255, 0.9); color: #fff;
@@ -258,7 +257,7 @@ body {
 }
 #status.show { display: block; }
 
-/* ===== MODAL ===== */
+/* MODAL */
 .modal {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.8); z-index: 10000;
@@ -283,7 +282,7 @@ body {
 .modal-content button:hover { background: #0066cc; }
 .modal-content button.cancel { background: #666; }
 
-/* ===== CALL OVERLAY ===== */
+/* CALL OVERLAY */
 #callOverlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.95); z-index: 99999;
@@ -307,7 +306,7 @@ body {
 .call-btn.decline { background: #ff4444; color: #fff; }
 .call-btn:hover { transform: scale(1.1); }
 
-/* ===== MEDIA MENU ===== */
+/* MEDIA MENU */
 #mediaMenu {
   display: none; position: fixed; bottom: 75px; left: 10px;
   background: var(--sidebar); border: 1px solid var(--border);
@@ -321,7 +320,7 @@ body {
 }
 .media-option:hover { background: rgba(255,255,255,0.1); }
 
-/* ===== MUSIC MENU ===== */
+/* MUSIC MENU */
 #musicMenu {
   display: none; position: fixed; bottom: 75px; right: 10px;
   background: var(--sidebar); border: 1px solid var(--border);
@@ -338,14 +337,14 @@ body {
 .music-item:hover { background: rgba(255,255,255,0.15); }
 .music-item.active { background: rgba(0, 240, 255, 0.2); color: #00f0ff; font-weight: bold; }
 
-/* ===== ANIMATIONS ===== */
+/* ANIMATIONS */
 @keyframes pulse { 50% { transform: scale(1.1); } }
 @keyframes ringPulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 132, 255, 0.7); }
   50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(0, 132, 255, 0); }
 }
 
-/* ===== SCROLLBAR ===== */
+/* SCROLLBAR */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
@@ -510,7 +509,7 @@ body {
 <script>
 'use strict';
 
-// ===== FIREBASE =====
+// ===== FIREBASE CONFIG =====
 const firebaseConfig = {
   apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
   authDomain: "chat-core-app.firebaseapp.com",
@@ -524,60 +523,85 @@ const auth = firebase.auth();
 let db = null;
 
 // ===== GLOBAL STATE =====
-let currentUser = null;
-let appMode = null; // 'face' or 'remote'
-let isTranslatorMode = true;
-let myFriendCode = null;
-let friendsCache = [];
-let ws = null;
-let currentRoomCode = 'GLOBAL';
-let myLang = 'ar';
+let currentUser = null, myFriendCode = null, friendsCache = [];
+let appMode = null, isTranslatorMode = true;
+let ws = null, currentRoomCode = 'GLOBAL';
 
 // Face-to-Face
-let localRecorder = null;
-let localStreamMic = null;
-let localChunks = [];
-let localStartTime = 0;
-let currentSpeaker = null;
-let isLocalProcessing = false;
+let localRecorder = null, localStreamMic = null, localChunks = [];
+let isLocalProcessing = false, currentSpeaker = null;
 
-// TTS
-let currentAudio = null;
-let currentSpeechId = 0;
-let isBotTalking = false;
+// Remote
+let isManualTranslating = false, audioRecorder = null;
 
-// Music
-let playlist = [];
-let currentSongIndex = -1;
-const bgAudio = document.getElementById('bgAudio');
+// TTS & Audio
+let currentAudio = null, currentSpeechId = 0, isBotTalking = false;
+let playlist = [], currentSongIndex = -1;
+let attachedImageBase64 = null, attachedFileText = null;
+let isSending = false, isCompressing = false;
 
 // Avatar
 let currentAvatarObjectUrl = null;
 
-// UI
+// ===== CONSTANTS =====
+const SERVER_URL = "https://chat-core-tts.onrender.com/chat";
+const TTS_URL = "https://chat-core-tts.onrender.com/tts";
+const TRANSCRIBE_URL = "https://chat-core-tts.onrender.com/transcribe";
+const WS_BASE = "wss://chat-core-tts.onrender.com/ws";
+const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+
 const $ = id => document.getElementById(id);
-const chatEl = $('chat');
-const statusEl = $('status');
 
 function showStatus(msg) {
-  statusEl.textContent = msg;
-  statusEl.classList.add('show');
-  setTimeout(() => statusEl.classList.remove('show'), 3000);
+  const s = $('status');
+  s.textContent = msg;
+  s.classList.add('show');
+  setTimeout(() => s.classList.remove('show'), 3000);
 }
+
+function setStatus(msg) { $('headerStatus').textContent = msg; }
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function langNameFor(code) {
+  return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English';
+}
+
+function localeFor(code) {
+  return { 'ar': 'ar', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US';
+}
+
+function cleanTextForTTS(text) {
+  if (!text) return "";
+  return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '')
+    .replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image(); img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width, height = img.height;
+      if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64Str);
+  });
+}
+
 // ===== AUTH =====
 let isLoginMode = true;
+
 $('authSubmitBtn').addEventListener('click', async () => {
-  const email = $('authEmail').value.trim();
-  const pass = $('authPassword').value;
+  const email = $('authEmail').value.trim(), pass = $('authPassword').value;
   if(!email || !pass) return $('authError').textContent = "⚠️ أدخل البيانات";
-  $('authSubmitBtn').textContent = "⏳";
-  $('authSubmitBtn').disabled = true;
-  $('authError').textContent = "";
+  $('authSubmitBtn').textContent = "⏳"; $('authSubmitBtn').disabled = true; $('authError').textContent = "";
   try {
     if(isLoginMode) await auth.signInWithEmailAndPassword(email, pass);
     else await auth.createUserWithEmailAndPassword(email, pass);
@@ -592,21 +616,32 @@ $('authToggleBtn').addEventListener('click', () => {
   isLoginMode = !isLoginMode;
   $('authTitle').textContent = isLoginMode ? 'تسجيل الدخول' : 'حساب جديد';
   $('authSubmitBtn').textContent = isLoginMode ? 'دخول' : 'تسجيل';
-  $('authToggleBtn').textContent = isLoginMode ? 'إنشاء حساب جديد' : 'لدي حساب بالفعل';
-  $('authError').textContent = "";
+  $('authToggleBtn').textContent = isLoginMode ? 'إنشاء حساب جديد' : 'لدي حساب';
+  $('authError').textContent = '';
 });
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   if(user) {
     currentUser = user;
     $('authOverlay').style.display = 'none';
     $('modeSelection').classList.add('active');
+    
+    // Load Firestore
+    if(!db) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js";
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      db = firebase.firestore();
+    }
   } else {
     currentUser = null;
     $('authOverlay').style.display = 'flex';
     $('modeSelection').classList.remove('active');
     $('app').classList.remove('active');
-    teardownAll();
+    if(ws) ws.close();
   }
 });
 
@@ -617,22 +652,20 @@ $('btnLogout').addEventListener('click', () => auth.signOut());
 $('backToModeBtn').addEventListener('click', () => {
   $('app').classList.remove('active');
   $('modeSelection').classList.add('active');
-  teardownAll();
+  if(ws) ws.close();
+  $('chat').innerHTML = '';
 });
 
 async function startMode(mode) {
   appMode = mode;
   $('modeSelection').classList.remove('active');
   $('app').classList.add('active');
+  $('chat').innerHTML = '';
   
-  // Load Firestore
-  if(!db) {
-    db = firebase.firestore();
-  }
-  
-  // Init user data
   const uid = currentUser.uid;
   const name = currentUser.displayName || currentUser.email.split('@')[0];
+  
+  // Get/Create Friend Code
   const userRef = db.collection('users').doc(uid);
   const snap = await userRef.get();
   if(snap.exists && snap.data().code) myFriendCode = snap.data().code;
@@ -642,16 +675,20 @@ async function startMode(mode) {
     myFriendCode = code;
   }
 
-  // Listen to friends
-  db.collection('users').doc(uid).collection('friends').onSnapshot(s => {
-    friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Listen to Friends
+  db.collection('users').doc(uid).collection('friends').onSnapshot(snap => {
+    friendsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderFriends();
   });
 
-  // Listen to calls
-  db.collection('calls').where('to_uid', '==', uid).where('status', '==', 'ringing').onSnapshot(s => {
-    s.docChanges().forEach(ch => {
-      if(ch.type === 'added') showIncomingCall({ id: ch.doc.id, ...ch.doc.data() });
+  // Listen to Calls
+  db.collection('calls').where('to_uid', '==', uid).where('status', '==', 'ringing').onSnapshot(snap => {
+    snap.docChanges().forEach(ch => {
+      if(ch.type === 'added') {
+        const call = { id: ch.doc.id, ...ch.doc.data() };
+        if(Date.now() - (call.createdAt || 0) > 60000) { ch.doc.ref.delete(); return; }
+        showIncomingCall(call);
+      }
     });
   });
 
@@ -660,108 +697,40 @@ async function startMode(mode) {
     $('headerTitle').textContent = 'Face-to-Face';
     $('faceControls').classList.add('active');
     $('avatarWrap').style.display = 'block';
+    $('sidebar').style.display = 'none';
+    $('toggleSidebar').style.display = 'none';
     $('musicBtn').style.display = 'block';
     $('mediaBtn').style.display = 'block';
     $('uploadBtn').style.display = 'block';
     $('voiceSelect').style.display = 'block';
-    $('toggleSidebar').style.display = 'none';
-    $('sidebar').classList.remove('open');
+    $('micBtn').style.display = 'none';
     addMsg('bot', '🌐 وضع Face-to-Face: اضغط 🎤 للتحدث');
   } else {
     $('modeIndicator').textContent = 'REMOTE';
     $('headerTitle').textContent = 'Remote Chat';
     $('faceControls').classList.remove('active');
     $('avatarWrap').style.display = 'none';
+    $('sidebar').style.display = 'block';
+    $('toggleSidebar').style.display = 'block';
     $('musicBtn').style.display = 'none';
     $('mediaBtn').style.display = 'none';
     $('uploadBtn').style.display = 'none';
     $('voiceSelect').style.display = 'none';
-    $('toggleSidebar').style.display = 'block';
+    $('micBtn').style.display = 'flex';
     connectWebSocket();
     addMsg('bot', '💬 تم الاتصال بالغرفة');
   }
 }
 
-function teardownAll() {
-  if(ws) { ws.close(); ws = null; }
-  if(localRecorder && localRecorder.state === 'recording') localRecorder.stop();
-  stopAudio();
-  chatEl.innerHTML = '';
-  playlist = [];
-  currentSongIndex = -1;
-  if(currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
-}
-
-// ===== TRANSLATE TOGGLE =====
-$('transToggle').addEventListener('click', function() {
-  isTranslatorMode = !isTranslatorMode;
-  this.classList.toggle('active', isTranslatorMode);
-  showStatus(isTranslatorMode ? '🌐 الترجمة مفعلة' : 'الترجمة معطلة');
-});
-
-// ===== CLEAR CHAT =====
-$('clearChatBtn').addEventListener('click', () => {
-  chatEl.innerHTML = '';
-  stopAudio();
-  addMsg('bot', '🗑️ تم مسح المحادثة');
-});
-
-// ===== ADD MESSAGE =====
-function addMsg(type, text, lang = '', imageBase64 = null) {
-  const div = document.createElement('div');
-  div.className = `msg ${type}`;
-  div.setAttribute('dir', 'auto');
-  
-  if(imageBase64) {
-    const img = document.createElement('img');
-    img.src = imageBase64;
-    img.onclick = (e) => { e.stopPropagation(); window.open(imageBase64, '_blank'); };
-    div.appendChild(img);
-  }
-  
-  if(text) {
-    const span = document.createElement('span');
-    span.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
-    div.appendChild(span);
-  }
-  
-  if(lang && type !== 'bot') {
-    const tag = document.createElement('span');
-    tag.className = 'lang-tag';
-    tag.textContent = lang.toUpperCase();
-    div.appendChild(tag);
-  }
-  
-  // Click to speak
-  if(text && type !== 'bot') {
-    div.addEventListener('click', () => {
-      if(div.classList.contains('playing')) {
-        stopAudio();
-        div.classList.remove('playing');
-      } else {
-        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-        div.classList.add('playing');
-        speak(text, lang || 'ar');
-      }
-    });
-  }
-  
-  chatEl.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-
-// ===== FACE-TO-FACE MIC =====
-$('micA').addEventListener('click', () => toggleFaceMic('A'));
-$('micB').addEventListener('click', () => toggleFaceMic('B'));
-
-async function toggleFaceMic(speaker) {
+// ===== FACE-TO-FACE LOGIC =====
+async function toggleLocalMic(speaker) {
   if(isLocalProcessing) return;
   
   if(localRecorder && localRecorder.state === 'recording') {
     localRecorder.stop();
     $('micA').classList.remove('recording');
     $('micB').classList.remove('recording');
-    showStatus('⏳ Processing...');
+    setStatus('⏳ Processing...');
     return;
   }
   
@@ -783,18 +752,17 @@ async function toggleFaceMic(speaker) {
     analyser.fftSize = 512;
     source.connect(analyser);
     const rmsBuffer = new Float32Array(analyser.fftSize);
-    let rmsMax = 0;
-    let silenceStart = Date.now();
-    let noiseFloor = 0;
-    let calibrationCount = 0;
+    let rmsMax = 0, silenceStart = Date.now();
+    let noiseFloor = 0, calibrationCount = 0;
+    let intervalId = null, calibrationInterval = null;
     
-    const calibrationInterval = setInterval(() => {
+    // Smart Noise Gate
+    calibrationInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
         let sum = 0;
         for(let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        const rms = Math.sqrt(sum / rmsBuffer.length);
-        noiseFloor += rms;
+        noiseFloor += Math.sqrt(sum / rmsBuffer.length);
         calibrationCount++;
         if(calibrationCount >= 10) {
           noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
@@ -803,7 +771,7 @@ async function toggleFaceMic(speaker) {
       } catch(e){}
     }, 100);
     
-    const intervalId = setInterval(() => {
+    intervalId = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
         let sum = 0;
@@ -817,29 +785,32 @@ async function toggleFaceMic(speaker) {
         }
       } catch(e){}
     }, 100);
-    
+
     let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     localRecorder = new MediaRecorder(localStreamMic, { mimeType });
     localChunks = [];
+    
     localRecorder.ondataavailable = e => { if(e.data.size > 0) localChunks.push(e.data); };
     
     localRecorder.onstop = async () => {
-      clearInterval(intervalId);
-      clearInterval(calibrationInterval);
+      if(intervalId) clearInterval(intervalId);
+      if(calibrationInterval) clearInterval(calibrationInterval);
       if(localStreamMic) localStreamMic.getTracks().forEach(t => t.stop());
       try { if(audioCtx.state !== 'closed') await audioCtx.close(); } catch(e){}
       
-      const durationMs = Date.now() - localStartTime;
-      if(durationMs < 800 || rmsMax < 0.005) {
+      const durationMs = Date.now() - Date.now(); // Will be fixed below
+      
+      if(rmsMax < 0.005) {
         isLocalProcessing = false;
         $('micA').classList.remove('recording');
         $('micB').classList.remove('recording');
+        setStatus('جاهز');
         if(durationMs >= 800) addMsg('bot', '⚠️ لم يُسمع صوت واضح.');
         return;
       }
       
       const blob = new Blob(localChunks, { type: mimeType });
-      showStatus('⏳ جاري استخراج النص...');
+      setStatus('⏳ جاري استخراج النص...');
       
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
@@ -848,11 +819,11 @@ async function toggleFaceMic(speaker) {
       formData.append('duration_ms', String(durationMs));
       
       try {
-        const res = await fetch('https://chat-core-tts.onrender.com/transcribe', { method: 'POST', body: formData });
+        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
         if(res.ok) {
           const data = await res.json();
           if(data.original && data.original.length > 1) {
-            addMsg(speaker === 'A' ? 'user-a' : 'user-b', data.original, lang);
+            addMsg(speaker === 'A' ? 'user-a' : 'user-b', `${data.original}`, lang);
             if(isTranslatorMode && data.translated) {
               addMsg('bot', `↳ ${data.translated}`, targetLang);
               speak(data.translated, targetLang);
@@ -863,211 +834,181 @@ async function toggleFaceMic(speaker) {
             addMsg('bot', '⚠️ لم يتم التعرف على كلام.');
           }
         }
-      } catch(e) {
-        addMsg('bot', '⚠️ فشل إرسال الصوت.');
-      }
+      } catch(e) { addMsg('bot', '⚠️ فشل إرسال الصوت.'); }
       
       isLocalProcessing = false;
       $('micA').classList.remove('recording');
       $('micB').classList.remove('recording');
+      setStatus('جاهز');
     };
     
     localRecorder.start(1000);
-    localStartTime = Date.now();
+    isLocalProcessing = true;
     btn.classList.add('recording');
-    showStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
+    setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
   } catch(e) {
     addMsg('bot', "⚠️ تعذر الوصول للمايك: " + e.message);
     isLocalProcessing = false;
   }
 }
 
-// ===== ASK LLM (Face-to-Face) =====
-async function ask(text, sourceLang, targetLang, speaker) {
-  if(isLocalProcessing) return;
-  isLocalProcessing = true;
-  showStatus('Processing...');
+$('micA').addEventListener('click', () => toggleLocalMic('A'));
+$('micB').addEventListener('click', () => toggleLocalMic('B'));
+
+async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
+  if(isSending) return;
+  isSending = true; $('sendBtn').disabled = true; setStatus('Processing...');
   
-  const messages = [{
-    role: 'system',
-    content: `You are Chat-Core, a helpful assistant with deep knowledge of Arabic dialects and expressive language. You must reply ONLY in ${targetLang}. Use natural, conversational tone with proper punctuation.`
-  }, {
-    role: 'user',
-    content: text
-  }];
+  const systemPrompt = isTranslatorMode
+    ? `You are an expert translator. Translate from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Preserve tone and style. Output ONLY the translation.`
+    : `You are Chat-Core, a helpful assistant. Reply ONLY in ${langNameFor(targetLang)}. Use natural conversational tone.`;
+  
+  const messages = [{ role: 'system', content: systemPrompt }];
+  
+  let userContent = text || '';
+  if(attachedImageBase64) {
+    userContent = [
+      { type: "text", text: text || "Describe this image." },
+      { type: "image_url", image_url: { url: attachedImageBase64 } }
+    ];
+  }
+  messages.push({ role: 'user', content: userContent });
   
   try {
-    const res = await fetch('https://chat-core-tts.onrender.com/chat', {
+    const res = await fetch(SERVER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, is_translation: false })
+      body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID })
     });
     const data = await res.json();
-    if(!res.ok) throw new Error(data.detail || 'Error');
+    if(!res.ok) throw new Error(data.detail);
     
-    const replyText = data.reply.trim();
-    addMsg('bot', replyText, targetLang);
-    speak(replyText, targetLang);
-  } catch(e) {
-    addMsg('bot', 'Error: ' + e.message);
-  } finally {
-    isLocalProcessing = false;
-  }
-}
-
-// ===== REMOTE MIC =====
-let isRecordingRemote = false;
-$('micBtn').addEventListener('click', async () => {
-  if(appMode === 'remote') {
-    if(isRecordingRemote) stopRemoteRecording();
-    else await startRemoteRecording();
-  }
-});
-
-async function startRemoteRecording() {
-  try {
-    localStreamMic = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-    });
-    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    localRecorder = new MediaRecorder(localStreamMic, { mimeType });
-    localChunks = [];
-    localRecorder.ondataavailable = e => { if(e.data.size > 0) localChunks.push(e.data); };
-    localRecorder.onstop = async () => {
-      if(localStreamMic) localStreamMic.getTracks().forEach(t => t.stop());
-      if(localChunks.length === 0) return;
-      const blob = new Blob(localChunks, { type: mimeType });
-      showStatus('⏳ Processing...');
-      const formData = new FormData();
-      formData.append('file', blob, 'audio.webm');
-      formData.append('target_lang', myLang);
-      formData.append('language', myLang);
-      try {
-        const res = await fetch('https://chat-core-tts.onrender.com/transcribe', { method: 'POST', body: formData });
-        if(res.ok) {
-          const data = await res.json();
-          if(data.original) {
-            addMsg('user-a', data.original, myLang);
-            sendRemoteMessage(data.original);
-          }
-        }
-      } catch(e) { showStatus('❌ فشل إرسال الصوت'); }
-      isRecordingRemote = false;
-      $('micBtn').classList.remove('recording');
-    };
-    localRecorder.start(1000);
-    isRecordingRemote = true;
-    $('micBtn').classList.add('recording');
-    showStatus('🎤 Recording...');
-  } catch(e) { showStatus('❌ لا يمكن الوصول للميكروفون'); }
-}
-
-function stopRemoteRecording() {
-  if(localRecorder && localRecorder.state === 'recording') localRecorder.stop();
-}
-
-// ===== REMOTE TEXT =====
-$('sendBtn').addEventListener('click', () => {
-  const text = $('textInput').value.trim();
-  if(text) {
-    if(appMode === 'remote') {
-      sendRemoteMessage(text);
-      addMsg('user-a', text, myLang);
+    let replyText = data.reply.trim();
+    
+    if(isImage && replyText.includes('|||')) {
+      const parts = replyText.split('|||');
+      addMsg(speaker === 'A' ? 'user-a' : 'user-b', `📷 ${parts[0].trim()}`, sourceLang, attachedImageBase64);
+      addMsg('bot', `↳ ${parts[1].trim()}`, targetLang);
+      speak(parts[1].trim(), targetLang);
     } else {
-      addMsg('user-a', text, $('langA').value);
-      ask(text, $('langA').value, $('langB').value, 'A');
+      addMsg('user-b', replyText, targetLang || 'AUTO', isImage ? attachedImageBase64 : null);
+      setStatus('جاهز');
+      speak(replyText, targetLang || 'ar');
     }
-    $('textInput').value = '';
-  }
-});
-$('textInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') $('sendBtn').click(); });
+    
+    attachedImageBase64 = null; attachedFileText = null;
+  } catch(e) { addMsg('bot', 'Error: ' + e.message); }
+  finally { isSending = false; $('sendBtn').disabled = false; }
+}
 
-// ===== WEBSOCKET =====
+// ===== REMOTE MODE LOGIC =====
 function connectWebSocket() {
-  const wsUrl = `wss://chat-core-tts.onrender.com/ws/${currentRoomCode}`;
+  const wsUrl = `${WS_BASE}/${currentRoomCode}`;
   ws = new WebSocket(wsUrl);
+  
   ws.onopen = () => {
     const name = currentUser.email.split('@')[0];
-    ws.send(JSON.stringify({ type: 'join', name, lang: myLang }));
+    ws.send(JSON.stringify({ type: 'join', name, lang: 'ar' }));
   };
+  
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if(msg.type === 'translated' && !msg.is_mine) {
       addMsg('user-b', `${msg.from_name}: ${msg.original}`, msg.from_lang);
-      if(msg.translated && isTranslatorMode) addMsg('bot', `↳ ${msg.translated}`, msg.target_lang);
+      if(msg.translated && isTranslatorMode) {
+        addMsg('bot', `↳ ${msg.translated}`, msg.target_lang);
+        speak(msg.translated, msg.target_lang);
+      }
+    } else if(msg.type === 'user_joined') {
+      addMsg('bot', `👋 ${msg.name} انضم`);
+    } else if(msg.type === 'user_left') {
+      addMsg('bot', `👋 ${msg.name} غادر`);
     }
   };
+  
   ws.onerror = () => showStatus('⚠️ خطأ في الاتصال');
+  ws.onclose = () => {
+    if(appMode === 'remote') {
+      setTimeout(() => connectWebSocket(), 3000);
+    }
+  };
 }
 
 function sendRemoteMessage(text) {
   if(ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'message', text, translate: isTranslatorMode }));
+    addMsg('user-a', text, 'AR');
   }
 }
 
-// ===== TTS =====
-function speak(text, lang = 'ar') {
-  if(!text) return;
-  stopAudio();
-  const cleaned = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim();
-  if(!cleaned) return;
-  const speechId = ++currentSpeechId;
-  isBotTalking = true;
-  
-  const voice = $('voiceSelect') ? $('voiceSelect').value : 'woman';
-  fetch('https://chat-core-tts.onrender.com/tts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: cleaned.slice(0, 4000), lang, voice })
-  })
-  .then(res => { if(!res.ok) throw new Error('TTS failed'); return res.blob(); })
-  .then(blob => {
-    if(speechId !== currentSpeechId) return;
-    const url = URL.createObjectURL(blob);
-    currentAudio = new Audio(url);
-    currentAudio.onended = () => {
-      URL.revokeObjectURL(url);
-      isBotTalking = false;
-      document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-    };
-    currentAudio.onerror = () => {
-      URL.revokeObjectURL(url);
-      fallbackTTS(cleaned, lang);
-    };
-    currentAudio.play().catch(() => fallbackTTS(cleaned, lang));
-  })
-  .catch(() => fallbackTTS(cleaned, lang));
-}
-
-function fallbackTTS(text, lang) {
-  if('speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang === 'ar' ? 'ar-SA' : lang === 'fr' ? 'fr-FR' : 'en-US';
-    u.onend = () => {
-      isBotTalking = false;
-      document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-    };
-    speechSynthesis.speak(u);
+// Remote Mic (Manual Translation)
+$('micBtn').addEventListener('click', async () => {
+  if(isManualTranslating) {
+    stopManualTranslation();
+  } else {
+    await startManualTranslation();
   }
+});
+
+async function startManualTranslation() {
+  try {
+    const transStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+    });
+    const rawTrack = transStream.getAudioTracks()[0];
+    
+    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+    audioRecorder = new MediaRecorder(new MediaStream([rawTrack]), { mimeType });
+    let chunks = [];
+    
+    audioRecorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+    audioRecorder.onstop = async () => {
+      if(chunks.length === 0) return;
+      const blob = new Blob(chunks, { type: mimeType });
+      showStatus('⏳ جاري معالجة الصوت...');
+      
+      const formData = new FormData();
+      formData.append('file', blob, 'audio.webm');
+      formData.append('target_lang', 'ar');
+      formData.append('language', 'ar');
+      
+      try {
+        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+        if(res.ok) {
+          const data = await res.json();
+          if(data.original) {
+            addMsg('user-a', data.original, 'AR');
+            sendRemoteMessage(data.original);
+          }
+        }
+      } catch(e) { showStatus('❌ فشل إرسال الصوت'); }
+      
+      chunks = [];
+    };
+    
+    audioRecorder.start(1000);
+    isManualTranslating = true;
+    $('micBtn').classList.add('recording');
+    showStatus('🎤 Recording... Press mic to stop');
+    window._rawTrack = rawTrack;
+  } catch(e) { showStatus('❌ لا يمكن الوصول للميكروفون'); }
 }
 
-function stopAudio() {
-  currentSpeechId++;
-  if(currentAudio) { try { currentAudio.pause(); currentAudio = null; } catch(e){} }
-  if('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch(e){} }
-  isBotTalking = false;
-  document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+function stopManualTranslation() {
+  if(!isManualTranslating) return;
+  isManualTranslating = false;
+  if(window._rawTrack) { try { window._rawTrack.stop(); } catch(e){} window._rawTrack = null; }
+  if(audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
+  $('micBtn').classList.remove('recording');
+  showStatus('تم الإرسال');
 }
 
-// ===== FRIENDS =====
-$('toggleSidebar').addEventListener('click', () => $('sidebar').classList.toggle('open'));
-
+// ===== FRIENDS SYSTEM =====
 function renderFriends() {
   const list = $('friendsList');
   list.innerHTML = '';
   if(friendsCache.length === 0) {
-    list.innerHTML = '<div style="padding:20px; text-align:center; color:rgba(255,255,255,0.5); font-size:13px;">لا يوجد أصدقاء<br>اضغط ➕ للإضافة</div>';
+    list.innerHTML = '<div style="padding:20px; text-align:center; color:rgba(255,255,255,0.5);">لا يوجد أصدقاء<br>اضغط ➕ للإضافة</div>';
     return;
   }
   friendsCache.forEach(f => {
@@ -1099,6 +1040,10 @@ window.callFriend = async (uid, name) => {
     createdAt: Date.now()
   });
   showStatus(`📞 جاري الاتصال بـ ${name}...`);
+  setTimeout(async () => {
+    const calls = await db.collection('calls').where('from_uid', '==', currentUser.uid).where('to_uid', '==', uid).where('status', '==', 'ringing').limit(1).get();
+    calls.forEach(doc => doc.ref.update({ status: 'cancelled' }));
+  }, 30000);
 };
 
 window.removeFriend = async (uid) => {
@@ -1109,6 +1054,13 @@ window.removeFriend = async (uid) => {
   }
 };
 
+$('toggleSidebar').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+$('transToggle').addEventListener('click', function() {
+  isTranslatorMode = !isTranslatorMode;
+  this.classList.toggle('active', isTranslatorMode);
+  showStatus(isTranslatorMode ? '🌐 الترجمة مفعلة' : 'الترجمة معطلة');
+});
+
 $('addFriendBtn').addEventListener('click', () => $('addFriendModal').classList.add('active'));
 $('cancelAddFriend').addEventListener('click', () => $('addFriendModal').classList.remove('active'));
 $('confirmAddFriend').addEventListener('click', async () => {
@@ -1117,8 +1069,7 @@ $('confirmAddFriend').addEventListener('click', async () => {
   const users = await db.collection('users').where('code', '==', code).get();
   if(users.empty) return showStatus('❌ كود غير صحيح');
   const targetUser = users.docs[0];
-  const targetUid = targetUser.id;
-  const targetName = targetUser.data().name;
+  const targetUid = targetUser.id, targetName = targetUser.data().name;
   const batch = db.batch();
   batch.set(db.collection('users').doc(currentUser.uid).collection('friends').doc(targetUid), { name: targetName, uid: targetUid });
   batch.set(db.collection('users').doc(targetUid).collection('friends').doc(currentUser.uid), { name: currentUser.email.split('@')[0], uid: currentUser.uid });
@@ -1132,107 +1083,232 @@ $('confirmAddFriend').addEventListener('click', async () => {
 function showIncomingCall(call) {
   $('callName').textContent = call.from_name;
   $('callStatus').textContent = 'مكالمة واردة...';
-  $('callOverlay').classList.add('active');
   $('callOverlay').dataset.callId = call.id;
+  $('callOverlay').classList.add('active');
+  playRingtone();
+}
+
+function playRingtone() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator(); const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     osc.frequency.value = 440; gain.gain.setValueAtTime(0.1, ctx.currentTime);
     osc.start(); osc.stop(ctx.currentTime + 0.5);
-  } catch(e){}
+    window._ringInterval = setInterval(() => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 480; g.gain.setValueAtTime(0.1, ctx.currentTime);
+      o.start(); o.stop(ctx.currentTime + 0.5);
+    }, 2000);
+  } catch(e) {}
 }
 
 $('callDecline').addEventListener('click', async () => {
   const callId = $('callOverlay').dataset.callId;
   if(callId) await db.collection('calls').doc(callId).update({ status: 'rejected' });
+  if(window._ringInterval) clearInterval(window._ringInterval);
   $('callOverlay').classList.remove('active');
 });
 
 $('callAccept').addEventListener('click', async () => {
   const callId = $('callOverlay').dataset.callId;
   if(callId) await db.collection('calls').doc(callId).update({ status: 'accepted' });
+  if(window._ringInterval) clearInterval(window._ringInterval);
   showStatus('✅ تم قبول المكالمة');
   $('callOverlay').classList.remove('active');
 });
 
-// ===== MEDIA =====
+// ===== CHAT UI =====
+function addMsg(type, text, lang = '', imageBase64 = null) {
+  const chat = $('chat');
+  const div = document.createElement('div');
+  div.className = `msg ${type}`;
+  
+  if(imageBase64) {
+    const img = document.createElement('img');
+    img.src = imageBase64;
+    img.onclick = (e) => { e.stopPropagation(); window.open(imageBase64, '_blank'); };
+    div.appendChild(img);
+  }
+  
+  if(lang && type !== 'bot') {
+    div.innerHTML = `${escapeHtml(text)} <span class="lang-tag">${lang.toUpperCase()}</span>`;
+  } else {
+    div.textContent = text;
+  }
+  
+  div.addEventListener('click', () => {
+    if(type === 'bot') return;
+    document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+    div.classList.add('playing');
+    speak(text, lang || 'ar');
+  });
+  
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+$('clearChatBtn').addEventListener('click', () => {
+  $('chat').innerHTML = '';
+  showStatus('تم مسح المحادثة');
+});
+
+// ===== INPUT HANDLING =====
+$('sendBtn').addEventListener('click', () => {
+  const text = $('textInput').value.trim();
+  if(!text && !attachedImageBase64) return;
+  
+  if(appMode === 'remote') {
+    if(text) { sendRemoteMessage(text); $('textInput').value = ''; }
+  } else {
+    addMsg('user-a', text || '📷 Image', $('langA').value, attachedImageBase64);
+    ask(text, $('langA').value, $('langB').value, 'A', attachedImageBase64 != null);
+    $('textInput').value = '';
+  }
+});
+
+$('textInput').addEventListener('keypress', (e) => {
+  if(e.key === 'Enter') $('sendBtn').click();
+});
+
+// ===== TTS =====
+function speak(text, lang = 'ar') {
+  if(!text) return;
+  stopAudio();
+  const cleaned = cleanTextForTTS(text);
+  if(!cleaned) return;
+  const speechId = ++currentSpeechId;
+  isBotTalking = true;
+  
+  let retryCount = 0;
+  const maxRetries = 2;
+  
+  const tryTTS = () => {
+    if(retryCount > maxRetries) {
+      fallbackTTS(cleaned, lang);
+      return;
+    }
+    
+    fetch(TTS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: cleaned.slice(0, 4000), lang, voice: $('voiceSelect') ? $('voiceSelect').value : 'woman' })
+    })
+    .then(res => { if(!res.ok) throw new Error('TTS failed'); return res.blob(); })
+    .then(blob => {
+      if(speechId !== currentSpeechId) return;
+      const url = URL.createObjectURL(blob);
+      currentAudio = new Audio(url);
+      currentAudio.onended = () => {
+        URL.revokeObjectURL(url);
+        isBotTalking = false;
+        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+      };
+      currentAudio.onerror = () => {
+        URL.revokeObjectURL(url);
+        retryCount++;
+        setTimeout(tryTTS, 500);
+      };
+      currentAudio.play().catch(() => { retryCount++; setTimeout(tryTTS, 500); });
+    })
+    .catch(() => { retryCount++; setTimeout(tryTTS, 500); });
+  };
+  
+  tryTTS();
+}
+
+function fallbackTTS(text, lang) {
+  if('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = localeFor(lang);
+    u.onend = () => {
+      isBotTalking = false;
+      document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+    };
+    speechSynthesis.speak(u);
+  }
+}
+
+function stopAudio() {
+  currentSpeechId++;
+  if(currentAudio) { try { currentAudio.pause(); currentAudio.currentTime = 0; } catch(e){} currentAudio = null; }
+  if('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch(e){} }
+  isBotTalking = false;
+  document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+}
+
+// ===== MEDIA HANDLING =====
 $('mediaBtn').addEventListener('click', () => {
   const m = $('mediaMenu');
   m.style.display = m.style.display === 'block' ? 'none' : 'block';
-  $('musicMenu').style.display = 'none';
 });
 
-$('cameraBtn').addEventListener('click', () => { $('cameraUpload').click(); $('mediaMenu').style.display = 'none'; });
-$('galleryBtn').addEventListener('click', () => { $('galleryUpload').click(); $('mediaMenu').style.display = 'none'; });
-$('videoBtn').addEventListener('click', () => { $('videoUpload').click(); $('mediaMenu').style.display = 'none'; });
+$('musicBtn').addEventListener('click', () => {
+  const m = $('musicMenu');
+  m.style.display = m.style.display === 'block' ? 'none' : 'block';
+});
 
 document.addEventListener('click', (e) => {
-  if(!$('mediaBtn').contains(e.target) && !$('mediaMenu').contains(e.target)) {
-    $('mediaMenu').style.display = 'none';
-  }
-  if(!$('musicBtn').contains(e.target) && !$('musicMenu').contains(e.target)) {
-    $('musicMenu').style.display = 'none';
-  }
+  if(!$('mediaBtn').contains(e.target) && !$('mediaMenu').contains(e.target)) $('mediaMenu').style.display = 'none';
+  if(!$('musicBtn').contains(e.target) && !$('musicMenu').contains(e.target)) $('musicMenu').style.display = 'none';
 });
+
+$('cameraBtn').addEventListener('click', () => $('cameraUpload').click());
+$('galleryBtn').addEventListener('click', () => $('galleryUpload').click());
+$('videoBtn').addEventListener('click', () => $('videoUpload').click());
 
 async function handleImageUpload(e) {
   const file = e.target.files[0];
   if(!file) return;
+  isCompressing = true; $('sendBtn').disabled = true; showStatus('Compressing...');
   const reader = new FileReader();
-  reader.onload = async (ev) => {
-    const base64 = ev.target.result;
-    addMsg('user-a', '📷 صورة', $('langA').value, base64);
-    try {
-      const res = await fetch('https://chat-core-tts.onrender.com/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: [{ type: 'text', text: 'صف هذه الصورة' }, { type: 'image_url', image_url: { url: base64 } }] }],
-          is_vision: true
-        })
-      });
-      if(res.ok) {
-        const data = await res.json();
-        addMsg('bot', data.reply, $('langB').value);
-        speak(data.reply, $('langB').value);
-      }
-    } catch(err) { addMsg('bot', '❌ فشل تحليل الصورة'); }
+  reader.onload = async ev => {
+    const compressed = await compressImage(ev.target.result);
+    attachedImageBase64 = compressed;
+    showStatus('📷 Image attached');
+    isCompressing = false; $('sendBtn').disabled = false;
   };
   reader.readAsDataURL(file);
 }
 
-$('cameraUpload').addEventListener('change', handleImageUpload);
 $('galleryUpload').addEventListener('change', handleImageUpload);
+$('cameraUpload').addEventListener('change', handleImageUpload);
 
 $('videoUpload').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if(!file) return;
-  if(file.size > 100 * 1024 * 1024) return showStatus('❌ الحد الأقصى 100MB');
-  showStatus('⏳ معالجة الفيديو...');
+  if(file.size > 100 * 1024 * 1024) return showStatus('❌ حجم كبير جداً (100MB)');
+  addMsg('user-a', `🎬 ${file.name}`, 'AUTO');
+  showStatus('⏳ جاري معالجة الفيديو...');
   const formData = new FormData();
   formData.append('file', file);
   formData.append('target_lang', $('langB').value);
   formData.append('language', $('langA').value);
   try {
-    const res = await fetch('https://chat-core-tts.onrender.com/transcribe', { method: 'POST', body: formData });
+    const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
     if(res.ok) {
       const data = await res.json();
-      if(data.original) addMsg('user-a', `🎬 ${data.original}`, $('langA').value);
+      if(data.original) addMsg('user-b', data.original, 'AUTO');
       if(data.translated) addMsg('bot', data.translated, $('langB').value);
     }
-  } catch(err) { addMsg('bot', '❌ فشل معالجة الفيديو'); }
+  } catch(err) { addMsg('bot', '⚠️ فشل معالجة الفيديو'); }
   e.target.value = '';
 });
 
-// ===== MUSIC =====
-$('musicBtn').addEventListener('click', () => {
-  const m = $('musicMenu');
-  m.style.display = m.style.display === 'block' ? 'none' : 'block';
-  $('mediaMenu').style.display = 'none';
-  renderPlaylist();
+// ===== AVATAR =====
+$('uploadBtn').addEventListener('click', () => { $('videoAvatarUpload').value = ''; $('videoAvatarUpload').click(); });
+$('videoAvatarUpload').addEventListener('change', (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  if(currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
+  currentAvatarObjectUrl = URL.createObjectURL(file);
+  $('avatarLogo').style.display = 'none';
+  $('avatarVideo').style.display = 'block';
+  $('avatarVideo').src = currentAvatarObjectUrl;
+  if(isBotTalking) $('avatarVideo').play();
 });
 
+// ===== MUSIC =====
 $('audioUpload').addEventListener('change', (e) => {
   const files = e.target.files;
   for(let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
@@ -1242,58 +1318,24 @@ $('audioUpload').addEventListener('change', (e) => {
 
 function renderPlaylist() {
   const list = $('musicList');
-  list.innerHTML = '';
-  const stopBtn = document.createElement('div');
-  stopBtn.className = 'music-item';
-  stopBtn.textContent = '🛑 إيقاف';
-  stopBtn.onclick = () => { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); };
-  list.appendChild(stopBtn);
-  
-  const addBtn = document.createElement('div');
-  addBtn.className = 'music-item';
-  addBtn.textContent = '➕ إضافة';
-  addBtn.onclick = () => { $('audioUpload').click(); };
-  list.appendChild(addBtn);
-  
+  list.innerHTML = '<div class="music-item" onclick="stopMusic()" style="text-align:center; background:rgba(239,68,68,0.2);">🛑 Stop</div>';
   playlist.forEach((song, index) => {
     const div = document.createElement('div');
-    div.className = 'music-item' + (index === currentSongIndex && !bgAudio.paused ? ' active' : '');
-    div.innerHTML = `<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${song.name}</span><span style="color:#ff4444; padding:0 5px;">✕</span>`;
-    div.onclick = (e) => {
-      if(e.target.textContent === '✕') {
-        if(currentSongIndex === index) { bgAudio.pause(); currentSongIndex = -1; }
-        playlist.splice(index, 1);
-        if(currentSongIndex > index) currentSongIndex--;
-        renderPlaylist();
-        return;
-      }
-      if(currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); }
-      else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); }
-      renderPlaylist();
-    };
+    div.className = 'music-item' + (index === currentSongIndex ? ' active' : '');
+    div.innerHTML = `<span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${song.name}</span><span onclick="event.stopPropagation(); playlist.splice(${index},1); renderPlaylist();" style="color:#ff4444; cursor:pointer;">✕</span>`;
+    div.onclick = () => { currentSongIndex = index; $('bgAudio').src = song.url; $('bgAudio').play(); renderPlaylist(); };
     list.appendChild(div);
   });
 }
 
-bgAudio.addEventListener('ended', () => {
+window.stopMusic = () => { $('bgAudio').pause(); $('bgAudio').currentTime = 0; currentSongIndex = -1; renderPlaylist(); };
+$('bgAudio').addEventListener('ended', () => {
   if(playlist.length > 0) {
     currentSongIndex = (currentSongIndex + 1) % playlist.length;
-    bgAudio.src = playlist[currentSongIndex].url;
-    bgAudio.play();
+    $('bgAudio').src = playlist[currentSongIndex].url;
+    $('bgAudio').play();
     renderPlaylist();
   }
-});
-
-// ===== AVATAR =====
-$('uploadBtn').addEventListener('click', () => { $('videoAvatarUpload').click(); });
-$('videoAvatarUpload').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  if(currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
-  currentAvatarObjectUrl = URL.createObjectURL(file);
-  $('avatarLogo').style.display = 'none';
-  $('avatarVideo').style.display = 'block';
-  $('avatarVideo').src = currentAvatarObjectUrl;
 });
 
 console.log('✅ Chat-Core Messenger initialized');
