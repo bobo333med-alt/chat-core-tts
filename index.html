@@ -3,589 +3,741 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Chat-Core - Messenger</title>
+<title>Chat-Core - Translator</title>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
-  --bg: #0f0f1e;
-  --header: #1a1a2e;
-  --sidebar: #16162a;
-  --bubble-sender: #0084ff;
-  --bubble-receiver: #3a3a4a;
-  --border: rgba(255,255,255,0.1);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --glass-blur: blur(12px);
+  --text-main: #ffffff;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: radial-gradient(circle at 50% 0%, #1a2a6c 0%, #0d1b3e 50%, #050a1f 100%);
-  color: #fff;
-  height: 100dvh;
+  color: var(--text-main);
+  display: flex; flex-direction: column; padding: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  height: 100dvh; transition: opacity 0.3s;
 }
-
-/* AUTH */
-#authOverlay {
-  position: fixed; inset: 0; background: rgba(13, 27, 62, 0.95);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 9999999; backdrop-filter: blur(20px);
-}
-.auth-box {
-  background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px);
-  padding: 30px 20px; border-radius: 24px; width: 90%; max-width: 380px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2); text-align: center;
-}
-.auth-box h1 { color: #00f0ff; margin-bottom: 5px; font-size: 28px; text-shadow: 0 0 15px rgba(0,240,255,0.6); }
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+@keyframes ringPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } }
+@keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse { 50% { transform: scale(1.1); } }
+.glass-panel { background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 0 20px rgba(255,255,255,0.05); border-radius: 20px; }
+#authOverlay { position: fixed; inset: 0; background: rgba(13, 27, 62, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; backdrop-filter: blur(20px); }
+.auth-lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px; border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+.lang-btn { background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.3s; }
+.lang-btn.active { background: rgba(0, 240, 255, 0.3); color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
+.auth-box { background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); padding: 30px 20px; border-radius: 24px; width: 100%; max-width: 350px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); text-align: center; margin: auto; }
+.auth-box h1 { color: #00f0ff; margin-bottom: 5px; font-size: 26px; text-shadow: 0 0 15px rgba(0,240,255,0.6); }
 .auth-box h2 { color: #fff; margin-bottom: 20px; font-size: 18px; font-weight: normal; }
-.auth-input {
-  width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4);
-  color: #fff; outline: none; font-size: 14px; transition: 0.3s;
-}
+.auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; outline: none; font-size: 14px; transition: 0.3s; }
 .auth-input:focus { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0,240,255,0.3); }
-.auth-btn {
-  width: 100%; padding: 14px; border-radius: 12px; border: none;
-  background: linear-gradient(135deg, #00b09b, #96c93d); color: #fff;
-  font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 15px;
-  box-shadow: 0 4px 15px rgba(0,176,155,0.4);
-}
-.auth-btn:hover { transform: translateY(-2px); }
-.auth-btn-outline {
-  width: 100%; padding: 14px; border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.3); background: transparent;
-  color: #fff; cursor: pointer; transition: 0.3s; font-size: 15px;
-}
-.auth-btn-outline:hover { background: rgba(255,255,255,0.1); }
-#authError { color: #ff6b6b; font-size: 13px; margin-bottom: 10px; min-height: 18px; }
-
-/* MODE SELECTION */
-#modeSelection {
-  display: none; position: fixed; inset: 0; background: transparent;
-  flex-direction: column; align-items: center; justify-content: center;
-  gap: 15px; z-index: 99999; padding: 20px; overflow-y: auto;
-}
-#modeSelection.active { display: flex; }
-#modeSelection h1 { font-size: 32px; color: #00f0ff; margin-bottom: 5px; text-shadow: 0 0 15px rgba(0,240,255,0.4); }
-#modeSelection p { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 10px; }
-.mode-btn {
-  padding: 16px 20px; font-size: 16px; border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer;
-  width: 100%; max-width: 280px; font-weight: bold;
-  backdrop-filter: blur(10px); transition: all 0.3s;
-  box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.3);
-  background: rgba(255,255,255,0.05);
-}
+.auth-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00b09b, #96c93d); color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 15px; box-shadow: 0 4px 15px rgba(0,176,155,0.4); }
+.auth-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,176,155,0.6); }
+.auth-btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; box-shadow: none; }
+.auth-btn.outline:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+.social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #fff; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-size: 14px; }
+.social-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+#authError { color: #ff6b6b; font-size: 13px; margin-bottom: 10px; min-height: 18px; word-wrap: break-word; }
+.divider { display: flex; align-items: center; margin: 20px 0; color: rgba(255,255,255,0.5); font-size: 12px; }
+.divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.2); margin: 0 10px; }
+.overlay { position: fixed; inset: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
+.overlay h1 { font-size: 32px; color: #00f0ff; margin-bottom: 5px; text-shadow: 0 0 15px rgba(0,240,255,0.4); }
+.overlay h2 { font-size: 20px; color: #fff; margin-bottom: 15px; font-weight: normal; }
+.mode-btn { padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer; width: 100%; max-width: 280px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.3); background: rgba(255,255,255,0.05); }
 .mode-btn:active { transform: scale(0.96); }
-.mode-btn.face { border-color: rgba(138, 43, 226, 0.5); background: linear-gradient(90deg, rgba(138,43,226,0.2), rgba(0,0,0,0)); }
-.mode-btn.remote { border-color: rgba(46, 139, 87, 0.5); background: linear-gradient(90deg, rgba(46,139,87,0.2), rgba(0,0,0,0)); }
-.mode-btn.logout { border-color: rgba(255, 69, 0, 0.5); background: linear-gradient(90deg, rgba(255,69,0,0.2), rgba(0,0,0,0)); margin-top: 10px; }
+#btnLocal { border-color: rgba(138, 43, 226, 0.5); background: linear-gradient(90deg, rgba(138,43,226,0.2), rgba(0,0,0,0)); }
+#btnRemote { border-color: rgba(46, 139, 87, 0.5); background: linear-gradient(90deg, rgba(46,139,87,0.2), rgba(0,0,0,0)); }
+#btnLogout { border-color: rgba(255, 69, 0, 0.5); background: linear-gradient(90deg, rgba(255,69,0,0.2), rgba(0,0,0,0)); margin-top: 20px; }
+.join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; background: rgba(26, 42, 108, 0.6); padding: 25px 20px; border-radius: 24px; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.5); align-items: stretch; }
+.join-form input[type="text"], .join-form select, .join-form input[type="email"], .join-form input[type="password"] { padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; outline: none; transition: 0.3s; }
+.join-form input:focus, .join-form select:focus { border-color: #00f0ff; }
+.join-form button { padding: 14px; border-radius: 12px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s; }
+#createRoomBtn { background: linear-gradient(135deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.3); }
+#joinRoomBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); box-shadow: 0 4px 15px rgba(69,104,220,0.3); }
+#backToLandingBtn { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); margin-top: 5px; }
+#backToLandingBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(26, 42, 108, 0.6); padding: 8px 15px; border-radius: 16px; width: 95%; max-width: 400px; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+.user-section { display: flex; align-items: center; gap: 6px; }
+.lang-select { padding: 0 5px; border-radius: 8px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2); font-size: 10px; outline: none; width: 85px !important; height: 28px; text-align: center; }
+.mic-btn { width: 44px; height: 44px; border-radius: 50%; border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+.mic-btn.blue { background: #6366f1; } .mic-btn.green { background: #10b981; }
+.mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 15px rgba(239,68,68,0.6); }
+.mic-btn:disabled { background: #475569 !important; opacity: 0.5; }
+#avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
+#avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,240,255,0.2); z-index: 1; transition: all 0.3s; border: 2px solid rgba(255,255,255,0.2); }
+#avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+#avatar-video { display: none; }
+#avatar-wrap.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000; }
+#avatar-wrap.fullscreen #avatar-container { width: 100vw; height: 100vh; border-radius: 0 !important; background: transparent; box-shadow: none; border: none; }
+#avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
+#avatar-wrap.fullscreen #closeFullscreen { display: flex; }
+#removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; background: #000; border: 2px solid #fff; cursor: pointer; z-index: 999; color: white; font-weight: bold; font-size: 14px; align-items: center; justify-content: center; }
+body.remote-mode #avatar-wrap { display: none !important; }
+#closeFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); top: 80px; right: 20px; }
+.inner-white-dot { width: 14px; height: 14px; background: #fff; border-radius: 50%; }
+.chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
+#chat { flex: 1; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-radius: 20px; padding: 15px; overflow-y: auto; }
+.msg { padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); user-select: none; }
+.msg:active { opacity: 0.7; }
+.msg.playing { box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); border: 1px solid #00f0ff; }
+.user-a { background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9)); margin-right: auto; border-bottom-right-radius: 4px; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+.user-b { background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9)); margin-left: auto; border-bottom-left-radius: 4px; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+.bot { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); margin: 0 auto 8px auto; text-align: center; font-style: italic; font-size: 13px; cursor: default; backdrop-filter: blur(5px); }
+.lang-tag { display: inline-block; font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-right: 6px; opacity: 0.8; font-weight: bold; }
+#clearBtn { position: absolute; bottom: 2px; left: 10px; width: 32px; height: 32px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+#clearBtn svg { fill: #2d3748; width: 16px; height: 16px; }
+#imagePreviewContainer { display: none; position: absolute; bottom: 60px; right: 10px; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+#imagePreview { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
+#cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+.row { display: flex; gap: 8px; align-items: center; flex-shrink: 0; position: relative; }
+input[type=text] { flex: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; order: 3; outline: none; backdrop-filter: blur(5px); }
+input[type=text]:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,0.1); }
+button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+#musicBtn { background: rgba(255,255,255,0.1); color: #fff; order: 1; font-size: 18px; border: 1px solid rgba(255,255,255,0.2); }
+#mediaBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); color: #ffffff; order: 2; font-size: 24px; width: 38px; height: 38px; padding-bottom: 2px; font-weight: normal; }
+#remoteMicBtn { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; order: 2; width: 46px; height: 46px; border-radius: 50%; box-shadow: 0 4px 15px rgba(56,239,125,0.4); display: none; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.2); }
+#remoteMicBtn.recording { background: #ef4444 !important; box-shadow: 0 0 20px rgba(239,68,68,0.8); animation: pulse 1s infinite; }
+#sendBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); order: 4; color: #fff; }
+#sendBtn svg { width: 20px; height: 20px; fill: white; transform: translateX(-2px) translateY(2px); }
+#stopAudioBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; outline: none; }
+#stopAudioBtn svg { fill: #2d3748; width: 14px; height: 14px; }
+#status { text-align: center; font-size: 13px; color: #00f0ff; margin-top: 6px; min-height: 18px; font-weight: bold; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
+.extra-controls { display: flex; gap: 8px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; width: 100%; padding: 0 5px; align-items: center; }
+.extra-controls button, .extra-controls select { padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #fff; font-size: 11px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); transition: 0.3s; }
+.extra-controls button:active { transform: scale(0.95); }
+.toggle-btn { background: rgba(255,255,255,0.1) !important; color: white !important; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2) !important; }
+.toggle-btn.active { background: rgba(16, 185, 129, 0.3) !important; border-color: #10b981 !important; color: #10b981 !important; box-shadow: 0 0 10px rgba(16,185,129,0.2); }
+.btn-back { background: rgba(239, 68, 68, 0.3) !important; border-color: #ef4444 !important; color: #fff !important; }
+#actionMenu { display: none; position: fixed; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.action-btn { padding: 10px 15px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+.action-btn:hover { background: rgba(255,255,255,0.15); }
+#musicMenu { display: none; position: fixed; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px; z-index: 2000; width: 220px; max-height: 300px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+#musicMenu h4 { font-size: 13px; margin-bottom: 10px; text-align: center; color: #00f0ff; }
+.music-item { padding: 8px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-bottom: 5px; background: rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+.music-item:hover { background: rgba(255,255,255,0.15); } .music-item.active { background: rgba(0, 240, 255, 0.2); color: #00f0ff; font-weight: bold; border: 1px solid rgba(0,240,255,0.3); }
+.music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
+.music-item.add-more { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); } 
+.music-item.stop-btn { background: rgba(153, 27, 27, 0.3); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 8px; } 
+.music-item.pause-btn { background: rgba(71, 85, 105, 0.5); margin-bottom: 8px; }
+.song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
+.delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 15px; }
+#remoteBar { display: none; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 16px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+#remoteBar .room-info { display: flex; align-items: center; gap: 10px; justify-content: center; flex: 1; }
+#remoteBar strong { color: #00f0ff; letter-spacing: 2px; font-size: 15px; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
+#copyRoomBtn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s; }
+#copyRoomBtn:hover { background: rgba(255,255,255,0.2); }
+.checkbox-row { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 13px; color: rgba(255,255,255,0.7); cursor: pointer; }
+.checkbox-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #00f0ff; }
+#callOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 9999998; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
+#callOverlay.active { display: flex; animation: slideIn 0.3s ease; }
+.call-avatar { width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 60px; animation: ringPulse 1.5s infinite; box-shadow: 0 0 40px rgba(102, 126, 234, 0.5); }
+.call-name { font-size: 28px; font-weight: bold; color: #fff; }
+.call-status { font-size: 16px; color: rgba(255,255,255,0.7); }
+.call-actions { display: flex; gap: 40px; }
+.call-btn { width: 70px; height: 70px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+.call-btn.accept { background: #10b981; color: #fff; }
+.call-btn.decline { background: #ef4444; color: #fff; }
+.call-btn:active { transform: scale(0.9); }
 
-/* MAIN APP */
-#app { display: none; height: 100vh; flex-direction: column; }
-#app.active { display: flex; }
-
-/* HEADER */
-.header {
-  background: var(--header); padding: 10px 12px;
-  display: flex; align-items: center; gap: 10px;
-  border-bottom: 1px solid var(--border); height: 56px; flex-shrink: 0;
+/* ===== MESSENGER MODE ===== */
+#messengerContainer {
+  display: none; position: fixed; inset: 0; background: #0f0f1e;
+  flex-direction: column; z-index: 90000;
+}
+#messengerContainer.active { display: flex; }
+.messenger-header {
+  height: 60px; background: #1a1a2e;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; padding: 0 15px; gap: 12px; z-index: 1000; flex-shrink: 0;
 }
 .header-btn {
-  background: none; border: none; color: #fff; font-size: 20px;
-  cursor: pointer; padding: 8px; border-radius: 50%; transition: 0.3s;
+  background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;
+  padding: 8px; border-radius: 50%; transition: 0.3s;
 }
 .header-btn:hover { background: rgba(255,255,255,0.1); }
-.header-btn.active { color: #00f0ff; }
-.header-info { flex: 1; min-width: 0; }
-.header-title { font-size: 15px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
-.mode-indicator {
-  font-size: 10px; padding: 2px 7px; border-radius: 10px;
-  background: rgba(0,240,255,0.2); color: #00f0ff; font-weight: bold;
+.header-btn.active { color: #0084ff; background: rgba(0,132,255,0.2); }
+.header-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.header-name { font-size: 16px; font-weight: bold; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-status { font-size: 12px; color: rgba(255,255,255,0.6); }
+.header-actions { display: flex; gap: 8px; }
+.messenger-sidebar {
+  position: fixed; top: 60px; left: 0; bottom: 0; width: 280px;
+  background: #16162a; border-right: 1px solid rgba(255,255,255,0.1);
+  transform: translateX(-100%); transition: transform 0.3s; z-index: 999; overflow-y: auto;
 }
-.header-status { font-size: 11px; color: rgba(255,255,255,0.6); }
-
-/* FACE-TO-FACE CONTROLS */
-.face-controls {
-  display: none; background: var(--header); padding: 10px;
-  border-bottom: 1px solid var(--border); gap: 8px; flex-shrink: 0;
-}
-.face-controls.active { display: flex; flex-wrap: wrap; }
-.face-row { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 140px; }
-.face-row label { font-size: 10px; color: rgba(255,255,255,0.6); }
-.face-row select {
-  flex: 1; padding: 6px 8px; border-radius: 8px;
-  border: 1px solid var(--border); background: rgba(0,0,0,0.4);
-  color: #fff; font-size: 12px; outline: none;
-}
-.face-mic {
-  width: 40px; height: 40px; border-radius: 50%; border: none;
-  font-size: 18px; cursor: pointer; transition: 0.3s;
-  display: flex; align-items: center; justify-content: center;
-}
-.face-mic.a { background: #6366f1; color: #fff; }
-.face-mic.b { background: #10b981; color: #fff; }
-.face-mic.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; }
-
-/* SIDEBAR */
-.sidebar {
-  position: fixed; top: 56px; right: 0; bottom: 0; width: 280px;
-  background: var(--sidebar); border-left: 1px solid var(--border);
-  transform: translateX(100%); transition: transform 0.3s;
-  z-index: 100; overflow-y: auto;
-}
-.sidebar.open { transform: translateX(0); }
+.messenger-sidebar.open { transform: translateX(0); }
 .sidebar-header {
-  padding: 12px 15px; border-bottom: 1px solid var(--border);
+  padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);
   display: flex; justify-content: space-between; align-items: center;
 }
-.sidebar-header h3 { font-size: 15px; }
+.sidebar-header h3 { font-size: 16px; color: #fff; }
 .sidebar-header button {
-  background: #0084ff; border: none; color: #fff;
-  width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px;
+  background: #0084ff; border: none; color: #fff; width: 32px; height: 32px;
+  border-radius: 50%; cursor: pointer; font-size: 18px;
 }
+.sidebar-header button:hover { background: #0066cc; }
+.my-code-row {
+  padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.7);
+}
+.my-code-row strong { color: #00f0ff; letter-spacing: 2px; font-size: 14px; }
+.my-code-row button { background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; }
 .friend-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
-  transition: 0.3s;
+  display: flex; align-items: center; gap: 10px; padding: 12px 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.05); transition: 0.3s;
 }
 .friend-item:hover { background: rgba(255,255,255,0.05); }
 .friend-avatar {
   width: 42px; height: 42px; border-radius: 50%;
   background: linear-gradient(135deg, #0084ff, #0066cc);
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: bold; flex-shrink: 0;
+  font-size: 18px; font-weight: bold; flex-shrink: 0; color: #fff;
 }
 .friend-info { flex: 1; min-width: 0; }
-.friend-name { font-size: 13px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-name { font-size: 14px; font-weight: bold; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .friend-status { font-size: 11px; color: rgba(255,255,255,0.6); }
 .friend-actions { display: flex; gap: 4px; }
 .friend-action {
-  background: none; border: none; color: rgba(255,255,255,0.6);
-  font-size: 16px; cursor: pointer; padding: 4px; border-radius: 50%; transition: 0.3s;
+  background: none; border: none; color: rgba(255,255,255,0.6); font-size: 16px;
+  cursor: pointer; padding: 6px; border-radius: 50%; transition: 0.3s;
 }
 .friend-action:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .friend-action.call { color: #0084ff; }
+.friend-action.call:hover { background: rgba(0,132,255,0.2); }
 .friend-action.delete { color: #ff4444; }
-
-/* CHAT AREA */
-.chat-area {
-  flex: 1; overflow-y: auto; padding: 12px;
-  display: flex; flex-direction: column; gap: 8px;
+.friend-action.delete:hover { background: rgba(255,68,68,0.2); }
+.messenger-chat {
+  flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px;
 }
-.msg {
-  max-width: 78%; padding: 10px 14px; border-radius: 16px;
-  font-size: 14px; line-height: 1.5; word-wrap: break-word;
-  cursor: pointer; transition: 0.3s; user-select: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+.messenger-chat .msg {
+  max-width: 75%; padding: 12px 16px; border-radius: 18px; font-size: 15px;
+  line-height: 1.5; word-wrap: break-word; cursor: pointer; transition: 0.3s; user-select: none;
 }
-.msg:active { opacity: 0.7; }
-.msg.user-a {
-  align-self: flex-end; background: var(--bubble-sender); color: #fff;
-  border-bottom-right-radius: 4px;
+.messenger-chat .msg.user-a {
+  align-self: flex-end; background: #0084ff; color: #fff;
+  border-bottom-right-radius: 4px; margin-right: 0;
 }
-.msg.user-b {
-  align-self: flex-start; background: var(--bubble-receiver); color: #fff;
-  border-bottom-left-radius: 4px;
+.messenger-chat .msg.user-b {
+  align-self: flex-start; background: #3a3a4a; color: #fff;
+  border-bottom-left-radius: 4px; margin-left: 0;
 }
-.msg.bot {
-  align-self: center; background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.8); font-style: italic; font-size: 12px; max-width: 85%;
+.messenger-chat .msg.bot {
+  align-self: center; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8);
+  font-style: italic; font-size: 13px; max-width: 80%; margin: 0 auto;
 }
-.msg.playing { box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); border: 2px solid #00f0ff; }
-.msg img { max-width: 150px; border-radius: 8px; display: block; margin-top: 5px; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; }
-.lang-tag {
-  display: inline-block; font-size: 9px; padding: 2px 5px;
-  background: rgba(255,255,255,0.2); border-radius: 5px;
-  margin-left: 5px; font-weight: bold;
-}
-
-/* FOOTER */
-.footer {
-  background: var(--header); padding: 8px 10px;
-  display: flex; align-items: center; gap: 8px;
-  border-top: 1px solid var(--border); height: 64px; flex-shrink: 0;
+.messenger-footer {
+  height: 70px; background: #1a1a2e; border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; padding: 0 10px; gap: 10px; z-index: 1000; flex-shrink: 0;
 }
 .footer-btn {
-  background: none; border: none; color: #fff; font-size: 22px;
-  cursor: pointer; padding: 8px; border-radius: 50%; transition: 0.3s;
+  background: none; border: none; color: #fff; font-size: 22px; cursor: pointer;
+  padding: 10px; border-radius: 50%; transition: 0.3s;
 }
 .footer-btn:hover { background: rgba(255,255,255,0.1); }
 .footer-btn.mic {
-  background: #0084ff; width: 42px; height: 42px;
+  background: #0084ff; width: 44px; height: 44px;
   display: flex; align-items: center; justify-content: center; font-size: 18px;
 }
 .footer-btn.mic.recording { background: #ff4444; animation: pulse 1s infinite; }
 .footer-input {
-  flex: 1; background: rgba(255,255,255,0.1);
-  border: 1px solid var(--border); border-radius: 20px;
-  padding: 10px 14px; color: #fff; font-size: 14px; outline: none; transition: 0.3s;
+  flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 12px 15px; color: #fff; font-size: 14px; outline: none; transition: 0.3s;
 }
 .footer-input:focus { border-color: #0084ff; }
 .footer-send {
-  background: #0084ff; border: none; color: #fff;
-  width: 42px; height: 42px; border-radius: 50%;
-  cursor: pointer; font-size: 18px;
+  background: #0084ff; border: none; color: #fff; width: 44px; height: 44px;
+  border-radius: 50%; cursor: pointer; font-size: 18px;
   display: flex; align-items: center; justify-content: center; transition: 0.3s;
 }
 .footer-send:hover { background: #0066cc; transform: scale(1.1); }
-.footer-send:disabled { background: #666; cursor: not-allowed; transform: none; }
-
-/* AVATAR */
-#avatarWrap {
-  width: 90px; height: 90px; margin: 8px auto;
-  position: relative; cursor: pointer;
-}
-#avatarContainer {
-  width: 100%; height: 100%; border-radius: 50%;
-  overflow: hidden; background: #1e293b;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 20px rgba(0,240,255,0.2);
-  border: 2px solid rgba(255,255,255,0.2);
-}
-#avatarLogo, #avatarVideo { width: 100%; height: 100%; object-fit: cover; display: block; }
-#avatarVideo { display: none; }
-
-/* STATUS */
-#status {
-  position: fixed; bottom: 75px; left: 50%; transform: translateX(-50%);
-  background: rgba(0, 240, 255, 0.9); color: #fff;
-  padding: 6px 14px; border-radius: 18px; font-size: 12px;
-  z-index: 1001; display: none; backdrop-filter: blur(10px);
-  font-weight: bold;
-}
-#status.show { display: block; }
-
-/* MODAL */
 .modal {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.8); z-index: 10000;
-  align-items: center; justify-content: center;
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  z-index: 10000; align-items: center; justify-content: center;
 }
 .modal.active { display: flex; }
 .modal-content {
-  background: var(--sidebar); padding: 22px; border-radius: 16px;
-  width: 90%; max-width: 340px; border: 1px solid var(--border);
+  background: #16162a; padding: 25px; border-radius: 16px;
+  width: 90%; max-width: 350px; border: 1px solid rgba(255,255,255,0.1);
 }
-.modal-content h3 { margin-bottom: 12px; font-size: 17px; }
-.modal-content input, .modal-content select {
-  width: 100%; padding: 11px; margin: 6px 0; border-radius: 8px;
-  border: 1px solid var(--border); background: rgba(0,0,0,0.3);
-  color: #fff; font-size: 13px; outline: none;
+.modal-content h3 { margin-bottom: 15px; font-size: 18px; color: #fff; }
+.modal-content input {
+  width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+  color: #fff; font-size: 14px; outline: none;
 }
 .modal-content button {
-  width: 100%; padding: 11px; margin: 5px 0; border-radius: 8px;
-  border: none; background: #0084ff; color: #fff;
-  font-weight: bold; cursor: pointer; transition: 0.3s;
+  width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: none;
+  background: #0084ff; color: #fff; font-weight: bold; cursor: pointer; transition: 0.3s;
 }
 .modal-content button:hover { background: #0066cc; }
 .modal-content button.cancel { background: #666; }
-
-/* CALL OVERLAY */
-#callOverlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.95); z-index: 99999;
-  flex-direction: column; align-items: center; justify-content: center; gap: 25px;
-}
-#callOverlay.active { display: flex; }
-.call-avatar {
-  width: 130px; height: 130px; border-radius: 50%;
-  background: linear-gradient(135deg, #0084ff, #0066cc);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 55px; animation: ringPulse 1.5s infinite;
-}
-.call-name { font-size: 24px; font-weight: bold; }
-.call-status { font-size: 14px; color: rgba(255,255,255,0.7); }
-.call-actions { display: flex; gap: 35px; }
-.call-btn {
-  width: 65px; height: 65px; border-radius: 50%;
-  border: none; font-size: 26px; cursor: pointer; transition: 0.3s;
-}
-.call-btn.accept { background: #00c853; color: #fff; }
-.call-btn.decline { background: #ff4444; color: #fff; }
-.call-btn:hover { transform: scale(1.1); }
-
-/* MEDIA MENU */
-#mediaMenu {
-  display: none; position: fixed; bottom: 75px; left: 10px;
-  background: var(--sidebar); border: 1px solid var(--border);
-  border-radius: 12px; padding: 8px; z-index: 1001;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
-.media-option {
-  display: block; width: 100%; padding: 9px 12px; background: none;
-  border: none; color: #fff; font-size: 13px; cursor: pointer;
-  text-align: right; border-radius: 8px; transition: 0.3s;
-}
-.media-option:hover { background: rgba(255,255,255,0.1); }
-
-/* MUSIC MENU */
-#musicMenu {
-  display: none; position: fixed; bottom: 75px; right: 10px;
-  background: var(--sidebar); border: 1px solid var(--border);
-  border-radius: 12px; padding: 10px; z-index: 1001;
-  width: 200px; max-height: 280px; overflow-y: auto;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
-#musicMenu h4 { font-size: 12px; margin-bottom: 8px; text-align: center; color: #00f0ff; }
-.music-item {
-  padding: 7px; border-radius: 7px; cursor: pointer; font-size: 12px;
-  margin-bottom: 4px; background: rgba(255,255,255,0.05);
-  display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
-}
-.music-item:hover { background: rgba(255,255,255,0.15); }
-.music-item.active { background: rgba(0, 240, 255, 0.2); color: #00f0ff; font-weight: bold; }
-
-/* ANIMATIONS */
-@keyframes pulse { 50% { transform: scale(1.1); } }
-@keyframes ringPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 132, 255, 0.7); }
-  50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(0, 132, 255, 0); }
-}
-
-/* SCROLLBAR */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 </style>
 </head>
 <body>
 
-<!-- AUTH -->
 <div id="authOverlay">
+  <div class="auth-lang-switch">
+    <button class="lang-btn active" onclick="changeAuthLang('ar')">AR</button>
+    <button class="lang-btn" onclick="changeAuthLang('fr')">FR</button>
+    <button class="lang-btn" onclick="changeAuthLang('en')">EN</button>
+  </div>
   <div class="auth-box">
     <h1>🌐 Chat-Core</h1>
     <h2 id="authTitle">تسجيل الدخول</h2>
     <div id="authError"></div>
     <input type="email" id="authEmail" class="auth-input" placeholder="البريد الإلكتروني">
     <input type="password" id="authPassword" class="auth-input" placeholder="كلمة المرور">
-    <button id="authSubmitBtn" class="auth-btn">دخول</button>
-    <button id="authToggleBtn" class="auth-btn-outline">إنشاء حساب جديد</button>
+    <button id="authSubmitBtn" class="auth-btn" onclick="handleEmailAuth()">دخول</button>
+    <button id="authToggleBtn" class="auth-btn outline" onclick="toggleAuthMode()">إنشاء حساب جديد</button>
+    <div class="divider" id="authDivider">أو</div>
+    <button class="social-btn" onclick="loginWithGoogle()" id="btnAuthGoogle">🌐 Google</button>
+    <button class="social-btn" onclick="loginWithGithub()" id="btnAuthGithub">🐙 GitHub</button>
+    <button class="social-btn" onclick="loginWithTwitter()" id="btnAuthTwitter">🐦 X</button>
   </div>
 </div>
 
-<!-- MODE SELECTION -->
-<div id="modeSelection">
+<button id="floatingMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+
+<div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
-  <p>اختر وضع التشغيل</p>
-  <button class="mode-btn face" id="btnFace">🌐 Face-to-Face</button>
-  <button class="mode-btn remote" id="btnRemote">💬 Remote Mode (Messenger)</button>
-  <button class="mode-btn logout" id="btnLogout">🚪 تسجيل الخروج</button>
+  <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:15px;">اختر وضع التشغيل</p>
+  <button class="mode-btn" id="btnLocal"><span>🌐 Face-to-Face</span></button>
+  <button class="mode-btn" id="btnRemote"><span>💬 Messenger</span></button>
+  <button class="mode-btn" id="btnLogout"><span>🚪 تسجيل الخروج</span></button>
 </div>
 
-<!-- MAIN APP -->
-<div id="app">
-  <!-- HEADER -->
-  <div class="header">
-    <button class="header-btn" id="toggleSidebar" style="display:none;">☰</button>
-    <div class="header-info">
-      <div class="header-title">
-        <span class="mode-indicator" id="modeIndicator">FACE</span>
-        <span id="headerTitle">Chat-Core</span>
-      </div>
-      <div class="header-status" id="headerStatus">جاهز</div>
-    </div>
-    <button class="header-btn" id="transToggle" title="الترجمة">🌐</button>
-    <button class="header-btn" id="clearChatBtn" title="مسح">🗑️</button>
-    <button class="header-btn" id="backToModeBtn" title="الوضع">🔄</button>
-  </div>
-
-  <!-- FACE-TO-FACE CONTROLS -->
-  <div class="face-controls" id="faceControls">
-    <div class="face-row">
-      <label>أنت:</label>
-      <select id="langA">
-        <option value="ar">🇹🇳 العربية</option>
-        <option value="fr">🇫🇷 Français</option>
-        <option value="en">🇬🇧 English</option>
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="tr">🇹🇷 Türkçe</option>
-        <option value="it">🇮🇹 Italiano</option>
-        <option value="zh">🇨🇳 中文</option>
-        <option value="ru">🇷🇺 Русский</option>
-        <option value="es">🇪🇸 Español</option>
-      </select>
-      <button class="face-mic a" id="micA">🎤</button>
-    </div>
-    <div class="face-row">
-      <button class="face-mic b" id="micB">🎤</button>
-      <select id="langB">
-        <option value="fr">🇫🇷 Français</option>
-        <option value="ar">🇹🇳 العربية</option>
-        <option value="en">🇬🇧 English</option>
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="tr">🇹🇷 Türkçe</option>
-        <option value="it">🇮🇹 Italiano</option>
-        <option value="zh">🇨🇳 中文</option>
-        <option value="ru">🇷🇺 Русский</option>
-        <option value="es">🇪🇸 Español</option>
-      </select>
-      <label>صديق:</label>
-    </div>
-  </div>
-
-  <!-- SIDEBAR (Remote only) -->
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <h3>الأصدقاء</h3>
-      <button id="addFriendBtn">➕</button>
-    </div>
-    <div id="friendsList"></div>
-  </div>
-
-  <!-- AVATAR (Face only) -->
-  <div id="avatarWrap" style="display:none;">
-    <div id="avatarContainer">
-      <img id="avatarLogo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo">
-      <video id="avatarVideo" autoplay loop muted playsinline></video>
-    </div>
-  </div>
-
-  <!-- CHAT AREA -->
-  <div class="chat-area" id="chat"></div>
-
-  <!-- FOOTER -->
-  <div class="footer" id="footer">
-    <button class="footer-btn" id="musicBtn" title="موسيقى" style="display:none;">🎵</button>
-    <button class="footer-btn" id="mediaBtn" title="وسائط" style="display:none;">+</button>
-    <button class="footer-btn mic" id="micBtn" title="ميكروفون">🎤</button>
-    <input type="text" class="footer-input" id="textInput" placeholder="اكتب رسالة...">
-    <select id="voiceSelect" style="display:none; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--border); border-radius:8px; padding:6px; font-size:11px;">
-      <option value="man">👨 رجل</option>
-      <option value="woman" selected>👩 امرأة</option>
-      <option value="girl">👧 طفلة</option>
-      <option value="child">🧒 طفل</option>
+<div class="overlay" id="remoteJoinOverlay" style="display:none;">
+  <h2>💬 Messenger</h2>
+  <div class="join-form">
+    <input type="text" id="playerName" placeholder="Your Name" maxlength="30">
+    <select id="playerLang">
+      <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
+      <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
+      <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
+      <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
     </select>
-    <button class="footer-btn" id="uploadBtn" title="Avatar" style="display:none;">📁</button>
-    <button class="footer-send" id="sendBtn">➤</button>
+    <label class="checkbox-row"><input type="checkbox" id="remoteTransCheck" checked> 🌐 تفعيل ترجمة الصوت</label>
+    <button id="createRoomBtn">➕ إنشاء غرفة</button>
+    <div id="orText" style="text-align:center; color:rgba(255,255,255,0.5); font-size:13px; margin:5px 0;">أو</div>
+    <div id="joinRow">
+      <input type="text" id="joinCodeInput" placeholder="Room Code" maxlength="6">
+      <button id="joinRoomBtn">Join</button>
+    </div>
+    <button id="backToLandingBtn">← رجوع</button>
   </div>
 </div>
 
-<!-- ADD FRIEND MODAL -->
-<div class="modal" id="addFriendModal">
-  <div class="modal-content">
-    <h3>إضافة صديق</h3>
-    <input type="text" id="friendCodeInput" placeholder="كود الصديق">
-    <button id="confirmAddFriend">إضافة</button>
-    <button class="cancel" id="cancelAddFriend">إلغاء</button>
+<div id="remoteBar">
+  <button id="transToggleBtnRoom" class="toggle-btn active" style="font-size: 11px; padding: 6px 12px; border-radius:8px;">🌐 ON</button>
+  <div class="room-info">
+    <span>Room: <strong id="roomCodeLabel">------</strong></span>
+    <button id="copyRoomBtn">📋 Copy</button>
+  </div>
+  <span id="onlineCount">1/4</span>
+</div>
+
+<div class="top-header" id="topHeader" style="display:none;">
+  <div class="top-bar" id="topBar">
+    <div class="user-section" id="friendSection">
+      <span style="font-size:9px; color:rgba(255,255,255,0.6);">Friend</span>
+      <select id="langB" class="lang-select">
+        <option value="fr">French</option><option value="ar">Arabic</option><option value="en">English</option>
+        <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
+        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
+        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
+      </select>
+      <button id="micB" class="mic-btn green" title="Talk">🎤</button>
+    </div>
+    <div class="user-section" id="youSection">
+      <span style="font-size:9px; color:rgba(255,255,255,0.6);">You</span>
+      <select id="langA" class="lang-select">
+        <option value="ar">Arabic</option><option value="fr">French</option><option value="en">English</option>
+        <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
+        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
+        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
+      </select>
+      <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
+    </div>
   </div>
 </div>
 
-<!-- CALL OVERLAY -->
+<div class="extra-controls" id="extraControls" style="display:none;">
+  <button id="transToggleBtnLocal" class="toggle-btn active">🌐 Translator ON</button>
+  <select id="voiceSelect">
+    <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
+  </select>
+  <button id="uploadBtn">📁 Avatar</button>
+  <button id="backBtn" class="btn-back">Back</button>
+</div>
+
+<div id="avatar-wrap" style="display:none;">
+  <div id="avatar-container">
+    <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
+    <video id="avatar-video" autoplay loop muted playsinline></video>
+  </div>
+  <button id="removeAvatarBtn" title="إغلاق الأفاتار">✕</button>
+  <button id="closeFullscreen" title="Close"><div class="inner-white-dot"></div></button>
+</div>
+
+<div class="chat-container" id="chatContainer" style="display:none;">
+  <div id="chat"></div>
+  <button id="clearBtn" title="Clear Chat"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+</div>
+
+<div id="imagePreviewContainer">
+  <img id="imagePreview" src="" alt="Preview">
+  <button id="cancelImageBtn">✕</button>
+</div>
+
+<div class="row" id="inputRow" style="display:none;">
+  <button class="btn" id="musicBtn" title="Music">🎵</button>
+  <button class="btn" id="mediaBtn" title="Media">+</button>
+  <button class="btn" id="remoteMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+  <div style="flex: 1; position: relative; display: flex; align-items: center; order: 3;">
+    <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" />
+    <button id="stopAudioBtn" title="Stop Audio"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+  </div>
+  <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+</div>
+<div id="status" class="status-text" style="display:none;">Ready</div>
+
+<div id="actionMenu">
+  <button class="action-btn" id="menuCamera">📸 Camera</button>
+  <button class="action-btn" id="menuGallery">🖼️ Gallery</button>
+  <button class="action-btn" id="menuVideo">🎬 Video</button>
+</div>
+<input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display: none;">
+<input type="file" id="galleryUpload" accept="image/*" style="display: none;">
+<input type="file" id="videoUpload" accept="video/*,audio/*" style="display: none;">
+<input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
+<input type="file" id="videoAvatarUpload" accept="video/*" style="display: none;">
+<audio id="bgAudio"></audio>
+<div id="musicMenu"><h4>🎵 Playlist</h4><div id="musicList"></div></div>
+
 <div id="callOverlay">
   <div class="call-avatar">📞</div>
   <div class="call-name" id="callName">Unknown</div>
-  <div class="call-status" id="callStatus">مكالمة واردة...</div>
+  <div class="call-status" id="callStatus">Incoming call...</div>
   <div class="call-actions">
     <button class="call-btn decline" id="callDecline">✕</button>
     <button class="call-btn accept" id="callAccept">📞</button>
   </div>
 </div>
 
-<!-- MEDIA MENU -->
-<div id="mediaMenu">
-  <button class="media-option" id="cameraBtn">📸 كاميرا</button>
-  <button class="media-option" id="galleryBtn">🖼️ معرض</button>
-  <button class="media-option" id="videoBtn">🎬 فيديو</button>
+<!-- ===== MESSENGER CONTAINER ===== -->
+<div id="messengerContainer">
+  <div class="messenger-header">
+    <button class="header-btn" id="toggleSidebar">☰</button>
+    <div class="header-info">
+      <div class="header-name" id="messengerName">Messenger</div>
+      <div class="header-status" id="messengerStatus">متصل</div>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn active" id="messengerTransToggle" title="الترجمة">🌐</button>
+      <button class="header-btn" id="messengerClear" title="مسح">🗑️</button>
+      <button class="header-btn" id="messengerBack" title="رجوع">←</button>
+    </div>
+  </div>
+
+  <div class="messenger-sidebar" id="messengerSidebar">
+    <div class="sidebar-header">
+      <h3>الأصدقاء</h3>
+      <button id="addFriendBtn">➕</button>
+    </div>
+    <div class="my-code-row">
+      <span>كودك:</span>
+      <strong id="myFriendCode">--------</strong>
+      <button id="copyMyCode">📋</button>
+    </div>
+    <div id="friendsList"></div>
+  </div>
+
+  <div class="messenger-chat" id="messengerChat"></div>
+
+  <div class="messenger-footer">
+    <button class="footer-btn mic" id="messengerMic" title="تحدث">🎤</button>
+    <input type="text" class="footer-input" id="messengerInput" placeholder="اكتب رسالة...">
+    <button class="footer-send" id="messengerSend">➤</button>
+  </div>
 </div>
 
-<!-- MUSIC MENU -->
-<div id="musicMenu">
-  <h4>🎵 قائمة التشغيل</h4>
-  <div id="musicList"></div>
+<!-- Add Friend Modal -->
+<div class="modal" id="addFriendModal">
+  <div class="modal-content">
+    <h3>إضافة صديق</h3>
+    <input type="text" id="friendCodeInput" placeholder="كود الصديق" maxlength="8" style="text-transform:uppercase; letter-spacing:2px;">
+    <button id="confirmAddFriend">إضافة</button>
+    <button class="cancel" id="cancelAddFriend">إلغاء</button>
+  </div>
 </div>
-
-<!-- STATUS -->
-<div id="status"></div>
-
-<!-- FILE INPUTS -->
-<input type="file" id="cameraUpload" accept="image/*" capture="environment" style="display:none;">
-<input type="file" id="galleryUpload" accept="image/*" style="display:none;">
-<input type="file" id="videoUpload" accept="video/*,audio/*" style="display:none;">
-<input type="file" id="audioUpload" accept="audio/*" multiple style="display:none;">
-<input type="file" id="videoAvatarUpload" accept="video/*" style="display:none;">
-<audio id="bgAudio"></audio>
 <script>
 'use strict';
 
-// ===== FIREBASE CONFIG =====
 const firebaseConfig = {
   apiKey: "AIzaSyCCp08HOuP4vpXlvBkzjOgGAwQoeTsOKJ8",
   authDomain: "chat-core-app.firebaseapp.com",
   projectId: "chat-core-app",
   storageBucket: "chat-core-app.firebasestorage.app",
   messagingSenderId: "216958872856",
-  appId: "1:216958872856:web:f03d559611b327c91b426d"
+  appId: "1:216958872856:web:f03d559611b327c91b426d",
+  measurementId: "G-DHB0S6TW96"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 let db = null;
 
-// ===== GLOBAL STATE =====
-let currentUser = null, myFriendCode = null, friendsCache = [];
-let appMode = null, isTranslatorMode = true;
-let ws = null, currentRoomCode = 'GLOBAL';
+let isLoginMode = true, currentUser = null, currentAuthLang = 'ar';
 
-// Face-to-Face
-let localRecorder = null, localStreamMic = null, localChunks = [];
-let isLocalProcessing = false, currentSpeaker = null;
+const AUTH_TRANS = {
+  'ar': { loginTitle: 'تسجيل الدخول', registerTitle: 'إنشاء حساب جديد', email: 'البريد الإلكتروني', pass: 'كلمة المرور', btnLogin: 'دخول', btnRegister: 'تسجيل', toggleToReg: 'إنشاء حساب جديد', toggleToLogin: 'لديك حساب بالفعل؟ سجل دخولك', or: 'أو', google: 'تسجيل الدخول بواسطة Google', github: 'تسجيل الدخول بواسطة GitHub', twitter: 'تسجيل الدخول بواسطة X' },
+  'fr': { loginTitle: 'Connexion', registerTitle: 'Créer un compte', email: 'Adresse e-mail', pass: 'Mot de passe', btnLogin: 'Se connecter', btnRegister: "S'inscrire", toggleToReg: 'Créer un compte', toggleToLogin: 'Déjà un compte ? Connectez-vous', or: 'Ou', google: 'Continuer avec Google', github: 'Continuer avec GitHub', twitter: 'Continuer avec X' },
+  'en': { loginTitle: 'Login', registerTitle: 'Create Account', email: 'Email Address', pass: 'Password', btnLogin: 'Login', btnRegister: 'Register', toggleToReg: 'Create Account', toggleToLogin: 'Already have an account? Login', or: 'Or', google: 'Continue with Google', github: 'Continue with GitHub', twitter: 'Continue with X' }
+};
 
-// Remote
-let isManualTranslating = false, audioRecorder = null;
+function changeAuthLang(lang) {
+  currentAuthLang = lang;
+  localStorage.setItem('authLang', lang);
+  const htmlRoot = document.getElementById('htmlRoot');
+  htmlRoot.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+  htmlRoot.setAttribute('lang', lang);
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase()).classList.add('active');
+  const t = AUTH_TRANS[lang];
+  document.getElementById('authTitle').textContent = isLoginMode ? t.loginTitle : t.registerTitle;
+  document.getElementById('authEmail').placeholder = t.email;
+  document.getElementById('authPassword').placeholder = t.pass;
+  document.getElementById('authSubmitBtn').textContent = isLoginMode ? t.btnLogin : t.btnRegister;
+  document.getElementById('authToggleBtn').textContent = isLoginMode ? t.toggleToReg : t.toggleToLogin;
+  document.getElementById('authDivider').textContent = t.or;
+  document.getElementById('btnAuthGoogle').textContent = '🌐 ' + t.google;
+  document.getElementById('btnAuthGithub').textContent = '🐙 ' + t.github;
+  document.getElementById('btnAuthTwitter').textContent = '🐦 ' + t.twitter;
+}
+function toggleAuthMode() { isLoginMode = !isLoginMode; changeAuthLang(currentAuthLang); document.getElementById('authError').textContent = ''; }
+function showAuthError(msg) { document.getElementById('authError').textContent = msg; }
+function handleEmailAuth() {
+  const email = document.getElementById('authEmail').value;
+  const password = document.getElementById('authPassword').value;
+  if(!email || !password) return showAuthError("Please fill all fields");
+  showAuthError(""); document.getElementById('authSubmitBtn').textContent = "...";
+  if(isLoginMode) auth.signInWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
+  else auth.createUserWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
+}
+function loginWithGoogle() { const p = new firebase.auth.GoogleAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
+function loginWithGithub() { const p = new firebase.auth.GithubAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
+function loginWithTwitter() { const p = new firebase.auth.TwitterAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
+function logoutUser() { auth.signOut().then(() => { window.location.reload(); }); }
+auth.getRedirectResult().then((r) => { if (r.credential) console.log("redirect ok"); }).catch((e) => showAuthError(e.message));
+auth.onAuthStateChanged(user => {
+  const authOverlay = document.getElementById('authOverlay');
+  const landingOverlay = document.getElementById('landingOverlay');
+  if (user) {
+    currentUser = user;
+    authOverlay.style.display = 'none';
+    landingOverlay.style.display = 'flex';
+    const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+    document.getElementById('playerName').value = displayName;
+    if (typeof initFriends === 'function') initFriends();
+  } else {
+    currentUser = null;
+    authOverlay.style.display = 'flex';
+    landingOverlay.style.display = 'none';
+    if (typeof teardownFriends === 'function') teardownFriends();
+  }
+});
+const savedLang = localStorage.getItem('authLang') || 'ar';
+changeAuthLang(savedLang);
 
-// TTS & Audio
-let currentAudio = null, currentSpeechId = 0, isBotTalking = false;
-let playlist = [], currentSongIndex = -1;
-let attachedImageBase64 = null, attachedFileText = null;
-let isSending = false, isCompressing = false;
+const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
+const SERVER_URL = BASE_SERVER_URL + "/chat";
+const TTS_URL = BASE_SERVER_URL + "/tts";
+const ROOM_CREATE_URL = BASE_SERVER_URL + "/rooms/create";
+const TRANSCRIBE_URL = BASE_SERVER_URL + "/transcribe";
+const WS_BASE = BASE_SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+const REQUEST_TIMEOUT_MS = 60000;
+const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
-// Avatar
-let currentAvatarObjectUrl = null;
+const LONG_RECORD_CHUNK_MS = 5 * 60 * 1000;
+const LONG_RECORD_SILENCE_MS = 3000;
+const MAX_RECORD_DURATION_MS = 60 * 60 * 1000;
 
-// ===== CONSTANTS =====
-const SERVER_URL = "https://chat-core-tts.onrender.com/chat";
-const TTS_URL = "https://chat-core-tts.onrender.com/tts";
-const TRANSCRIBE_URL = "https://chat-core-tts.onrender.com/transcribe";
-const WS_BASE = "wss://chat-core-tts.onrender.com/ws";
-const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+function wakeServer() { try { fetch(BASE_SERVER_URL + '/health', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} }
+wakeServer();
 
 const $ = id => document.getElementById(id);
+const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn'), stopAudioBtn = $('stopAudioBtn');
+const micA = $('micA'), micB = $('micB'), remoteMicBtn = $('remoteMicBtn'), floatingMicBtn = $('floatingMicBtn');
+const langA = $('langA'), langB = $('langB');
+const clearBtn = $('clearBtn'), statusEl = $('status');
+const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
+const backBtn = $('backBtn');
+const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount');
+const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
+const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('menuCamera'), menuGallery = $('menuGallery'), menuVideo = $('menuVideo');
+const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
+const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
+const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
+const transToggleBtnRoom = $('transToggleBtnRoom');
+const transToggleBtnLocal = $('transToggleBtnLocal');
+const voiceSelect = $('voiceSelect');
+const callOverlay = $('callOverlay');
 
-function showStatus(msg) {
-  const s = $('status');
-  s.textContent = msg;
-  s.classList.add('show');
-  setTimeout(() => s.classList.remove('show'), 3000);
+$('btnLogout').addEventListener('click', logoutUser);
+
+let appMode = 'none';
+let chatHistory = [], isSending = false, isCompressing = false;
+let isTranslatorMode = false;
+let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
+let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
+let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
+let isWebRtcMicOn = true;
+
+let localRecorder = null;
+let localStreamMic = null;
+let localChunks = [];
+let localStartTime = 0;
+let currentSpeaker = null;
+let isLocalProcessing = false;
+
+let isManualTranslating = false;
+let audioRecorder = null;
+let translationAudioCtx = null;
+let myIsCaller = false;
+let _chLangPopulated = false;
+
+let currentIncomingCall = null;
+let ringtoneAudio = null;
+
+const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
+function showAppUI() {
+  UI_ELEMENTS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = (id === 'inputRow' || id === 'chatContainer' || id === 'topHeader' || id === 'extraControls' || id === 'avatar-wrap') ? 'flex' : 'block';
+  });
 }
 
-function setStatus(msg) { $('headerStatus').textContent = msg; }
+const UI_TEXT = {
+  'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', or: 'أو', code: 'كود الغرفة', join: 'انضمام', back: '← رجوع' },
+  'fr': { name: 'Votre Nom', create: '➕ Créer un salon', or: 'Ou', code: 'Code du salon', join: 'Rejoindre', back: '← Retour' },
+  'en': { name: 'Your Name', create: '➕ Create Room', or: 'Or', code: 'Room Code', join: 'Join', back: '← Back' }
+};
+$('playerLang').addEventListener('change', (e) => {
+  const lang = e.target.value;
+  const t = UI_TEXT[lang] || UI_TEXT['en'];
+  $('playerName').placeholder = t.name;
+  $('createRoomBtn').textContent = t.create;
+  $('orText').textContent = t.or;
+  $('joinCodeInput').placeholder = t.code;
+  $('joinRoomBtn').textContent = t.join;
+  $('backToLandingBtn').textContent = t.back;
+});
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function updateTranslatorUI() {
+  const textRoom = isTranslatorMode ? '🌐 ON' : '🌐 OFF';
+  const textLocal = isTranslatorMode ? '🌐 Translator ON' : '🌐 Translator OFF';
+  if (transToggleBtnRoom) { transToggleBtnRoom.textContent = textRoom; transToggleBtnRoom.classList.toggle('active', isTranslatorMode); }
+  if (transToggleBtnLocal) { transToggleBtnLocal.textContent = textLocal; transToggleBtnLocal.classList.toggle('active', isTranslatorMode); }
+  if (remoteMicBtn && appMode === 'remote') {
+    remoteMicBtn.style.background = isManualTranslating ? '#ef4444' : 'linear-gradient(135deg, #11998e, #38ef7d)';
+    remoteMicBtn.classList.toggle('recording', isManualTranslating);
+  }
+  if (floatingMicBtn) {
+    floatingMicBtn.classList.toggle('recording', isManualTranslating);
+    floatingMicBtn.style.background = isManualTranslating ? '#ef4444' : 'linear-gradient(135deg, #11998e, #38ef7d)';
+  }
 }
-
-function langNameFor(code) {
-  return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English';
+function setTranslatorMode(isOn) {
+  isTranslatorMode = isOn;
+  updateTranslatorUI();
+  if (appMode === 'remote') {
+    if (isOn) {
+      if (isManualTranslating) stopManualTranslation();
+      if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
+      isWebRtcMicOn = false;
+      setStatus('Translator Mode: Press Mic to talk');
+    } else {
+      if (isManualTranslating) stopManualTranslation();
+      if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
+      isWebRtcMicOn = true;
+      setStatus('Phone Mode: Mic is live');
+    }
+  }
+  resetStatus();
 }
+if (transToggleBtnRoom) transToggleBtnRoom.addEventListener('click', () => setTranslatorMode(!isTranslatorMode));
+if (transToggleBtnLocal) transToggleBtnLocal.addEventListener('click', () => setTranslatorMode(!isTranslatorMode));
 
-function localeFor(code) {
-  return { 'ar': 'ar', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US';
+function setStatus(s) { statusEl.textContent = s; }
+function resetStatus() {
+  if (appMode === 'remote') {
+    setStatus(isTranslatorMode ? (isManualTranslating ? '🎤 Recording... Press mic to stop & translate' : 'Translator Mode: Press mic to talk') : 'Phone Mode: Mic is live');
+  } else {
+    setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬');
+  }
 }
-
-function cleanTextForTTS(text) {
-  if (!text) return "";
-  return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '')
-    .replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ')
-    .replace(/\s+/g, ' ').trim();
+function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function addMsg(text, className, lang, imageBase64 = null) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + className;
+  div.setAttribute('dir', 'auto');
+  const displayLang = lang ? String(lang).toUpperCase() : 'AUTO';
+  if (displayLang !== 'AUTO' || className === 'user-b' || className === 'user-a') {
+    const tag = document.createElement('span'); tag.className = 'lang-tag'; tag.textContent = displayLang;
+    div.appendChild(tag);
+  }
+  if (imageBase64) {
+    const img = document.createElement('img');
+    img.src = imageBase64; img.style.maxWidth = '150px'; img.style.borderRadius = '8px'; img.style.display = 'block'; img.style.marginTop = '5px'; img.style.border = '2px solid rgba(255,255,255,0.2)'; img.style.cursor = 'pointer';
+    img.onclick = (e) => { e.stopPropagation(); window.open(imageBase64, '_blank'); };
+    div.appendChild(img);
+  }
+  if (text) {
+    div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
+    div.addEventListener('click', () => {
+      if (isSending || appMode === 'remote') return;
+      if (div.classList.contains('playing')) {
+        stopAudio();
+        div.classList.remove('playing');
+      } else {
+        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
+        div.classList.add('playing');
+        speak(text, lang || langA.value);
+      }
+    });
+  }
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
 }
-
+function unlockAudio() {
+  if ('speechSynthesis' in window) { try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {} }
+  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+}
+document.body.addEventListener('click', unlockAudio, { once: true });
+function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
+function localeFor(code) { return { 'ar': 'ar', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
+function cleanTextForTTS(text) { if (!text) return ""; return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim(); }
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image(); img.src = base64Str;
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width, height = img.height;
+      const canvas = document.createElement('canvas'); let width = img.width, height = img.height;
       if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
       canvas.width = width; canvas.height = height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
@@ -595,155 +747,87 @@ function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   });
 }
 
-// ===== AUTH =====
-let isLoginMode = true;
-
-$('authSubmitBtn').addEventListener('click', async () => {
-  const email = $('authEmail').value.trim(), pass = $('authPassword').value;
-  if(!email || !pass) return $('authError').textContent = "⚠️ أدخل البيانات";
-  $('authSubmitBtn').textContent = "⏳"; $('authSubmitBtn').disabled = true; $('authError').textContent = "";
-  try {
-    if(isLoginMode) await auth.signInWithEmailAndPassword(email, pass);
-    else await auth.createUserWithEmailAndPassword(email, pass);
-  } catch(e) {
-    $('authError').textContent = "❌ " + e.message;
-    $('authSubmitBtn').textContent = isLoginMode ? 'دخول' : 'تسجيل';
-    $('authSubmitBtn').disabled = false;
-  }
-});
-
-$('authToggleBtn').addEventListener('click', () => {
-  isLoginMode = !isLoginMode;
-  $('authTitle').textContent = isLoginMode ? 'تسجيل الدخول' : 'حساب جديد';
-  $('authSubmitBtn').textContent = isLoginMode ? 'دخول' : 'تسجيل';
-  $('authToggleBtn').textContent = isLoginMode ? 'إنشاء حساب جديد' : 'لدي حساب';
-  $('authError').textContent = '';
-});
-
-auth.onAuthStateChanged(async user => {
-  if(user) {
-    currentUser = user;
-    $('authOverlay').style.display = 'none';
-    $('modeSelection').classList.add('active');
-    
-    // Load Firestore
-    if(!db) {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js";
-        s.onload = resolve; s.onerror = reject;
-        document.head.appendChild(s);
-      });
-      db = firebase.firestore();
-    }
-  } else {
-    currentUser = null;
-    $('authOverlay').style.display = 'flex';
-    $('modeSelection').classList.remove('active');
-    $('app').classList.remove('active');
-    if(ws) ws.close();
-  }
-});
-
-// ===== MODE SELECTION =====
-$('btnFace').addEventListener('click', () => startMode('face'));
-$('btnRemote').addEventListener('click', () => startMode('remote'));
-$('btnLogout').addEventListener('click', () => auth.signOut());
-$('backToModeBtn').addEventListener('click', () => {
-  $('app').classList.remove('active');
-  $('modeSelection').classList.add('active');
-  if(ws) ws.close();
-  $('chat').innerHTML = '';
-});
-
-async function startMode(mode) {
+function setModeUI(mode) {
   appMode = mode;
-  $('modeSelection').classList.remove('active');
-  $('app').classList.add('active');
-  $('chat').innerHTML = '';
-  
-  const uid = currentUser.uid;
-  const name = currentUser.displayName || currentUser.email.split('@')[0];
-  
-  // Get/Create Friend Code
-  const userRef = db.collection('users').doc(uid);
-  const snap = await userRef.get();
-  if(snap.exists && snap.data().code) myFriendCode = snap.data().code;
-  else {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    await userRef.set({ code, name, email: currentUser.email }, { merge: true });
-    myFriendCode = code;
+  UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
+  remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none';
+  mediaBtn.style.display = 'none'; musicBtn.style.display = 'none';
+  uploadBtn.style.display = 'none'; voiceSelect.style.display = 'none';
+  $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
+  if (mode === 'local') {
+    document.body.classList.remove('remote-mode');
+    showAppUI();
+    mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
+    uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
+    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'inline-block';
+    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'none';
+    $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
+  } else if (mode === 'remote') {
+    document.body.classList.add('remote-mode');
+    showAppUI();
+    remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex';
+    mediaBtn.style.display = 'flex'; voiceSelect.style.display = 'inline-block';
+    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
+    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
   }
+  updateTranslatorUI();
+}
+$('btnLocal').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; setModeUI('local'); resetStatus(); });
+$('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
+$('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
 
-  // Listen to Friends
-  db.collection('users').doc(uid).collection('friends').onSnapshot(snap => {
-    friendsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderFriends();
-  });
-
-  // Listen to Calls
-  db.collection('calls').where('to_uid', '==', uid).where('status', '==', 'ringing').onSnapshot(snap => {
-    snap.docChanges().forEach(ch => {
-      if(ch.type === 'added') {
-        const call = { id: ch.doc.id, ...ch.doc.data() };
-        if(Date.now() - (call.createdAt || 0) > 60000) { ch.doc.ref.delete(); return; }
-        showIncomingCall(call);
-      }
-    });
-  });
-
-  if(mode === 'face') {
-    $('modeIndicator').textContent = 'FACE';
-    $('headerTitle').textContent = 'Face-to-Face';
-    $('faceControls').classList.add('active');
-    $('avatarWrap').style.display = 'block';
-    $('sidebar').style.display = 'none';
-    $('toggleSidebar').style.display = 'none';
-    $('musicBtn').style.display = 'block';
-    $('mediaBtn').style.display = 'block';
-    $('uploadBtn').style.display = 'block';
-    $('voiceSelect').style.display = 'block';
-    $('micBtn').style.display = 'none';
-    addMsg('bot', '🌐 وضع Face-to-Face: اضغط 🎤 للتحدث');
+async function cleanupAll() {
+  if (isManualTranslating) stopManualTranslation();
+  if (localRecorder && localRecorder.state === 'recording') localRecorder.stop();
+  stopAudio();
+  if (appMode === 'remote') {
+    shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none';
+    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
+    chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
   } else {
-    $('modeIndicator').textContent = 'REMOTE';
-    $('headerTitle').textContent = 'Remote Chat';
-    $('faceControls').classList.remove('active');
-    $('avatarWrap').style.display = 'none';
-    $('sidebar').style.display = 'block';
-    $('toggleSidebar').style.display = 'block';
-    $('musicBtn').style.display = 'none';
-    $('mediaBtn').style.display = 'none';
-    $('uploadBtn').style.display = 'none';
-    $('voiceSelect').style.display = 'none';
-    $('micBtn').style.display = 'flex';
-    connectWebSocket();
-    addMsg('bot', '💬 تم الاتصال بالغرفة');
+    chatEl.innerHTML = ''; chatHistory = []; appMode = 'none'; setModeUI('none');
+    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
+    $('landingOverlay').style.display = 'flex';
   }
 }
 
-// ===== FACE-TO-FACE LOGIC =====
+backBtn.addEventListener('click', cleanupAll);
+
+avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return; avatarWrap.classList.toggle('fullscreen'); });
+closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
+clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
+stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); if (localRecorder && localRecorder.state === 'recording') localRecorder.stop(); });
+
 async function toggleLocalMic(speaker) {
-  if(isLocalProcessing) return;
+  if (isLocalProcessing) return;
+  unlockAudio();
   
-  if(localRecorder && localRecorder.state === 'recording') {
+  if (localRecorder && localRecorder.state === 'recording') {
     localRecorder.stop();
-    $('micA').classList.remove('recording');
-    $('micB').classList.remove('recording');
+    micA.classList.remove('recording'); 
+    micB.classList.remove('recording');
     setStatus('⏳ Processing...');
     return;
   }
   
-  if(localRecorder) { try { localRecorder.stop(); } catch(e){} }
+  if (localRecorder) { try { localRecorder.stop(); } catch(e){} }
   
   currentSpeaker = speaker;
-  const lang = speaker === 'A' ? $('langA').value : $('langB').value;
-  const targetLang = speaker === 'A' ? $('langB').value : $('langA').value;
-  const btn = speaker === 'A' ? $('micA') : $('micB');
+  const lang = speaker === 'A' ? langA.value : langB.value;
+  const targetLang = speaker === 'A' ? langB.value : langA.value;
+  const btn = speaker === 'A' ? micA : micB;
   
   try {
-    localStreamMic = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
+    localStreamMic = await navigator.mediaDevices.getUserMedia({ 
+      audio: { 
+        echoCancellation: true, 
+        noiseSuppression: true, 
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 48000
+      } 
     });
     
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -752,19 +836,21 @@ async function toggleLocalMic(speaker) {
     analyser.fftSize = 512;
     source.connect(analyser);
     const rmsBuffer = new Float32Array(analyser.fftSize);
-    let rmsMax = 0, silenceStart = Date.now();
-    let noiseFloor = 0, calibrationCount = 0;
-    let intervalId = null, calibrationInterval = null;
+    let rmsMax = 0;
+    let silenceStart = Date.now();
+    let intervalId = null;
     
-    // Smart Noise Gate
-    calibrationInterval = setInterval(() => {
+    let noiseFloor = 0;
+    let calibrationCount = 0;
+    const calibrationInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0;
-        for(let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        noiseFloor += Math.sqrt(sum / rmsBuffer.length);
+        let sum = 0; 
+        for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+        const rms = Math.sqrt(sum / rmsBuffer.length);
+        noiseFloor += rms;
         calibrationCount++;
-        if(calibrationCount >= 10) {
+        if (calibrationCount >= 10) {
           noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
           clearInterval(calibrationInterval);
         }
@@ -774,13 +860,13 @@ async function toggleLocalMic(speaker) {
     intervalId = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0;
-        for(let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+        let sum = 0; 
+        for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
         const rms = Math.sqrt(sum / rmsBuffer.length);
-        if(rms > rmsMax) rmsMax = rms;
+        if (rms > rmsMax) rmsMax = rms;
         const threshold = Math.max(0.02, noiseFloor + 0.015);
-        if(rms > threshold) silenceStart = Date.now();
-        else if(Date.now() - silenceStart > 3000 && localRecorder && localRecorder.state === 'recording') {
+        if (rms > threshold) silenceStart = Date.now();
+        else if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && localRecorder && localRecorder.state === 'recording') {
           localRecorder.stop();
         }
       } catch(e){}
@@ -790,555 +876,829 @@ async function toggleLocalMic(speaker) {
     localRecorder = new MediaRecorder(localStreamMic, { mimeType });
     localChunks = [];
     
-    localRecorder.ondataavailable = e => { if(e.data.size > 0) localChunks.push(e.data); };
+    localRecorder.ondataavailable = e => { if (e.data.size > 0) localChunks.push(e.data); };
     
     localRecorder.onstop = async () => {
-      if(intervalId) clearInterval(intervalId);
-      if(calibrationInterval) clearInterval(calibrationInterval);
-      if(localStreamMic) localStreamMic.getTracks().forEach(t => t.stop());
-      try { if(audioCtx.state !== 'closed') await audioCtx.close(); } catch(e){}
+      if (intervalId) clearInterval(intervalId);
+      if (calibrationInterval) clearInterval(calibrationInterval);
+      if (localStreamMic) localStreamMic.getTracks().forEach(t => t.stop());
+      try { if (audioCtx.state !== 'closed') await audioCtx.close(); } catch(e){}
       
-      const durationMs = Date.now() - Date.now(); // Will be fixed below
+      const durationMs = Date.now() - localStartTime;
       
-      if(rmsMax < 0.005) {
-        isLocalProcessing = false;
-        $('micA').classList.remove('recording');
-        $('micB').classList.remove('recording');
-        setStatus('جاهز');
-        if(durationMs >= 800) addMsg('bot', '⚠️ لم يُسمع صوت واضح.');
-        return;
+      if (durationMs < 800 || rmsMax < 0.005) { 
+        isLocalProcessing = false; unlockMics(); 
+        if (durationMs >= 800) addMsg('⚠️ لم يُسمع صوت واضح.', 'bot');
+        return; 
       }
       
-      const blob = new Blob(localChunks, { type: mimeType });
-      setStatus('⏳ جاري استخراج النص...');
+      const blob = new Blob(localChunks, { type: localRecorder.mimeType });
+      setStatus('⏳ جاري استخراج النص والترجمة...');
       
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
-      formData.append('target_lang', targetLang);
-      formData.append('language', lang);
+      formData.append('target_lang', targetLang); 
+      formData.append('language', lang); 
       formData.append('duration_ms', String(durationMs));
       
       try {
         const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-        if(res.ok) {
+        if (res.ok) {
           const data = await res.json();
-          if(data.original && data.original.length > 1) {
-            addMsg(speaker === 'A' ? 'user-a' : 'user-b', `${data.original}`, lang);
-            if(isTranslatorMode && data.translated) {
-              addMsg('bot', `↳ ${data.translated}`, targetLang);
-              speak(data.translated, targetLang);
+          if (data.original && data.original.length > 1) {
+            addMsg(`You: ${data.original}`, speaker === 'A' ? 'user-a' : 'user-b', lang);
+            if (isTranslatorMode) {
+              if (data.translated) {
+                addMsg(`↳ ${data.translated}`, 'bot', targetLang);
+                speak(data.translated, targetLang);
+              }
             } else {
               ask(data.original, lang, targetLang, speaker);
             }
           } else {
-            addMsg('bot', '⚠️ لم يتم التعرف على كلام.');
+            addMsg(`⚠️ لم يتم التعرف على كلام.`, 'bot');
           }
         }
-      } catch(e) { addMsg('bot', '⚠️ فشل إرسال الصوت.'); }
+      } catch(e) { console.warn('Audio upload failed', e); addMsg('⚠️ فشل إرسال الصوت.', 'bot'); }
       
       isLocalProcessing = false;
-      $('micA').classList.remove('recording');
-      $('micB').classList.remove('recording');
-      setStatus('جاهز');
+      unlockMics();
     };
     
     localRecorder.start(1000);
-    isLocalProcessing = true;
+    localStartTime = Date.now();
     btn.classList.add('recording');
+    micA.disabled = speaker !== 'A';
+    micB.disabled = speaker !== 'B';
     setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
-  } catch(e) {
-    addMsg('bot', "⚠️ تعذر الوصول للمايك: " + e.message);
+  } catch (e) {
+    addMsg("⚠️ تعذر الوصول للمايك: " + e.message, "bot");
     isLocalProcessing = false;
+    unlockMics();
+  }
+}
+function unlockMics() {
+  micA.disabled = false; micB.disabled = false;
+  micA.classList.remove('recording'); micB.classList.remove('recording');
+  resetStatus();
+}
+micA.addEventListener('click', () => toggleLocalMic('A'));
+micB.addEventListener('click', () => toggleLocalMic('B'));
+
+async function toggleRemoteMic() {
+  if (isTranslatorMode) {
+    if (isManualTranslating) stopManualTranslation();
+    else startManualTranslation();
+    return;
+  }
+  
+  isWebRtcMicOn = !isWebRtcMicOn;
+  
+  if (appMode === 'remote') {
+    const stream = await ensureMicStream();
+    if (stream) {
+      stream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
+    }
+  }
+  
+  updateTranslatorUI();
+  resetStatus();
+}
+
+remoteMicBtn.addEventListener('click', toggleRemoteMic);
+floatingMicBtn.addEventListener('click', toggleRemoteMic);
+
+async function ensureMicStream() {
+  if (localStream) return localStream;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
+    });
+    isWebRtcMicOn = true;
+    return localStream;
+  } catch (err) {
+    addMsg('⚠️ تعذر الوصول للمايك: ' + err.message, 'bot');
+    return null;
   }
 }
 
-$('micA').addEventListener('click', () => toggleLocalMic('A'));
-$('micB').addEventListener('click', () => toggleLocalMic('B'));
+async function startManualTranslation() {
+  if (isManualTranslating) return;
+  try {
+    const transStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
+    });
+    const rawTrack = transStream.getAudioTracks()[0];
+
+    translationAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = translationAudioCtx.createMediaStreamSource(new MediaStream([rawTrack]));
+    const hp = translationAudioCtx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 80;
+    const analyser = translationAudioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    const destination = translationAudioCtx.createMediaStreamDestination();
+    source.connect(hp); hp.connect(analyser); analyser.connect(destination);
+
+    const filteredTrack = destination.stream.getAudioTracks()[0];
+    const rmsBuffer = new Float32Array(analyser.fftSize);
+    let rmsMax = 0;
+    let silenceStart = Date.now();
+    let chunkStartTime = Date.now();
+    let chunkIndex = 0;
+    let noiseFloor = 0;
+    let calibrationCount = 0;
+
+    const calibrationInterval = setInterval(() => {
+      try {
+        analyser.getFloatTimeDomainData(rmsBuffer);
+        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+        const rms = Math.sqrt(sum / rmsBuffer.length);
+        noiseFloor += rms;
+        calibrationCount++;
+        if (calibrationCount >= 10) {
+          noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
+          clearInterval(calibrationInterval);
+        }
+      } catch(e){}
+    }, 100);
+
+    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+    
+    const startNewChunk = () => {
+      let chunks = [];
+      audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
+      audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      audioRecorder.onstop = async () => {
+        const durationMs = Date.now() - chunkStartTime;
+        if (chunks.length === 0 || durationMs < 800 || rmsMax < 0.005) return;
+        
+        const blob = new Blob(chunks, { type: mimeType });
+        const formData = new FormData();
+        formData.append('file', blob, 'audio.webm');
+        formData.append('target_lang', myLang);
+        formData.append('language', myLang);
+        formData.append('duration_ms', String(durationMs));
+        formData.append('chunk_index', String(chunkIndex));
+        
+        try {
+          const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.original && data.original.length > 1) {
+              addMsg(`You: ${data.original}`, 'user-a', myLang);
+              sendRemoteMessage(data.original);
+            }
+          }
+        } catch(e) { console.warn('Audio chunk upload failed', e); }
+        chunkIndex++;
+      };
+      audioRecorder.start(1000);
+      chunkStartTime = Date.now();
+      rmsMax = 0;
+      silenceStart = Date.now();
+    };
+
+    startNewChunk();
+
+    const vadInterval = setInterval(() => {
+      if (!isManualTranslating) return;
+      try {
+        analyser.getFloatTimeDomainData(rmsBuffer);
+        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+        const rms = Math.sqrt(sum / rmsBuffer.length);
+        
+        const threshold = Math.max(0.02, noiseFloor + 0.015);
+        if (rms > threshold) {
+          if (rms > rmsMax) rmsMax = rms;
+          silenceStart = Date.now();
+        } else {
+          if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && audioRecorder && audioRecorder.state === 'recording') {
+             audioRecorder.stop();
+             setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
+          }
+        }
+        
+        if (Date.now() - chunkStartTime > LONG_RECORD_CHUNK_MS && audioRecorder && audioRecorder.state === 'recording') {
+          audioRecorder.stop();
+          setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
+        }
+      } catch(e){}
+    }, 200);
+
+    isManualTranslating = true;
+    updateTranslatorUI();
+    setStatus('🎤 Recording... Press mic to stop & translate');
+    
+    window._vadInterval = vadInterval;
+    window._rawTrack = rawTrack;
+    window._calibrationInterval = calibrationInterval;
+
+  } catch (e) {
+    console.error("Mic access failed", e);
+    addMsg("⚠️ تعذر الوصول للمايك.", 'bot');
+  }
+}
+function stopManualTranslation() {
+  if (!isManualTranslating) return;
+  isManualTranslating = false;
+  
+  if (window._vadInterval) { clearInterval(window._vadInterval); window._vadInterval = null; }
+  if (window._calibrationInterval) { clearInterval(window._calibrationInterval); window._calibrationInterval = null; }
+  if (window._rawTrack) { try { window._rawTrack.stop(); } catch(e){} window._rawTrack = null; }
+  
+  if (audioRecorder && audioRecorder.state === 'recording') {
+    audioRecorder.stop();
+  }
+  
+  try { if (translationAudioCtx && translationAudioCtx.state !== 'closed') translationAudioCtx.close(); } catch(e){}
+  translationAudioCtx = null;
+  
+  updateTranslatorUI();
+}
+
+sendBtn.addEventListener('click', () => {
+  const t = inputEl.value.trim();
+  if (appMode === 'remote') { if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; } }
+  else { if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; } }
+});
+inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
+
+function buildSystemPrompt(targetLang, sourceLang, isImage = false) {
+  if (isImage) {
+    return `Describe this image in detail in ${langNameFor(sourceLang)}, then translate your description to ${langNameFor(targetLang)}. Format: [Original description in ${langNameFor(sourceLang)}] ||| [Translation in ${langNameFor(targetLang)}]`;
+  }
+  if (isTranslatorMode) {
+    return `You are an expert expressive translator specializing in Arabic dialects and conversational language. Translate the following text from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Preserve the tone, emotion, and conversational style. Add proper punctuation and formatting to make the text natural and readable. Output ONLY the translated text.`;
+  }
+  return `You are Chat-Core, a helpful assistant with deep knowledge of Arabic dialects and expressive language. You must reply ONLY in ${langNameFor(targetLang)}. Use natural, conversational tone with proper punctuation and formatting. Never use any other language.`;
+}
 
 async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
-  if(isSending) return;
-  isSending = true; $('sendBtn').disabled = true; setStatus('Processing...');
+  if (isSending) return;
+  setBusy(true); setStatus('Processing...');
+  const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang, isImage) }];
   
-  const systemPrompt = isTranslatorMode
-    ? `You are an expert translator. Translate from ${langNameFor(sourceLang)} to ${langNameFor(targetLang)}. Preserve tone and style. Output ONLY the translation.`
-    : `You are Chat-Core, a helpful assistant. Reply ONLY in ${langNameFor(targetLang)}. Use natural conversational tone.`;
+  let finalText = text || '';
+  if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
   
-  const messages = [{ role: 'system', content: systemPrompt }];
-  
-  let userContent = text || '';
-  if(attachedImageBase64) {
+  let userContent = finalText;
+  if (attachedImageBase64) {
     userContent = [
-      { type: "text", text: text || "Describe this image." },
+      { type: "text", text: finalText || "Describe this image in detail." }, 
       { type: "image_url", image_url: { url: attachedImageBase64 } }
     ];
   }
+  
   messages.push({ role: 'user', content: userContent });
   
   try {
-    const res = await fetch(SERVER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID })
-    });
+    const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
-    if(!res.ok) throw new Error(data.detail);
+    if (!res.ok) throw new Error(data.detail);
     
     let replyText = data.reply.trim();
     
-    if(isImage && replyText.includes('|||')) {
+    if (isImage && replyText.includes('|||')) {
       const parts = replyText.split('|||');
-      addMsg(speaker === 'A' ? 'user-a' : 'user-b', `📷 ${parts[0].trim()}`, sourceLang, attachedImageBase64);
-      addMsg('bot', `↳ ${parts[1].trim()}`, targetLang);
-      speak(parts[1].trim(), targetLang);
+      const original = parts[0].trim();
+      const translated = parts[1].trim();
+      addMsg(`📷 ${original}`, speaker === 'A' ? 'user-a' : 'user-b', sourceLang, attachedImageBase64);
+      addMsg(`↳ ${translated}`, 'bot', targetLang);
+      speak(translated, targetLang);
     } else {
-      addMsg('user-b', replyText, targetLang || 'AUTO', isImage ? attachedImageBase64 : null);
-      setStatus('جاهز');
-      speak(replyText, targetLang || 'ar');
+      if (isTranslatorMode && replyText === text) {
+         replyText = "⚠️ Translation failed. Please try again.";
+      }
+      addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO', isImage ? attachedImageBase64 : null);
+      resetStatus(); speak(replyText, targetLang || langA.value);
     }
     
-    attachedImageBase64 = null; attachedFileText = null;
-  } catch(e) { addMsg('bot', 'Error: ' + e.message); }
-  finally { isSending = false; $('sendBtn').disabled = false; }
+    attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
+  } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
 
-// ===== REMOTE MODE LOGIC =====
-function connectWebSocket() {
-  const wsUrl = `${WS_BASE}/${currentRoomCode}`;
-  ws = new WebSocket(wsUrl);
-  
-  ws.onopen = () => {
-    const name = currentUser.email.split('@')[0];
-    ws.send(JSON.stringify({ type: 'join', name, lang: 'ar' }));
-  };
-  
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if(msg.type === 'translated' && !msg.is_mine) {
-      addMsg('user-b', `${msg.from_name}: ${msg.original}`, msg.from_lang);
-      if(msg.translated && isTranslatorMode) {
-        addMsg('bot', `↳ ${msg.translated}`, msg.target_lang);
-        speak(msg.translated, msg.target_lang);
-      }
-    } else if(msg.type === 'user_joined') {
-      addMsg('bot', `👋 ${msg.name} انضم`);
-    } else if(msg.type === 'user_left') {
-      addMsg('bot', `👋 ${msg.name} غادر`);
+uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
+videoAvatarUpload.addEventListener('change', (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
+  currentAvatarObjectUrl = URL.createObjectURL(file);
+  avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block'; avatarVideo.src = currentAvatarObjectUrl;
+  if (isBotTalking) avatarVideo.play().catch(()=>{});
+  removeAvatarBtn.style.display = 'flex';
+});
+removeAvatarBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); 
+  avatarVideo.pause(); 
+  avatarVideo.removeAttribute('src'); 
+  avatarVideo.load();
+  avatarVideo.style.display = 'none'; 
+  avatarLogo.style.display = 'block'; 
+  removeAvatarBtn.style.display = 'none';
+  if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
+});
+mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = 'none'; if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none'; else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; } });
+musicBtn.addEventListener('click', (e) => { e.stopPropagation(); actionMenu.style.display = 'none'; if (musicMenu.style.display === 'block') musicMenu.style.display = 'none'; else { const rect = musicBtn.getBoundingClientRect(); musicMenu.style.display = 'block'; musicMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; musicMenu.style.left = Math.max(10, rect.left - 80) + 'px'; } });
+document.addEventListener('click', (e) => { if (!actionMenu.contains(e.target) && e.target !== mediaBtn) actionMenu.style.display = 'none'; if (!musicMenu.contains(e.target) && e.target !== musicBtn) musicMenu.style.display = 'none'; });
+menuCamera.addEventListener('click', () => { actionMenu.style.display = 'none'; cameraUpload.value = ''; cameraUpload.click(); });
+menuGallery.addEventListener('click', () => { actionMenu.style.display = 'none'; galleryUpload.value = ''; galleryUpload.click(); });
+menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; videoUpload.value = ''; videoUpload.click(); });
+
+videoUpload.addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  if (file.size > 100 * 1024 * 1024) return alert('حجم الملف كبير جداً! الحد الأقصى 100MB');
+  const targetLang = langB.value;
+  addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
+  setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
+  const formData = new FormData(); 
+  formData.append('file', file); 
+  formData.append('target_lang', targetLang);
+  formData.append('language', langA.value);
+  formData.append('duration_ms', '10000');
+  try {
+    const res = await fetchWithTimeout(TRANSCRIBE_URL, { method: 'POST', body: formData }, 300000);
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json();
+    if (data.original) addMsg(data.original, 'user-b', 'AUTO'); 
+    if (data.translated && data.translated !== data.original) addMsg(data.translated, 'bot', targetLang);
+    setStatus('✅ تمت الترجمة بنجاح!');
+  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); }
+  finally { setBusy(false); e.target.value = ''; }
+});
+
+async function handleImage(e) {
+  const file = e.target.files[0]; if (!file) return;
+  isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const compressed = await compressImage(ev.target.result);
+    if (appMode === 'remote') {
+      if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed })); addMsg('', 'user-a', myLang, compressed); }
+      isCompressing = false; sendBtn.disabled = isSending; setStatus('');
+    } else {
+      attachedFileText = null; attachedImageBase64 = compressed;
+      imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
+      isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
     }
   };
-  
-  ws.onerror = () => showStatus('⚠️ خطأ في الاتصال');
-  ws.onclose = () => {
-    if(appMode === 'remote') {
-      setTimeout(() => connectWebSocket(), 3000);
-    }
-  };
+  reader.readAsDataURL(file);
+}
+galleryUpload.addEventListener('change', handleImage);
+cameraUpload.addEventListener('change', handleImage);
+cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.'); });
+audioUpload.addEventListener('change', (e) => {
+  const files = e.target.files;
+  for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
+  renderPlaylist(); e.target.value = '';
+});
+function renderPlaylist() {
+  musicList.innerHTML = '';
+  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
+  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause';
+  pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
+  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
+  playlist.forEach((song, index) => {
+    const div = document.createElement('div'); div.className = 'music-item';
+    const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
+    const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
+    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
+    div.appendChild(name); div.appendChild(del);
+    if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
+    div.onclick = () => { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); } else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); } };
+    musicList.appendChild(div);
+  });
+}
+function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
+bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
+bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
+
+// ===== FRIENDS SYSTEM (inside Messenger) =====
+let friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
+let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
+let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [];
+
+const FR_TEXT = {
+  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد.', accept: 'قبول', decline: 'رفض', call: 'اتصال', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...', ringing: 'جارٍ الاتصال...', incoming: 'مكالمة واردة...' },
+  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', call: 'Appel', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer', rules: "Base de données inaccessible.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...', ringing: 'Appel en cours...', incoming: 'Appel entrant...' },
+  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet.', accept: 'Accept', decline: 'Decline', call: 'Call', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...', ringing: 'Ringing...', incoming: 'Incoming call...' }
+};
+const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
+
+function myDisplayName() { return (currentUser && (currentUser.displayName || (currentUser.email || 'user').split('@')[0])) || 'User'; }
+function genFriendCode() { const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes); return Array.from(bytes, b => alphabet[b % alphabet.length]).join(''); }
+function frErrText(e) { const c = e && e.code; if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules'); return (e && e.message) || String(e); }
+
+function frBtn(label, bg, onClick) { const b = document.createElement('button'); b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`; b.addEventListener('click', onClick); return b; }
+function frRow(name) { const row = document.createElement('div'); row.style.cssText = 'display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:8px 10px;'; const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:#fff;'; row.appendChild(n); return row; }
+
+function renderFriendsUI() {
+  const listEl = $('friendsList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  if (!friendsCache.length) {
+    const e = document.createElement('div');
+    e.textContent = frT('empty');
+    e.style.cssText = 'font-size:12px; color:rgba(255,255,255,0.5); text-align:center; padding:20px;';
+    listEl.appendChild(e);
+  }
+  friendsCache.forEach(f => {
+    const row = frRow(f.name || '?');
+    row.appendChild(frBtn('📞', '#0084ff', () => callFriend(f)));
+    row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
+    listEl.appendChild(row);
+  });
+  if (myFriendCode && $('myFriendCode')) $('myFriendCode').textContent = myFriendCode;
 }
 
-function sendRemoteMessage(text) {
-  if(ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'message', text, translate: isTranslatorMode }));
-    addMsg('user-a', text, 'AR');
+async function ensureMyCode() {
+  const uref = db.collection('users').doc(currentUser.uid);
+  const snap = await uref.get();
+  if (snap.exists && snap.data().code) { myFriendCode = snap.data().code; return; }
+  for (let i = 0; i < 5; i++) {
+    const code = genFriendCode(); const cref = db.collection('codes').doc(code);
+    try { await db.runTransaction(async tx => { const c = await tx.get(cref); if (c.exists) throw new Error('taken'); tx.set(cref, { uid: currentUser.uid, name: myDisplayName() }); tx.set(uref, { code, name: myDisplayName() }, { merge: true }); }); myFriendCode = code; return; } catch (e) { if (e.message !== 'taken') throw e; }
+  }
+  throw new Error('Could not allocate a friend code');
+}
+
+function initFriends() {
+  if (friendsReady) return Promise.resolve();
+  if (friendsInitPromise) return friendsInitPromise;
+  friendsInitPromise = (async () => {
+    try {
+      db = firebase.firestore();
+      await ensureMyCode();
+      const me = currentUser.uid;
+      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => { friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
+      friendsUnsubs.push(db.collection('calls').where('to_uid', '==', me).where('status', '==', 'ringing').onSnapshot(s => {
+        s.docChanges().forEach(ch => {
+          if (ch.type === 'added') {
+            const call = { id: ch.doc.id, ...ch.doc.data() };
+            if (Date.now() - (call.createdAt || 0) > 60000) { ch.doc.ref.delete().catch(() => {}); return; }
+            showIncomingCall(call);
+          } else if (ch.type === 'modified') {
+            const call = { id: ch.doc.id, ...ch.doc.data() };
+            if (call.status === 'rejected' || call.status === 'ended') {
+              hideIncomingCall();
+            }
+          }
+        });
+      }, e => { console.warn('calls listener error', e); }));
+      friendsReady = true; lastFriendsError = null; renderFriendsUI();
+    } catch (e) { console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e; }
+  })();
+  friendsInitPromise.catch(() => {});
+  return friendsInitPromise;
+}
+
+function teardownFriends() {
+  friendsUnsubs.forEach(u => { try { u(); } catch (e) {} });
+  friendsUnsubs = []; friendsReady = false; friendsInitPromise = null; myFriendCode = null;
+  friendsCache = []; requestsCache = []; currentInvite = null;
+  hideIncomingCall();
+}
+
+function playRingtone() {
+  if (ringtoneAudio) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.setValueAtTime(480, ctx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 1);
+    ringtoneAudio = { ctx, osc, gain };
+    window._ringInterval = setInterval(() => {
+      try {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(440, ctx.currentTime);
+        o.frequency.setValueAtTime(480, ctx.currentTime + 0.5);
+        g.gain.setValueAtTime(0.3, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + 1);
+      } catch(e){}
+    }, 2000);
+  } catch(e) { console.warn('Ringtone failed', e); }
+}
+function stopRingtone() {
+  if (window._ringInterval) { clearInterval(window._ringInterval); window._ringInterval = null; }
+  if (ringtoneAudio) {
+    try { ringtoneAudio.ctx.close(); } catch(e){}
+    ringtoneAudio = null;
   }
 }
+function showIncomingCall(call) {
+  if (currentIncomingCall) return;
+  currentIncomingCall = call;
+  $('callName').textContent = call.from_name || 'Unknown';
+  $('callStatus').textContent = frT('incoming');
+  callOverlay.classList.add('active');
+  playRingtone();
+}
+function hideIncomingCall() {
+  currentIncomingCall = null;
+  callOverlay.classList.remove('active');
+  stopRingtone();
+}
+async function acceptCall() {
+  if (!currentIncomingCall || !db) return;
+  const call = currentIncomingCall;
+  hideIncomingCall();
+  try {
+    await db.collection('calls').doc(call.id).update({ status: 'accepted', acceptedAt: Date.now() });
+    const roomCode = call.room_code || 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const name = ($('playerName').value || myDisplayName()).trim();
+    enterRemote(roomCode, name, $('playerLang').value);
+  } catch(e) { console.warn('accept call error', e); }
+}
+async function declineCall() {
+  if (!currentIncomingCall || !db) return;
+  const call = currentIncomingCall;
+  hideIncomingCall();
+  try {
+    await db.collection('calls').doc(call.id).update({ status: 'rejected', rejectedAt: Date.now() });
+  } catch(e) { console.warn('decline call error', e); }
+}
+async function callFriend(friend) {
+  if (!db || !currentUser) return;
+  const roomCode = 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
+  const callData = {
+    from_uid: currentUser.uid,
+    from_name: myDisplayName(),
+    to_uid: friend.uid,
+    room_code: roomCode,
+    call_type: 'voice',
+    status: 'ringing',
+    createdAt: Date.now()
+  };
+  try {
+    await db.collection('calls').add(callData);
+    setStatus(frT('ringing'));
+    addMsg(`📞 جاري الاتصال بـ ${friend.name}...`, 'bot');
+    setTimeout(async () => {
+      const calls = await db.collection('calls').where('from_uid', '==', currentUser.uid).where('to_uid', '==', friend.uid).where('status', '==', 'ringing').limit(1).get();
+      calls.forEach(doc => doc.ref.update({ status: 'cancelled' }).catch(()=>{}));
+    }, 30000);
+  } catch(e) { setStatus(frErrText(e)); }
+}
+$('callAccept').addEventListener('click', acceptCall);
+$('callDecline').addEventListener('click', declineCall);
 
-// Remote Mic (Manual Translation)
-$('micBtn').addEventListener('click', async () => {
-  if(isManualTranslating) {
+async function sendFriendRequest(raw) {
+  const code = (raw || '').trim().toUpperCase(); if (!code) return;
+  if (code === myFriendCode) return setStatus(frT('self'));
+  try {
+    const c = await db.collection('codes').doc(code).get();
+    if (!c.exists) return setStatus(frT('notfound'));
+    const to = c.data().uid;
+    if (friendsCache.some(f => f.uid === to)) return setStatus(frT('already'));
+    await db.collection('friend_requests').doc(currentUser.uid + '_' + to).set({ from: currentUser.uid, fromName: myDisplayName(), to, createdAt: Date.now() });
+    setStatus(frT('sent')); $('friendCodeInput').value = '';
+  } catch (e) { setStatus(frErrText(e)); }
+}
+
+async function removeFriend(f) {
+  if (!confirm(frT('confirmRemove'))) return;
+  try {
+    const me = currentUser.uid;
+    const batch = db.batch();
+    batch.delete(db.collection('users').doc(me).collection('friends').doc(f.uid));
+    batch.delete(db.collection('users').doc(f.uid).collection('friends').doc(me));
+    await batch.commit();
+  } catch (e) { setStatus(frErrText(e)); }
+}
+
+$('addFriendBtn').addEventListener('click', () => $('addFriendModal').classList.add('active'));
+$('cancelAddFriend').addEventListener('click', () => $('addFriendModal').classList.remove('active'));
+$('confirmAddFriend').addEventListener('click', () => sendFriendRequest($('friendCodeInput').value));
+$('friendCodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('friendCodeInput').value); } });
+$('copyMyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setStatus(frT('copied'))).catch(() => alert(myFriendCode)); });
+
+// ===== MESSENGER MODE =====
+function enterRemote(roomCode, participantName, lang) {
+  myName = participantName; myLang = lang;
+  currentRoomCode = String(roomCode).toUpperCase();
+  myIsCaller = false; hasJoinedOnce = false; shouldReconnect = true;
+  isTranslatorMode = $('remoteTransCheck') ? $('remoteTransCheck').checked : false;
+  roomCodeLabel.textContent = currentRoomCode;
+  $('remoteJoinOverlay').style.display = 'none';
+  $('landingOverlay').style.display = 'none';
+  $('messengerContainer').classList.add('active');
+  $('messengerName').textContent = 'Room: ' + currentRoomCode;
+  $('messengerStatus').textContent = 'متصل';
+  $('messengerChat').innerHTML = '';
+  addMessengerMsg('bot', '💬 تم الاتصال بالغرفة ' + currentRoomCode);
+  connectWS(currentRoomCode);
+}
+
+function addMessengerMsg(type, text, lang = '') {
+  const chat = $('messengerChat');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  if (lang && type !== 'bot') {
+    div.innerHTML = `${escapeHtml(text)} <span class="lang-tag">${lang.toUpperCase()}</span>`;
+  } else {
+    div.textContent = text;
+  }
+  div.addEventListener('click', () => {
+    if (type === 'bot') return;
+    document.querySelectorAll('#messengerChat .msg.playing').forEach(m => m.classList.remove('playing'));
+    div.classList.add('playing');
+    speak(text, lang || 'ar');
+  });
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+$('toggleSidebar').addEventListener('click', () => $('messengerSidebar').classList.toggle('open'));
+$('messengerTransToggle').addEventListener('click', function() {
+  isTranslatorMode = !isTranslatorMode;
+  this.classList.toggle('active', isTranslatorMode);
+  setStatus(isTranslatorMode ? '🌐 الترجمة مفعلة' : 'الترجمة معطلة');
+});
+$('messengerClear').addEventListener('click', () => { $('messengerChat').innerHTML = ''; setStatus('تم مسح المحادثة'); });
+$('messengerBack').addEventListener('click', () => {
+  $('messengerContainer').classList.remove('active');
+  $('landingOverlay').style.display = 'flex';
+  if (ws) ws.close();
+  shouldReconnect = false;
+});
+
+$('messengerSend').addEventListener('click', () => {
+  const text = $('messengerInput').value.trim();
+  if (text) {
+    addMessengerMsg('user-a', text, myLang);
+    sendRemoteMessage(text);
+    $('messengerInput').value = '';
+  }
+});
+$('messengerInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') $('messengerSend').click(); });
+
+$('messengerMic').addEventListener('click', async () => {
+  if (isManualTranslating) {
     stopManualTranslation();
   } else {
     await startManualTranslation();
   }
 });
 
-async function startManualTranslation() {
-  try {
-    const transStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-    });
-    const rawTrack = transStream.getAudioTracks()[0];
-    
-    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    audioRecorder = new MediaRecorder(new MediaStream([rawTrack]), { mimeType });
-    let chunks = [];
-    
-    audioRecorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
-    audioRecorder.onstop = async () => {
-      if(chunks.length === 0) return;
-      const blob = new Blob(chunks, { type: mimeType });
-      showStatus('⏳ جاري معالجة الصوت...');
-      
-      const formData = new FormData();
-      formData.append('file', blob, 'audio.webm');
-      formData.append('target_lang', 'ar');
-      formData.append('language', 'ar');
-      
-      try {
-        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-        if(res.ok) {
-          const data = await res.json();
-          if(data.original) {
-            addMsg('user-a', data.original, 'AR');
-            sendRemoteMessage(data.original);
-          }
-        }
-      } catch(e) { showStatus('❌ فشل إرسال الصوت'); }
-      
-      chunks = [];
-    };
-    
-    audioRecorder.start(1000);
-    isManualTranslating = true;
-    $('micBtn').classList.add('recording');
-    showStatus('🎤 Recording... Press mic to stop');
-    window._rawTrack = rawTrack;
-  } catch(e) { showStatus('❌ لا يمكن الوصول للميكروفون'); }
+// ===== REMOTE/WEBSOCKET =====
+function connectWS(roomCode) {
+  try { if (ws) ws.close(); } catch (e) {}
+  ws = new WebSocket(WS_BASE + '/ws/' + String(roomCode).toUpperCase());
+  ws.onopen = () => { try { ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); } catch (e) {} startPing(); };
+  ws.onmessage = (evt) => { try { handleWSMessage(JSON.parse(evt.data)); } catch (e) { console.warn('ws parse', e); } };
+  ws.onerror = () => setStatus('⚠️ خطأ في الاتصال');
+  ws.onclose = () => {
+    stopPing();
+    if (shouldReconnect && hasJoinedOnce && currentRoomCode) {
+      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = setTimeout(() => { if (shouldReconnect && currentRoomCode) connectWS(currentRoomCode); }, 3000);
+    }
+  };
 }
-
-function stopManualTranslation() {
-  if(!isManualTranslating) return;
-  isManualTranslating = false;
-  if(window._rawTrack) { try { window._rawTrack.stop(); } catch(e){} window._rawTrack = null; }
-  if(audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
-  $('micBtn').classList.remove('recording');
-  showStatus('تم الإرسال');
+function sendRemoteMessage(text) {
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  try { ws.send(JSON.stringify({ type: 'message', text, translate: !!isTranslatorMode })); } catch (e) {}
 }
-
-// ===== FRIENDS SYSTEM =====
-function renderFriends() {
-  const list = $('friendsList');
-  list.innerHTML = '';
-  if(friendsCache.length === 0) {
-    list.innerHTML = '<div style="padding:20px; text-align:center; color:rgba(255,255,255,0.5);">لا يوجد أصدقاء<br>اضغط ➕ للإضافة</div>';
+async function handleWSMessage(msg) {
+  if (!msg || !msg.type) return;
+  const type = msg.type;
+  if (type === 'pong') return;
+  if (type === 'error') { addMessengerMsg('bot', '⚠️ ' + (msg.message || 'خطأ')); return; }
+  if (type === 'joined') {
+    hasJoinedOnce = true;
+    const n = (msg.users || []).length;
+    if (onlineCount) onlineCount.textContent = n + '/50';
+    setStatus('✅ متصل');
+    if (msg.history && msg.history.length) {
+      addMessengerMsg('bot', '📜 سجل سابق:');
+      msg.history.forEach(h => {
+        addMessengerMsg('user-b', (h.from || '?') + ': ' + (h.original || ''), h.from_lang || 'en');
+        if (h.translated && h.translated !== h.original) addMessengerMsg('bot', '↳ ' + h.translated, myLang);
+      });
+    }
     return;
   }
-  friendsCache.forEach(f => {
-    const div = document.createElement('div');
-    div.className = 'friend-item';
-    div.innerHTML = `
-      <div class="friend-avatar">${(f.name || '?').charAt(0).toUpperCase()}</div>
-      <div class="friend-info">
-        <div class="friend-name">${f.name || 'Unknown'}</div>
-        <div class="friend-status">متصل</div>
-      </div>
-      <div class="friend-actions">
-        <button class="friend-action call" onclick="callFriend('${f.id}', '${f.name}')">📞</button>
-        <button class="friend-action delete" onclick="removeFriend('${f.id}')">🗑️</button>
-      </div>
-    `;
-    list.appendChild(div);
-  });
-}
-
-window.callFriend = async (uid, name) => {
-  const roomCode = 'ROOM' + Math.random().toString(36).substring(2, 6).toUpperCase();
-  await db.collection('calls').add({
-    from_uid: currentUser.uid,
-    from_name: currentUser.email.split('@')[0],
-    to_uid: uid,
-    room_code: roomCode,
-    status: 'ringing',
-    createdAt: Date.now()
-  });
-  showStatus(`📞 جاري الاتصال بـ ${name}...`);
-  setTimeout(async () => {
-    const calls = await db.collection('calls').where('from_uid', '==', currentUser.uid).where('to_uid', '==', uid).where('status', '==', 'ringing').limit(1).get();
-    calls.forEach(doc => doc.ref.update({ status: 'cancelled' }));
-  }, 30000);
-};
-
-window.removeFriend = async (uid) => {
-  if(confirm('حذف هذا الصديق؟')) {
-    await db.collection('users').doc(currentUser.uid).collection('friends').doc(uid).delete();
-    await db.collection('users').doc(uid).collection('friends').doc(currentUser.uid).delete();
-    showStatus('تم الحذف');
+  if (type === 'user_joined') { addMessengerMsg('bot', '👋 ' + (msg.name || 'مستخدم') + ' انضم'); return; }
+  if (type === 'user_left') { addMessengerMsg('bot', '👋 ' + (msg.name || 'مستخدم') + ' غادر'); return; }
+  if (type === 'translated') {
+    if (msg.is_mine) return;
+    addMessengerMsg('user-b', (msg.from_name || 'صديق') + ': ' + (msg.original || ''), msg.from_lang || 'en');
+    if (msg.translated && msg.translated !== msg.original) {
+      addMessengerMsg('bot', '↳ ' + msg.translated, msg.target_lang || myLang);
+      if (!msg.no_tts && isTranslatorMode) speak(msg.translated, msg.target_lang || myLang);
+    }
+    return;
   }
-};
-
-$('toggleSidebar').addEventListener('click', () => $('sidebar').classList.toggle('open'));
-$('transToggle').addEventListener('click', function() {
-  isTranslatorMode = !isTranslatorMode;
-  this.classList.toggle('active', isTranslatorMode);
-  showStatus(isTranslatorMode ? '🌐 الترجمة مفعلة' : 'الترجمة معطلة');
-});
-
-$('addFriendBtn').addEventListener('click', () => $('addFriendModal').classList.add('active'));
-$('cancelAddFriend').addEventListener('click', () => $('addFriendModal').classList.remove('active'));
-$('confirmAddFriend').addEventListener('click', async () => {
-  const code = $('friendCodeInput').value.trim().toUpperCase();
-  if(!code) return showStatus('⚠️ أدخل الكود');
-  const users = await db.collection('users').where('code', '==', code).get();
-  if(users.empty) return showStatus('❌ كود غير صحيح');
-  const targetUser = users.docs[0];
-  const targetUid = targetUser.id, targetName = targetUser.data().name;
-  const batch = db.batch();
-  batch.set(db.collection('users').doc(currentUser.uid).collection('friends').doc(targetUid), { name: targetName, uid: targetUid });
-  batch.set(db.collection('users').doc(targetUid).collection('friends').doc(currentUser.uid), { name: currentUser.email.split('@')[0], uid: currentUser.uid });
-  await batch.commit();
-  $('addFriendModal').classList.remove('active');
-  $('friendCodeInput').value = '';
-  showStatus(`✅ تمت إضافة ${targetName}`);
-});
-
-// ===== CALL SYSTEM =====
-function showIncomingCall(call) {
-  $('callName').textContent = call.from_name;
-  $('callStatus').textContent = 'مكالمة واردة...';
-  $('callOverlay').dataset.callId = call.id;
-  $('callOverlay').classList.add('active');
-  playRingtone();
+  if (type === 'chat_media') {
+    addMessengerMsg('user-b', (msg.from_name || 'صديق') + ' 📷:', msg.from_lang || 'en');
+    return;
+  }
 }
 
-function playRingtone() {
+function startPing() {
+  stopPing();
+  pingInterval = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify({ type: 'ping' })); } catch (e) {} }
+  }, 20000);
+}
+function stopPing() { if (pingInterval) { clearInterval(pingInterval); pingInterval = null; } }
+
+$('createRoomBtn').addEventListener('click', async () => {
+  const name = ($('playerName').value || myDisplayName()).trim();
+  const lang = $('playerLang').value || 'ar';
+  if (!name) return alert('أدخل اسمك');
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 440; gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    osc.start(); osc.stop(ctx.currentTime + 0.5);
-    window._ringInterval = setInterval(() => {
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = 480; g.gain.setValueAtTime(0.1, ctx.currentTime);
-      o.start(); o.stop(ctx.currentTime + 0.5);
-    }, 2000);
-  } catch(e) {}
-}
-
-$('callDecline').addEventListener('click', async () => {
-  const callId = $('callOverlay').dataset.callId;
-  if(callId) await db.collection('calls').doc(callId).update({ status: 'rejected' });
-  if(window._ringInterval) clearInterval(window._ringInterval);
-  $('callOverlay').classList.remove('active');
+    setStatus('⏳ جاري إنشاء الغرفة...');
+    const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.code) throw new Error('no code');
+    enterRemote(data.code, name, lang);
+  } catch (e) { alert('فشل إنشاء الغرفة: ' + e.message); }
 });
-
-$('callAccept').addEventListener('click', async () => {
-  const callId = $('callOverlay').dataset.callId;
-  if(callId) await db.collection('calls').doc(callId).update({ status: 'accepted' });
-  if(window._ringInterval) clearInterval(window._ringInterval);
-  showStatus('✅ تم قبول المكالمة');
-  $('callOverlay').classList.remove('active');
-});
-
-// ===== CHAT UI =====
-function addMsg(type, text, lang = '', imageBase64 = null) {
-  const chat = $('chat');
-  const div = document.createElement('div');
-  div.className = `msg ${type}`;
-  
-  if(imageBase64) {
-    const img = document.createElement('img');
-    img.src = imageBase64;
-    img.onclick = (e) => { e.stopPropagation(); window.open(imageBase64, '_blank'); };
-    div.appendChild(img);
-  }
-  
-  if(lang && type !== 'bot') {
-    div.innerHTML = `${escapeHtml(text)} <span class="lang-tag">${lang.toUpperCase()}</span>`;
-  } else {
-    div.textContent = text;
-  }
-  
-  div.addEventListener('click', () => {
-    if(type === 'bot') return;
-    document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-    div.classList.add('playing');
-    speak(text, lang || 'ar');
-  });
-  
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
-
-$('clearChatBtn').addEventListener('click', () => {
-  $('chat').innerHTML = '';
-  showStatus('تم مسح المحادثة');
-});
-
-// ===== INPUT HANDLING =====
-$('sendBtn').addEventListener('click', () => {
-  const text = $('textInput').value.trim();
-  if(!text && !attachedImageBase64) return;
-  
-  if(appMode === 'remote') {
-    if(text) { sendRemoteMessage(text); $('textInput').value = ''; }
-  } else {
-    addMsg('user-a', text || '📷 Image', $('langA').value, attachedImageBase64);
-    ask(text, $('langA').value, $('langB').value, 'A', attachedImageBase64 != null);
-    $('textInput').value = '';
-  }
-});
-
-$('textInput').addEventListener('keypress', (e) => {
-  if(e.key === 'Enter') $('sendBtn').click();
+$('joinRoomBtn').addEventListener('click', async () => {
+  const name = ($('playerName').value || myDisplayName()).trim();
+  const lang = $('playerLang').value || 'ar';
+  const code = ($('joinCodeInput').value || '').trim().toUpperCase();
+  if (!name) return alert('أدخل اسمك');
+  if (!code) return alert('أدخل كود الغرفة');
+  enterRemote(code, name, lang);
 });
 
 // ===== TTS =====
-function speak(text, lang = 'ar') {
-  if(!text) return;
+async function speak(text, lang) {
+  if (!text) return;
   stopAudio();
   const cleaned = cleanTextForTTS(text);
-  if(!cleaned) return;
-  const speechId = ++currentSpeechId;
-  isBotTalking = true;
+  if (!cleaned) return;
+  const myId = ++currentSpeechId;
+  isBotTalking = true; setAvatarState(true);
   
   let retryCount = 0;
   const maxRetries = 2;
   
-  const tryTTS = () => {
-    if(retryCount > maxRetries) {
-      fallbackTTS(cleaned, lang);
-      return;
-    }
-    
-    fetch(TTS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleaned.slice(0, 4000), lang, voice: $('voiceSelect') ? $('voiceSelect').value : 'woman' })
-    })
-    .then(res => { if(!res.ok) throw new Error('TTS failed'); return res.blob(); })
-    .then(blob => {
-      if(speechId !== currentSpeechId) return;
-      const url = URL.createObjectURL(blob);
+  while (retryCount <= maxRetries) {
+    try {
+      const voice = voiceSelect ? voiceSelect.value : 'woman';
+      const res = await fetch(TTS_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleaned.slice(0, 4000), lang: lang || 'ar', voice, session_id: SESSION_ID })
+      });
+      if (!res.ok) throw new Error('tts ' + res.status);
+      if (myId !== currentSpeechId) return;
+      const blob = await res.blob(); const url = URL.createObjectURL(blob);
       currentAudio = new Audio(url);
-      currentAudio.onended = () => {
-        URL.revokeObjectURL(url);
-        isBotTalking = false;
-        document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-      };
-      currentAudio.onerror = () => {
-        URL.revokeObjectURL(url);
-        retryCount++;
-        setTimeout(tryTTS, 500);
-      };
-      currentAudio.play().catch(() => { retryCount++; setTimeout(tryTTS, 500); });
-    })
-    .catch(() => { retryCount++; setTimeout(tryTTS, 500); });
-  };
-  
-  tryTTS();
-}
-
-function fallbackTTS(text, lang) {
-  if('speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = localeFor(lang);
-    u.onend = () => {
-      isBotTalking = false;
-      document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
-    };
-    speechSynthesis.speak(u);
+      currentAudio.onended = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
+      currentAudio.onerror = () => { URL.revokeObjectURL(url); isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
+      await currentAudio.play().catch(() => {});
+      return;
+    } catch (e) {
+      retryCount++;
+      if (retryCount > maxRetries) break;
+      await new Promise(r => setTimeout(r, 500));
+    }
   }
+  
+  if (myId !== currentSpeechId) return;
+  if ('speechSynthesis' in window) {
+    try {
+      const utt = new SpeechSynthesisUtterance(cleaned);
+      utt.lang = localeFor(lang || 'ar');
+      utt.onend = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
+      utt.onerror = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
+      speechSynthesis.speak(utt);
+    } catch (e) { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
+  } else { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
 }
-
 function stopAudio() {
   currentSpeechId++;
-  if(currentAudio) { try { currentAudio.pause(); currentAudio.currentTime = 0; } catch(e){} currentAudio = null; }
-  if('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch(e){} }
-  isBotTalking = false;
+  if (currentAudio) { try { currentAudio.pause(); currentAudio.currentTime = 0; } catch (e) {} currentAudio = null; }
+  if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (e) {} }
+  isBotTalking = false; setAvatarState(false);
   document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing'));
 }
-
-// ===== MEDIA HANDLING =====
-$('mediaBtn').addEventListener('click', () => {
-  const m = $('mediaMenu');
-  m.style.display = m.style.display === 'block' ? 'none' : 'block';
-});
-
-$('musicBtn').addEventListener('click', () => {
-  const m = $('musicMenu');
-  m.style.display = m.style.display === 'block' ? 'none' : 'block';
-});
-
-document.addEventListener('click', (e) => {
-  if(!$('mediaBtn').contains(e.target) && !$('mediaMenu').contains(e.target)) $('mediaMenu').style.display = 'none';
-  if(!$('musicBtn').contains(e.target) && !$('musicMenu').contains(e.target)) $('musicMenu').style.display = 'none';
-});
-
-$('cameraBtn').addEventListener('click', () => $('cameraUpload').click());
-$('galleryBtn').addEventListener('click', () => $('galleryUpload').click());
-$('videoBtn').addEventListener('click', () => $('videoUpload').click());
-
-async function handleImageUpload(e) {
-  const file = e.target.files[0];
-  if(!file) return;
-  isCompressing = true; $('sendBtn').disabled = true; showStatus('Compressing...');
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    const compressed = await compressImage(ev.target.result);
-    attachedImageBase64 = compressed;
-    showStatus('📷 Image attached');
-    isCompressing = false; $('sendBtn').disabled = false;
-  };
-  reader.readAsDataURL(file);
-}
-
-$('galleryUpload').addEventListener('change', handleImageUpload);
-$('cameraUpload').addEventListener('change', handleImageUpload);
-
-$('videoUpload').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  if(file.size > 100 * 1024 * 1024) return showStatus('❌ حجم كبير جداً (100MB)');
-  addMsg('user-a', `🎬 ${file.name}`, 'AUTO');
-  showStatus('⏳ جاري معالجة الفيديو...');
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('target_lang', $('langB').value);
-  formData.append('language', $('langA').value);
+function setAvatarState(talking) {
   try {
-    const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
-    if(res.ok) {
-      const data = await res.json();
-      if(data.original) addMsg('user-b', data.original, 'AUTO');
-      if(data.translated) addMsg('bot', data.translated, $('langB').value);
+    if (avatarVideo && avatarVideo.style.display === 'block' && avatarVideo.src) {
+      if (talking) avatarVideo.play().catch(() => {});
+      else { avatarVideo.pause(); try { avatarVideo.currentTime = 0; } catch (e) {} }
     }
-  } catch(err) { addMsg('bot', '⚠️ فشل معالجة الفيديو'); }
-  e.target.value = '';
-});
-
-// ===== AVATAR =====
-$('uploadBtn').addEventListener('click', () => { $('videoAvatarUpload').value = ''; $('videoAvatarUpload').click(); });
-$('videoAvatarUpload').addEventListener('change', (e) => {
-  const file = e.target.files[0]; if(!file) return;
-  if(currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
-  currentAvatarObjectUrl = URL.createObjectURL(file);
-  $('avatarLogo').style.display = 'none';
-  $('avatarVideo').style.display = 'block';
-  $('avatarVideo').src = currentAvatarObjectUrl;
-  if(isBotTalking) $('avatarVideo').play();
-});
-
-// ===== MUSIC =====
-$('audioUpload').addEventListener('change', (e) => {
-  const files = e.target.files;
-  for(let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
-  renderPlaylist();
-  e.target.value = '';
-});
-
-function renderPlaylist() {
-  const list = $('musicList');
-  list.innerHTML = '<div class="music-item" onclick="stopMusic()" style="text-align:center; background:rgba(239,68,68,0.2);">🛑 Stop</div>';
-  playlist.forEach((song, index) => {
-    const div = document.createElement('div');
-    div.className = 'music-item' + (index === currentSongIndex ? ' active' : '');
-    div.innerHTML = `<span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${song.name}</span><span onclick="event.stopPropagation(); playlist.splice(${index},1); renderPlaylist();" style="color:#ff4444; cursor:pointer;">✕</span>`;
-    div.onclick = () => { currentSongIndex = index; $('bgAudio').src = song.url; $('bgAudio').play(); renderPlaylist(); };
-    list.appendChild(div);
-  });
+  } catch (e) {}
 }
 
-window.stopMusic = () => { $('bgAudio').pause(); $('bgAudio').currentTime = 0; currentSongIndex = -1; renderPlaylist(); };
-$('bgAudio').addEventListener('ended', () => {
-  if(playlist.length > 0) {
-    currentSongIndex = (currentSongIndex + 1) % playlist.length;
-    $('bgAudio').src = playlist[currentSongIndex].url;
-    $('bgAudio').play();
-    renderPlaylist();
-  }
-});
-
-console.log('✅ Chat-Core Messenger initialized');
+renderPlaylist();
+console.log('✅ Chat-Core initialized');
 </script>
 </body>
 </html>
