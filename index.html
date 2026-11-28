@@ -25,11 +25,10 @@ body {
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   height: 100dvh; transition: opacity 0.3s;
 }
-@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-@keyframes ringPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } }
+@keyframes ringPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); } }
 @keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes pulse { 50% { transform: scale(1.1); } }
-.glass-panel { background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 0 20px rgba(255,255,255,0.05); border-radius: 20px; }
+
 #authOverlay { position: fixed; inset: 0; background: rgba(13, 27, 62, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; backdrop-filter: blur(20px); }
 .auth-lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px; border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
 .lang-btn { background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.3s; }
@@ -48,24 +47,52 @@ body {
 #authError { color: #ff6b6b; font-size: 13px; margin-bottom: 10px; min-height: 18px; word-wrap: break-word; }
 .divider { display: flex; align-items: center; margin: 20px 0; color: rgba(255,255,255,0.5); font-size: 12px; }
 .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.2); margin: 0 10px; }
+
 .overlay { position: fixed; inset: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
 .overlay h1 { font-size: 32px; color: #00f0ff; margin-bottom: 5px; text-shadow: 0 0 15px rgba(0,240,255,0.4); }
-.overlay h2 { font-size: 20px; color: #fff; margin-bottom: 15px; font-weight: normal; }
-.mode-btn { padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer; width: 100%; max-width: 280px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.3); background: rgba(255,255,255,0.05); }
+.overlay h2 { font-size: 20px; color: #fff; margin-bottom: 10px; font-weight: normal; }
+.mode-btn { padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer; width: 100%; max-width: 280px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.3); background: rgba(255,255,255,0.05); position: relative; }
 .mode-btn:active { transform: scale(0.96); }
 #btnLocal { border-color: rgba(138, 43, 226, 0.5); background: linear-gradient(90deg, rgba(138,43,226,0.2), rgba(0,0,0,0)); }
-#btnRemote { border-color: rgba(46, 139, 87, 0.5); background: linear-gradient(90deg, rgba(46,139,87,0.2), rgba(0,0,0,0)); }
-#btnMeeting { border-color: rgba(30, 144, 255, 0.5); background: linear-gradient(90deg, rgba(30,144,255,0.2), rgba(0,0,0,0)); }
-#btnFriends { border-color: rgba(255, 165, 0, 0.5); background: linear-gradient(90deg, rgba(255,165,0,0.2), rgba(0,0,0,0)); position: relative; }
+#btnRemote { border-color: rgba(16, 185, 129, 0.6); background: linear-gradient(90deg, rgba(16,185,129,0.25), rgba(0,0,0,0)); }
 #btnLogout { border-color: rgba(255, 69, 0, 0.5); background: linear-gradient(90deg, rgba(255,69,0,0.2), rgba(0,0,0,0)); margin-top: 20px; }
-.join-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; background: rgba(26, 42, 108, 0.6); padding: 25px 20px; border-radius: 24px; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.5); align-items: stretch; }
-.join-form input[type="text"], .join-form select, .join-form input[type="email"], .join-form input[type="password"] { padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; outline: none; transition: 0.3s; }
-.join-form input:focus, .join-form select:focus { border-color: #00f0ff; }
-.join-form button { padding: 14px; border-radius: 12px; border: none; color: #fff; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s; }
-#createRoomBtn, #createMeetingBtn { background: linear-gradient(135deg, #11998e, #38ef7d); box-shadow: 0 4px 15px rgba(56,239,125,0.3); }
-#joinRoomBtn, #joinMeetingBtn { background: linear-gradient(135deg, #4568dc, #b06ab3); box-shadow: 0 4px 15px rgba(69,104,220,0.3); }
-#backToLandingBtn, #backToLandingFromMeetBtn { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); margin-top: 5px; }
-#backToLandingBtn:hover, #backToLandingFromMeetBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* Messenger / Remote Hub */
+.messenger-shell { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; height: 92dvh; background: rgba(16, 28, 72, 0.78); padding: 18px; border-radius: 24px; backdrop-filter: blur(22px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 35px rgba(0,0,0,0.55); }
+.messenger-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+.messenger-header h2 { margin: 0; font-size: 19px; color: #00f0ff; display: flex; align-items: center; gap: 8px; }
+.messenger-card { background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.messenger-shell input[type="text"], .messenger-shell select { padding: 11px 13px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.45); color: #fff; font-size: 13px; outline: none; }
+.messenger-shell input:focus, .messenger-shell select:focus { border-color: #00f0ff; }
+#frMyCode { color: #00f0ff; letter-spacing: 3px; font-size: 18px; text-shadow: 0 0 10px rgba(0,240,255,0.4); }
+#frCopyCode { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 11px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+#frAddBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; padding: 0 16px; border-radius: 12px; cursor: pointer; font-size: 17px; font-weight: bold; }
+#frMsg { color: #fbbf24; min-height: 16px; font-size: 12px; text-align: center; }
+#frList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.friend-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 12px; transition: 0.2s; }
+.friend-item:hover { background: rgba(255,255,255,0.12); }
+.friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #10b981); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #fff; flex-shrink: 0; }
+.friend-info { flex: 1; min-width: 0; cursor: pointer; }
+.friend-name { font-size: 14px; font-weight: bold; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-sub { font-size: 11px; color: rgba(255,255,255,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-pill-btn { border: none; border-radius: 10px; padding: 7px 10px; font-size: 13px; font-weight: bold; color: #fff; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.icon-pill-btn:active { transform: scale(0.92); }
+
+/* Messenger 1-to-1 Chat Overlay */
+#chatOverlay { background: radial-gradient(circle at 50% 0%, #1a2a6c 0%, #0d1b3e 60%, #050a1f 100%); justify-content: flex-start; gap: 8px; padding: 12px; }
+.ch-topbar { width: 100%; max-width: 440px; display: flex; align-items: center; gap: 8px; background: rgba(26, 42, 108, 0.75); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 8px 10px; flex-shrink: 0; }
+#chBack { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 10px; padding: 7px 11px; cursor: pointer; font-weight: bold; }
+#chMsgs { flex: 1; width: 100%; max-width: 440px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: rgba(26, 42, 108, 0.55); border: 1px solid rgba(255,255,255,0.18); border-radius: 18px; }
+.ch-bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; word-wrap: break-word; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; }
+.ch-bubble.mine { align-self: flex-end; background: linear-gradient(135deg, rgba(99, 102, 241, 0.92), rgba(79, 70, 229, 0.92)); color: #fff; border-bottom-right-radius: 4px; }
+.ch-bubble.theirs { align-self: flex-start; background: rgba(255,255,255,0.12); color: #fff; border-bottom-left-radius: 4px; }
+.ch-input-row { display: flex; gap: 8px; width: 100%; max-width: 440px; flex-shrink: 0; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
+#chInput { flex: 1; border-radius: 20px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.22); color: #fff; padding: 12px 15px; font-size: 14px; outline: none; order: 0; }
+#chSend { background: linear-gradient(135deg, #4568dc, #b06ab3); border: none; color: #fff; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 15px rgba(69,104,220,0.35); flex-shrink: 0; }
+#chMicBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 17px; flex-shrink: 0; }
+#chMicBtn.recording { background: #ef4444; animation: pulse 0.8s infinite; }
+
+/* Face-to-Face & Call Room UI */
 .top-header { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; flex-shrink: 0; position: relative; z-index: 10001; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(26, 42, 108, 0.6); padding: 8px 15px; border-radius: 16px; width: 95%; max-width: 400px; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
 .user-section { display: flex; align-items: center; gap: 6px; }
@@ -74,6 +101,7 @@ body {
 .mic-btn.blue { background: #6366f1; } .mic-btn.green { background: #10b981; }
 .mic-btn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 15px rgba(239,68,68,0.6); }
 .mic-btn:disabled { background: #475569 !important; opacity: 0.5; }
+
 #avatar-wrap { width: 100px; height: 100px; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.3s; }
 #avatar-container { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,240,255,0.2); z-index: 1; transition: all 0.3s; border: 2px solid rgba(255,255,255,0.2); }
 #avatar-logo, #avatar-video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -83,29 +111,26 @@ body {
 #avatar-wrap.fullscreen #avatar-logo, #avatar-wrap.fullscreen #avatar-video { object-fit: contain; width: 100vw; height: 100vh; }
 #avatar-wrap.fullscreen #closeFullscreen { display: flex; }
 #removeAvatarBtn { display: none; position: absolute; top: 50%; right: -15px; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; background: #000; border: 2px solid #fff; cursor: pointer; z-index: 999; color: white; font-weight: bold; font-size: 14px; align-items: center; justify-content: center; }
-body.remote-mode #avatar-wrap, body.meeting-mode #avatar-wrap { display: none !important; }
+body.remote-mode #avatar-wrap { display: none !important; }
+
 #closeFullscreen, #closeVideoFullscreen { display: none; position: fixed; background: #e57373; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10000; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 .inner-white-dot { width: 14px; height: 14px; background: #fff; border-radius: 50%; }
 #closeFullscreen { top: 80px; right: 20px; } #closeVideoFullscreen { top: 20px; right: 20px; }
+
 #videoContainer { display: none; position: relative; width: 100%; max-width: 400px; height: 200px; margin: 0 auto 10px; background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.5); cursor: pointer; transition: all 0.3s; z-index: 500; border: 1px solid rgba(255,255,255,0.1); }
 #remoteVideo { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 #localVideo { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid rgba(255,255,255,0.5); background: #1e293b; z-index: 2; pointer-events: auto; }
 #videoStatus { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: #10b981; z-index: 2; pointer-events: none; }
 #tapToPlayOverlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7); color: #fff; z-index: 10; align-items: center; justify-content: center; flex-direction: column; font-weight: bold; font-size: 16px; cursor: pointer; }
 body.video-maximized #videoContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100vw; z-index: 99999; margin: 0; border-radius: 0; }
-body.video-maximized #remoteVideo { object-fit: cover; }
 body.video-maximized #localVideo { width: 90px; height: 130px; bottom: 20px; right: 20px; border-radius: 12px; }
 body.video-maximized #closeVideoFullscreen { display: flex; }
 body.video-maximized #topHeader, body.video-maximized #extraControls, body.video-maximized #chatContainer, body.video-maximized #inputRow, body.video-maximized #status, body.video-maximized #remoteBar { display: none !important; }
-#meetingGridContainer { display: none; position: relative; width: 100%; flex: 1; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 10px; overflow-y: auto; margin-bottom: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-#videoGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-content: start; }
-.participant-box { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
-.participant-box video { width: 100%; height: 100%; object-fit: cover; }
-.participant-name { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #fff; z-index: 2; }
-body.meeting-mode .chat-container { max-height: 35vh; }
+
 #floatingMicBtn { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #11998e, #38ef7d); color: white; display: none; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(56,239,125,0.4); z-index: 100000; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s; }
 #floatingMicBtn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 20px rgba(239,68,68,0.8); }
 body.video-maximized #floatingMicBtn { display: flex; }
+
 .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
 #chat { flex: 1; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-radius: 20px; padding: 15px; overflow-y: auto; }
 .msg { padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); user-select: none; }
@@ -120,6 +145,7 @@ body.video-maximized #floatingMicBtn { display: flex; }
 #imagePreviewContainer { display: none; position: absolute; bottom: 60px; right: 10px; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 5px; align-items: center; gap: 8px; z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
 #imagePreview { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
 #cancelImageBtn { background: #dc2626; color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+
 .row { display: flex; gap: 8px; align-items: center; flex-shrink: 0; position: relative; }
 input[type=text] { flex: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.4); color: #fff; font-size: 14px; order: 3; outline: none; backdrop-filter: blur(5px); }
 input[type=text]:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,0.1); }
@@ -135,14 +161,16 @@ button.btn { padding: 0; border: none; border-radius: 50%; font-weight: bold; wi
 #stopAudioBtn { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: #f6ad55; border: 2px solid #dd6b20; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; outline: none; }
 #stopAudioBtn svg { fill: #2d3748; width: 14px; height: 14px; }
 #status { text-align: center; font-size: 13px; color: #00f0ff; margin-top: 6px; min-height: 18px; font-weight: bold; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
+
 .extra-controls { display: flex; gap: 8px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; width: 100%; padding: 0 5px; align-items: center; }
 .extra-controls button, .extra-controls select { padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #fff; font-size: 11px; cursor: pointer; outline: none; white-space: nowrap; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); transition: 0.3s; }
 .extra-controls button:active { transform: scale(0.95); }
 .toggle-btn { background: rgba(255,255,255,0.1) !important; color: white !important; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2) !important; }
 .toggle-btn.active { background: rgba(16, 185, 129, 0.3) !important; border-color: #10b981 !important; color: #10b981 !important; box-shadow: 0 0 10px rgba(16,185,129,0.2); }
 .btn-back { background: rgba(239, 68, 68, 0.3) !important; border-color: #ef4444 !important; color: #fff !important; }
-body.remote-mode #extraControls, body.meeting-mode #extraControls { justify-content: space-between; padding: 0 10px; }
-body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex: 1 1 30%; }
+body.remote-mode #extraControls { justify-content: space-between; padding: 0 10px; }
+body.remote-mode #extraControls > * { flex: 1 1 30%; }
+
 #actionMenu { display: none; position: fixed; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 12px; z-index: 2000; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .action-btn { padding: 10px 15px; border-radius: 10px; border: none; background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
 .action-btn:hover { background: rgba(255,255,255,0.15); }
@@ -151,50 +179,29 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
 .music-item { padding: 8px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-bottom: 5px; background: rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
 .music-item:hover { background: rgba(255,255,255,0.15); } .music-item.active { background: rgba(0, 240, 255, 0.2); color: #00f0ff; font-weight: bold; border: 1px solid rgba(0,240,255,0.3); }
 .music-item.add-more, .music-item.stop-btn, .music-item.pause-btn { text-align: center; font-weight: bold; justify-content: center; }
-.music-item.add-more { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); } 
-.music-item.stop-btn { background: rgba(153, 27, 27, 0.3); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 8px; } 
+.music-item.add-more { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.music-item.stop-btn { background: rgba(153, 27, 27, 0.3); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); margin-bottom: 8px; }
 .music-item.pause-btn { background: rgba(71, 85, 105, 0.5); margin-bottom: 8px; }
 .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
 .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 15px; }
+
 #remoteBar { display: none; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 16px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-#remoteBar .room-info { display: flex; align-items: center; gap: 10px; justify-content: center; flex: 1; }
-#remoteBar strong { color: #00f0ff; letter-spacing: 2px; font-size: 15px; text-shadow: 0 0 5px rgba(0,240,255,0.3); }
-#copyRoomBtn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s; }
-#copyRoomBtn:hover { background: rgba(255,255,255,0.2); }
-#friendsOverlay .join-form { max-width: 360px; }
-#frMyCode { color: #00f0ff; letter-spacing: 3px; font-size: 20px; text-shadow: 0 0 10px rgba(0,240,255,0.4); }
-#frCopyCode { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
-#frCopyCode:hover { background: rgba(255,255,255,0.2); }
-#frAddBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; padding: 0 15px; border-radius: 12px; cursor: pointer; font-size: 18px; }
-#frMsg { color: #fbbf24; }
-#frRequestsBox { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; margin-top: 5px; }
-#frRequests > div, #frList > div { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px; }
-#frRequests button, #frList button { border-radius: 6px; padding: 4px 8px; font-size: 11px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-#frRequests button:active, #frList button:active { transform: scale(0.9); }
-#chatOverlay { background: transparent; }
-#chMsgs { background: rgba(26, 42, 108, 0.6); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-radius: 16px; }
-#chMsgs > div { border-radius: 12px; font-size: 14px; padding: 10px 14px; }
-#chInput { border-radius: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 12px 15px; }
-#chSend { background: linear-gradient(135deg, #4568dc, #b06ab3); border-radius: 50%; width: 46px; height: 46px; box-shadow: 0 4px 15px rgba(69,104,220,0.3); }
-#chBack { background: rgba(255,255,255,0.1); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; }
-.checkbox-row { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 13px; color: rgba(255,255,255,0.7); cursor: pointer; }
-.checkbox-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #00f0ff; }
-#callOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 9999998; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
+#remoteBar .room-info { display: flex; align-items: center; gap: 8px; justify-content: center; flex: 1; }
+#remoteBar strong { color: #00f0ff; letter-spacing: 1px; font-size: 14px; }
+
+#callOverlay { display: none; position: fixed; inset: 0; background: rgba(5, 10, 31, 0.96); backdrop-filter: blur(20px); z-index: 9999998; flex-direction: column; align-items: center; justify-content: center; gap: 25px; }
 #callOverlay.active { display: flex; animation: slideIn 0.3s ease; }
-.call-avatar { width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 60px; animation: ringPulse 1.5s infinite; box-shadow: 0 0 40px rgba(102, 126, 234, 0.5); }
-.call-name { font-size: 28px; font-weight: bold; color: #fff; }
-.call-status { font-size: 16px; color: rgba(255,255,255,0.7); }
+.call-avatar { width: 130px; height: 130px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #3b82f6); display: flex; align-items: center; justify-content: center; font-size: 54px; animation: ringPulse 1.5s infinite; box-shadow: 0 0 40px rgba(16, 185, 129, 0.5); }
+.call-name { font-size: 26px; font-weight: bold; color: #fff; }
+.call-status { font-size: 15px; color: rgba(255,255,255,0.75); }
 .call-actions { display: flex; gap: 40px; }
-.call-btn { width: 70px; height: 70px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+.call-btn { width: 68px; height: 68px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
 .call-btn.accept { background: #10b981; color: #fff; }
 .call-btn.decline { background: #ef4444; color: #fff; }
 .call-btn:active { transform: scale(0.9); }
-#longRecordIndicator { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.9); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; z-index: 100001; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5); }
-#longRecordIndicator.active { display: flex; align-items: center; gap: 10px; }
-#longRecordIndicator .dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; animation: pulse 1s infinite; }
 </style>
 </head>
-  <body>
+<body>
 
 <div id="authOverlay">
   <div class="auth-lang-switch">
@@ -223,106 +230,83 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
   <h1>🌐 Chat-Core</h1>
   <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:15px;">اختر وضع التشغيل</p>
   <button class="mode-btn" id="btnLocal"><span>🌐 Face-to-Face</span></button>
-  <button class="mode-btn" id="btnRemote"><span>💬 Remote Mode</span></button>
-  <button class="mode-btn" id="btnMeeting"><span>➕ Meeting Room</span></button>
-  <button class="mode-btn" id="btnFriends"><span>👥 <span id="btnFriendsLabel">الأصدقاء</span></span><span id="friendsBadge" style="display:none; position:absolute; top:-6px; right:-6px; min-width:24px; height:24px; border-radius:12px; background:#ef4444; font-size:12px; line-height:24px; text-align:center; padding:0 6px; box-shadow:0 0 10px rgba(239,68,68,0.5);">0</span></button>
+  <button class="mode-btn" id="btnRemote">
+    <span>💬 Remote Mode</span>
+    <span id="friendsBadge" style="display:none; min-width:24px; height:24px; border-radius:12px; background:#ef4444; font-size:12px; line-height:24px; text-align:center; padding:0 6px; box-shadow:0 0 10px rgba(239,68,68,0.5);">0</span>
+  </button>
   <button class="mode-btn" id="btnLogout"><span>🚪 تسجيل الخروج</span></button>
 </div>
 
-<div class="overlay" id="friendsOverlay" style="display:none;">
-  <h2>👥 <span id="frTitle">الأصدقاء</span></h2>
-  <div class="join-form">
-    <div style="text-align:center; font-size:13px; color:rgba(255,255,255,0.7);" id="frMyCodeLabel">كود الصداقة الخاص بك</div>
-    <div style="display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom: 5px;">
-      <strong id="frMyCode">--------</strong>
-      <button id="frCopyCode">📋</button>
+<!-- Messenger Remote Hub -->
+<div class="overlay" id="remoteJoinOverlay" style="display:none; padding:12px;">
+  <div class="messenger-shell">
+    <div class="messenger-header">
+      <h2>💬 <span id="frTitle">Messenger</span></h2>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <select id="playerLang" title="لغتك">
+          <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
+          <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
+          <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
+          <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
+        </select>
+        <button id="backToLandingBtn" style="background:rgba(239,68,68,0.25); border:1px solid #ef4444; color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:bold;">←</button>
+      </div>
     </div>
-    <div id="joinRowFr" style="display:flex; gap:8px; margin-bottom: 10px;">
-      <input type="text" id="frAddInput" placeholder="كود صديق" maxlength="8" style="flex:1; text-transform:uppercase; text-align:center; letter-spacing:2px;">
-      <button id="frAddBtn">➕</button>
+
+    <div class="messenger-card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <span style="font-size:12px; color:rgba(255,255,255,0.7);" id="frMyCodeLabel">كود الصداقة الخاص بك:</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <strong id="frMyCode">--------</strong>
+          <button id="frCopyCode" title="نسخ">📋</button>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="frAddInput" placeholder="أدخل كود الصديق لإضافته" maxlength="8" style="flex:1; text-transform:uppercase; text-align:center; letter-spacing:2px; order:0;">
+        <button id="frAddBtn" title="إضافة صديق">➕</button>
+      </div>
+      <div id="frMsg"></div>
     </div>
-    <div id="frMsg" style="min-height:16px; font-size:13px; text-align:center;"></div>
-    <div id="frRequestsBox" style="display:none;">
-      <div style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:8px;" id="frReqTitle">طلبات الصداقة</div>
-      <div id="frRequests" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+    <div id="frRequestsBox" class="messenger-card" style="display:none;">
+      <div style="font-size:12px; color:#00f0ff; font-weight:bold;" id="frReqTitle">طلبات الصداقة</div>
+      <div id="frRequests" style="display:flex; flex-direction:column; gap:6px;"></div>
     </div>
-    <div style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:8px; margin-top:5px;" id="frListTitle">قائمة الأصدقاء</div>
-    <div id="frList" style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto;"></div>
-    <button id="frBackBtn" style="background:transparent; color:rgba(255,255,255,0.6); text-decoration:underline; font-weight:normal; border:none; margin-top:10px; font-size:14px;">← رجوع</button>
+
+    <div style="font-size:13px; color:rgba(255,255,255,0.75); font-weight:bold;" id="frListTitle">الأصدقاء والمحادثات</div>
+    <div id="frList"></div>
   </div>
 </div>
 
-<div class="overlay" id="chatOverlay" style="display:none; justify-content:flex-start; gap:10px; padding:15px;">
-  <div style="width:100%; max-width:420px; display:flex; align-items:center; gap:10px; flex-shrink:0;">
+<!-- 1-to-1 Messenger Chat Overlay -->
+<div class="overlay" id="chatOverlay" style="display:none;">
+  <div class="ch-topbar">
     <button id="chBack">←</button>
-    <strong id="chName" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:16px; color:#fff;"></strong>
-    <select id="chLang" class="lang-select" style="width:100px; height:34px; font-size:12px; border-radius:10px;" title="Translate to"></select>
+    <div style="flex:1; min-width:0;">
+      <strong id="chName" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; color:#fff;"></strong>
+      <span id="chSubStatus" style="font-size:11px; color:#10b981;">متصل</span>
+    </div>
+    <button id="chTransToggle" class="toggle-btn active" style="padding:6px 9px; border-radius:10px; font-size:11px; cursor:pointer;" title="تفعيل/إيقاف الترجمة">🌐 ON</button>
+    <select id="chLang" class="lang-select" style="width:82px; height:32px; font-size:11px; border-radius:10px;" title="لغة الصديق / الترجمة"></select>
+    <button id="chVoiceCallBtn" class="icon-pill-btn" style="background:#10b981;" title="مكالمة صوتية">📞</button>
+    <button id="chVideoCallBtn" class="icon-pill-btn" style="background:#3b82f6;" title="مكالمة فيديو">📹</button>
   </div>
-  <div id="chMsgs" style="flex:1; width:100%; max-width:420px; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:8px;"></div>
-  <div id="chStatus" style="min-height:16px; font-size:12px; color:#fbbf24; width:100%; max-width:420px; text-align:center; font-weight:bold;"></div>
-  <div style="display:flex; gap:10px; width:100%; max-width:420px; flex-shrink:0; padding-bottom:env(safe-area-inset-bottom);">
-    <input type="text" id="chInput" maxlength="2000" style="flex:1;">
+  <div id="chMsgs"></div>
+  <div id="chStatus" style="min-height:16px; font-size:12px; color:#fbbf24; width:100%; max-width:440px; text-align:center; font-weight:bold;"></div>
+  <div class="ch-input-row">
+    <button id="chMicBtn" title="تحدث صوتياً">🎤</button>
+    <input type="text" id="chInput" maxlength="2000" placeholder="اكتب رسالة...">
     <button id="chSend">➤</button>
   </div>
 </div>
 
-<div id="inviteToast" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:360px; background:rgba(30,41,59,0.9); backdrop-filter:blur(15px); border:1px solid rgba(255,165,0,0.5); border-radius:16px; padding:15px; z-index:9999990; box-shadow:0 10px 30px rgba(0,0,0,0.5); font-size:14px; color:#fff;">
-  <div id="inviteText" style="margin-bottom:12px; font-weight:bold;"></div>
-  <div style="display:flex; gap:10px;">
-    <button id="inviteJoin" style="flex:1; padding:10px; border:none; border-radius:10px; background:linear-gradient(135deg,#11998e,#38ef7d); color:#fff; font-weight:bold; cursor:pointer; box-shadow:0 4px 10px rgba(56,239,125,0.3);">انضمام</button>
-    <button id="inviteDecline" style="flex:1; padding:10px; border:none; border-radius:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; font-weight:bold; cursor:pointer;">تجاهل</button>
-  </div>
-</div>
-
-<div class="overlay" id="remoteJoinOverlay" style="display:none;">
-  <h2>💬 Remote Mode</h2>
-  <div class="join-form">
-    <input type="text" id="playerName" placeholder="Your Name" maxlength="30">
-    <select id="playerLang">
-      <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
-      <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
-      <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
-      <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
-    </select>
-    <label class="checkbox-row"><input type="checkbox" id="remoteTransCheck" checked> 🌐 تفعيل ترجمة الصوت</label>
-    <button id="createRoomBtn">➕ Create Room</button>
-    <div id="orText" style="text-align:center; color:rgba(255,255,255,0.5); font-size:13px; margin:5px 0;">أو</div>
-    <div id="joinRow">
-      <input type="text" id="joinCodeInput" placeholder="Room Code" maxlength="6">
-      <button id="joinRoomBtn">Join</button>
-    </div>
-    <button id="backToLandingBtn">← Back</button>
-  </div>
-</div>
-
-<div class="overlay" id="meetingJoinOverlay" style="display:none;">
-  <h2>➕ Meeting Room</h2>
-  <div class="join-form">
-    <input type="text" id="meetPlayerName" placeholder="Your Name" maxlength="30">
-    <select id="meetPlayerLang">
-      <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
-      <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
-      <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
-      <option value="pt">🇵🇹 Português</option><option value="nl">🇳🇱 Nederlands</option><option value="no">🇳🇴 Norsk</option>
-    </select>
-    <label class="checkbox-row"><input type="checkbox" id="meetingTransCheck" checked> 🌐 تفعيل ترجمة الصوت</label>
-    <button id="createMeetingBtn">➕ Create Meeting</button>
-    <div style="text-align:center; color:rgba(255,255,255,0.5); font-size:13px; margin:5px 0;">أو</div>
-    <div id="joinRow">
-      <input type="text" id="joinMeetingCodeInput" placeholder="Meeting Code" maxlength="12">
-      <button id="joinMeetingBtn">Join</button>
-    </div>
-    <button id="backToLandingFromMeetBtn">← Back</button>
-  </div>
-</div>
-
+<!-- Call / Remote Live Room Bar -->
 <div id="remoteBar">
   <button id="transToggleBtnRoom" class="toggle-btn active" style="font-size: 11px; padding: 6px 12px; border-radius:8px;">🌐 ON</button>
   <div class="room-info">
-    <span>Room: <strong id="roomCodeLabel">------</strong></span>
-    <button id="copyRoomBtn">📋 Copy</button>
+    <span>📞 <strong id="roomCodeLabel">Call</strong></span>
   </div>
-  <span id="onlineCount">1/4</span>
+  <span id="onlineCount">1/2</span>
 </div>
 
 <div class="top-header" id="topHeader" style="display:none;">
@@ -356,18 +340,16 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
     <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
   </select>
   <button id="uploadBtn">📁 Avatar</button>
-  <button id="backBtn" class="btn-back">Back</button>
+  <button id="backBtn" class="btn-back">إنهاء / رجوع</button>
 </div>
 
 <div id="videoContainer">
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
-  <div id="videoStatus">📡 متصل بالكاميرا</div>
+  <div id="videoStatus">📡 متصل بالمكالمة</div>
   <div id="tapToPlayOverlay">▶️ اضغط لتشغيل الفيديو</div>
   <button id="closeVideoFullscreen" title="إغلاق"><div class="inner-white-dot"></div></button>
 </div>
-
-<div id="meetingGridContainer"><div id="videoGrid"></div></div>
 
 <div id="avatar-wrap" style="display:none;">
   <div id="avatar-container">
@@ -414,13 +396,8 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
 <audio id="bgAudio"></audio>
 <div id="musicMenu"><h4>🎵 Playlist</h4><div id="musicList"></div></div>
 
-<div id="longRecordIndicator">
-  <div class="dot"></div>
-  <span id="longRecordTime">00:00</span>
-</div>
-
 <div id="callOverlay">
-  <div class="call-avatar">📞</div>
+  <div class="call-avatar" id="callIcon">📞</div>
   <div class="call-name" id="callName">Unknown</div>
   <div class="call-status" id="callStatus">Incoming call...</div>
   <div class="call-actions">
@@ -428,7 +405,8 @@ body.remote-mode #extraControls > *, body.meeting-mode #extraControls > * { flex
     <button class="call-btn accept" id="callAccept">📞</button>
   </div>
 </div>
-    <script>
+
+<script>
 'use strict';
 
 const firebaseConfig = {
@@ -442,7 +420,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-let db = null;
+const db = firebase.firestore();
 
 let isLoginMode = true, currentUser = null, currentAuthLang = 'ar';
 
@@ -459,7 +437,8 @@ function changeAuthLang(lang) {
   htmlRoot.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
   htmlRoot.setAttribute('lang', lang);
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase()).classList.add('active');
+  const activeBtn = Array.from(document.querySelectorAll('.lang-btn')).find(b => b.textContent.toLowerCase() === lang.toLowerCase());
+  if (activeBtn) activeBtn.classList.add('active');
   const t = AUTH_TRANS[lang];
   document.getElementById('authTitle').textContent = isLoginMode ? t.loginTitle : t.registerTitle;
   document.getElementById('authEmail').placeholder = t.email;
@@ -476,16 +455,16 @@ function showAuthError(msg) { document.getElementById('authError').textContent =
 function handleEmailAuth() {
   const email = document.getElementById('authEmail').value;
   const password = document.getElementById('authPassword').value;
-  if(!email || !password) return showAuthError("Please fill all fields");
+  if (!email || !password) return showAuthError("Please fill all fields");
   showAuthError(""); document.getElementById('authSubmitBtn').textContent = "...";
-  if(isLoginMode) auth.signInWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
+  if (isLoginMode) auth.signInWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
   else auth.createUserWithEmailAndPassword(email, password).catch(err => { showAuthError(err.message); changeAuthLang(currentAuthLang); });
 }
-function loginWithGoogle() { const p = new firebase.auth.GoogleAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
-function loginWithGithub() { const p = new firebase.auth.GithubAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
-function loginWithTwitter() { const p = new firebase.auth.TwitterAuthProvider(); auth.signInWithRedirect(p).catch(err => showAuthError(err.message)); }
-function logoutUser() { auth.signOut().then(() => { window.location.reload(); }); }
-auth.getRedirectResult().then((r) => { if (r.credential) console.log("redirect ok"); }).catch((e) => showAuthError(e.message));
+function loginWithGoogle() { auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider()).catch(err => showAuthError(err.message)); }
+function loginWithGithub() { auth.signInWithRedirect(new firebase.auth.GithubAuthProvider()).catch(err => showAuthError(err.message)); }
+function loginWithTwitter() { auth.signInWithRedirect(new firebase.auth.TwitterAuthProvider()).catch(err => showAuthError(err.message)); }
+function logoutUser() { auth.signOut().then(() => window.location.reload()); }
+auth.getRedirectResult().catch((e) => showAuthError(e.message));
 auth.onAuthStateChanged(user => {
   const authOverlay = document.getElementById('authOverlay');
   const landingOverlay = document.getElementById('landingOverlay');
@@ -493,47 +472,27 @@ auth.onAuthStateChanged(user => {
     currentUser = user;
     authOverlay.style.display = 'none';
     landingOverlay.style.display = 'flex';
-    const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
-    document.getElementById('playerName').value = displayName;
-    document.getElementById('meetPlayerName').value = displayName;
-    if (typeof initFriends === 'function') initFriends();
+    initFriends();
   } else {
     currentUser = null;
     authOverlay.style.display = 'flex';
     landingOverlay.style.display = 'none';
-    if (typeof teardownFriends === 'function') teardownFriends();
+    teardownFriends();
   }
 });
-const savedLang = localStorage.getItem('authLang') || 'ar';
-changeAuthLang(savedLang);
+changeAuthLang(localStorage.getItem('authLang') || 'ar');
 
 const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
 const SERVER_URL = BASE_SERVER_URL + "/chat";
 const TTS_URL = BASE_SERVER_URL + "/tts";
 const ROOM_CREATE_URL = BASE_SERVER_URL + "/rooms/create";
-const TOKEN_URL = BASE_SERVER_URL + "/get-token";
 const TRANSCRIBE_URL = BASE_SERVER_URL + "/transcribe";
 const WS_BASE = BASE_SERVER_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 const REQUEST_TIMEOUT_MS = 60000;
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
-
 const LONG_RECORD_CHUNK_MS = 5 * 60 * 1000;
 const LONG_RECORD_SILENCE_MS = 3000;
-const MAX_RECORD_DURATION_MS = 60 * 60 * 1000;
 
-const _scriptPromises = {};
-function loadScript(src) {
-  if (!_scriptPromises[src]) {
-    _scriptPromises[src] = new Promise((resolve, reject) => {
-      const s = document.createElement('script'); s.src = src; s.async = true;
-      s.onload = resolve; s.onerror = () => { delete _scriptPromises[src]; reject(new Error('Failed to load ' + src)); };
-      document.head.appendChild(s);
-    });
-  }
-  return _scriptPromises[src];
-}
-const loadLiveKit = () => window.LivekitClient ? Promise.resolve() : loadScript('https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js');
-const loadFirestore = () => (firebase.firestore ? Promise.resolve() : loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js'));
 function wakeServer() { try { fetch(BASE_SERVER_URL + '/health', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} }
 wakeServer();
 
@@ -541,9 +500,8 @@ const $ = id => document.getElementById(id);
 const chatEl = $('chat'), inputEl = $('textInput'), sendBtn = $('sendBtn'), stopAudioBtn = $('stopAudioBtn');
 const micA = $('micA'), micB = $('micB'), remoteMicBtn = $('remoteMicBtn'), floatingMicBtn = $('floatingMicBtn'), toggleCamBtn = $('toggleCamBtn');
 const langA = $('langA'), langB = $('langB');
-const clearBtn = $('clearBtn'), statusEl = $('status');
+const clearBtn = $('clearBtn'), statusEl = $('status'), backBtn = $('backBtn');
 const avatarWrap = $('avatar-wrap'), avatarLogo = $('avatar-logo'), avatarVideo = $('avatar-video');
-const backBtn = $('backBtn');
 const topHeader = $('topHeader'), remoteBar = $('remoteBar'), roomCodeLabel = $('roomCodeLabel'), onlineCount = $('onlineCount');
 const videoContainer = $('videoContainer'), remoteVideo = $('remoteVideo'), localVideo = $('localVideo'), closeVideoFullscreen = $('closeVideoFullscreen'), tapToPlayOverlay = $('tapToPlayOverlay');
 const imagePreviewContainer = $('imagePreviewContainer'), imagePreview = $('imagePreview'), cancelImageBtn = $('cancelImageBtn');
@@ -551,94 +509,44 @@ const mediaBtn = $('mediaBtn'), actionMenu = $('actionMenu'), menuCamera = $('me
 const cameraUpload = $('cameraUpload'), galleryUpload = $('galleryUpload'), videoUpload = $('videoUpload'), audioUpload = $('audioUpload');
 const musicBtn = $('musicBtn'), musicMenu = $('musicMenu'), musicList = $('musicList'), bgAudio = $('bgAudio');
 const uploadBtn = $('uploadBtn'), videoAvatarUpload = $('videoAvatarUpload'), removeAvatarBtn = $('removeAvatarBtn'), closeFullscreen = $('closeFullscreen');
-const meetingGridContainer = $('meetingGridContainer'), videoGrid = $('videoGrid');
-const transToggleBtnRoom = $('transToggleBtnRoom');
-const transToggleBtnLocal = $('transToggleBtnLocal');
-const voiceSelect = $('voiceSelect');
-const longRecordIndicator = $('longRecordIndicator');
-const longRecordTime = $('longRecordTime');
+const transToggleBtnRoom = $('transToggleBtnRoom'), transToggleBtnLocal = $('transToggleBtnLocal'), voiceSelect = $('voiceSelect');
 const callOverlay = $('callOverlay');
 
 $('btnLogout').addEventListener('click', logoutUser);
 
 let appMode = 'none';
-let chatHistory = [], isSending = false, isCompressing = false;
-let isTranslatorMode = false;
+let isSending = false, isCompressing = false, isTranslatorMode = true;
 let currentAudio = null, attachedImageBase64 = null, attachedFileText = null, currentSpeechId = 0, isBotTalking = false;
 let ws = null, wsReconnectTimer = null, pingInterval = null, myName = 'User', myLang = 'ar', currentRoomCode = '', shouldReconnect = false, hasJoinedOnce = false;
-let pc = null, localStream = null;
+let pc = null, localStream = null, iceCandidatesQueue = [];
+let isCameraOn = true, isWebRtcMicOn = true, callWithVideo = true;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
-let iceCandidatesQueue = [];
-let isCameraOn = true;
-let isWebRtcMicOn = true;
-let livekitRoom = null;
-
-let localRecorder = null;
-let localStreamMic = null;
-let localChunks = [];
-let localStartTime = 0;
-let currentSpeaker = null;
-let isLocalProcessing = false;
-
-let isManualTranslating = false;
-let audioRecorder = null;
-let translationStartTime = 0;
-let translationAudioCtx = null;
-let myIsCaller = false;
-let _rtcInitiated = false;
-let _chLangPopulated = false;
-
-let longRecordChunks = [];
-let longRecordStartTime = 0;
-let longRecordTimer = null;
-let longRecordChunkIndex = 0;
-let longRecordSilenceTimer = null;
-
-let currentIncomingCall = null;
-let ringtoneAudio = null;
-let callUnsub = null;
+let localRecorder = null, localStreamMic = null, localChunks = [], localStartTime = 0, isLocalProcessing = false;
+let isManualTranslating = false, audioRecorder = null, translationAudioCtx = null;
+let myIsCaller = false, _rtcInitiated = false, _chLangPopulated = false;
+let currentIncomingCall = null, outgoingCallDocId = null, outgoingCallUnsub = null, ringtoneAudio = null;
 
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 function showAppUI() {
   UI_ELEMENTS.forEach(id => {
     const el = document.getElementById(id);
-    if(el) el.style.display = (id === 'inputRow' || id === 'chatContainer' || id === 'topHeader' || id === 'extraControls' || id === 'avatar-wrap') ? 'flex' : 'block';
+    if (el) el.style.display = (id === 'inputRow' || id === 'chatContainer' || id === 'topHeader' || id === 'extraControls' || id === 'avatar-wrap') ? 'flex' : 'block';
   });
 }
 
-const UI_TEXT = {
-  'ar': { name: 'اسمك', create: '➕ إنشاء غرفة', createMeet: '➕ إنشاء اجتماع', or: 'أو', code: 'كود الغرفة', codeMeet: 'كود الاجتماع', join: 'انضمام', back: '← رجوع' },
-  'fr': { name: 'Votre Nom', create: '➕ Créer un salon', createMeet: '➕ Créer une réunion', or: 'Ou', code: 'Code du salon', codeMeet: 'Code de réunion', join: 'Rejoindre', back: '← Retour' },
-  'en': { name: 'Your Name', create: '➕ Create Room', createMeet: '➕ Create Meeting', or: 'Or', code: 'Room Code', codeMeet: 'Meeting Code', join: 'Join', back: '← Back' }
-};
 $('playerLang').addEventListener('change', (e) => {
-  const lang = e.target.value;
-  const t = UI_TEXT[lang] || UI_TEXT['en'];
-  $('playerName').placeholder = t.name;
-  $('createRoomBtn').textContent = t.create;
-  $('orText').textContent = t.or;
-  $('joinCodeInput').placeholder = t.code;
-  $('joinRoomBtn').textContent = t.join;
-  $('backToLandingBtn').textContent = t.back;
+  myLang = e.target.value;
+  localStorage.setItem('myChatLang', myLang);
 });
-const updateMeetForm = () => {
-  const lang = $('meetPlayerLang').value;
-  const t = UI_TEXT[lang] || UI_TEXT['en'];
-  $('meetPlayerName').placeholder = t.name;
-  $('createMeetingBtn').textContent = t.createMeet;
-  $('joinMeetingCodeInput').placeholder = t.codeMeet;
-  $('joinMeetingBtn').textContent = t.join;
-  $('backToLandingFromMeetBtn').textContent = t.back;
-};
-$('meetPlayerLang').addEventListener('change', updateMeetForm);
-updateMeetForm();
+myLang = localStorage.getItem('myChatLang') || 'ar';
+$('playerLang').value = myLang;
 
 function updateTranslatorUI() {
   const textRoom = isTranslatorMode ? '🌐 ON' : '🌐 OFF';
   const textLocal = isTranslatorMode ? '🌐 Translator ON' : '🌐 Translator OFF';
   if (transToggleBtnRoom) { transToggleBtnRoom.textContent = textRoom; transToggleBtnRoom.classList.toggle('active', isTranslatorMode); }
   if (transToggleBtnLocal) { transToggleBtnLocal.textContent = textLocal; transToggleBtnLocal.classList.toggle('active', isTranslatorMode); }
-  if (remoteMicBtn && (appMode === 'remote' || appMode === 'meeting')) {
+  if (remoteMicBtn && appMode === 'remote') {
     if (isTranslatorMode) {
       remoteMicBtn.style.background = isManualTranslating ? '#ef4444' : 'linear-gradient(135deg, #11998e, #38ef7d)';
       remoteMicBtn.classList.toggle('recording', isManualTranslating);
@@ -652,22 +560,21 @@ function updateTranslatorUI() {
     floatingMicBtn.style.background = (isManualTranslating || (!isTranslatorMode && !isWebRtcMicOn)) ? '#ef4444' : 'linear-gradient(135deg, #11998e, #38ef7d)';
   }
 }
+
 function setTranslatorMode(isOn) {
   isTranslatorMode = isOn;
   updateTranslatorUI();
-  if (appMode === 'remote' || appMode === 'meeting') {
+  if (appMode === 'remote') {
     if (isOn) {
       if (isManualTranslating) stopManualTranslation();
-      if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
-      if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(false).catch(()=>{});
+      if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
       isWebRtcMicOn = false;
-      setStatus('Translator Mode: Press Mic to talk');
+      setStatus('وضع الترجمة: اضغط المايك للتحدث والترجمة');
     } else {
       if (isManualTranslating) stopManualTranslation();
-      if (appMode === 'remote' && localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
-      if (appMode === 'meeting' && livekitRoom) livekitRoom.localParticipant.setMicrophoneEnabled(true).catch(()=>{});
+      if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
       isWebRtcMicOn = true;
-      setStatus('Phone Mode: Mic is live');
+      setStatus('وضع الهاتف: المايك مفتوح مباشر');
     }
   }
   resetStatus();
@@ -677,15 +584,16 @@ if (transToggleBtnLocal) transToggleBtnLocal.addEventListener('click', () => set
 
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() {
-  if (appMode === 'remote' || appMode === 'meeting') {
-    if (isTranslatorMode) setStatus(isManualTranslating ? '🎤 Recording... Press mic to stop & translate' : 'Translator Mode: Press mic to talk');
-    else setStatus('Phone Mode: Mic is live');
+  if (appMode === 'remote') {
+    if (isTranslatorMode) setStatus(isManualTranslating ? '🎤 جاري التسجيل... اضغط للإيقاف والترجمة' : 'وضع الترجمة: اضغط المايك للتحدث');
+    else setStatus('وضع الهاتف: المايك مفتوح مباشر');
   } else {
     setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬');
   }
 }
 function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 function addMsg(text, className, lang, imageBase64 = null) {
   const div = document.createElement('div');
   div.className = 'msg ' + className;
@@ -697,14 +605,15 @@ function addMsg(text, className, lang, imageBase64 = null) {
   }
   if (imageBase64) {
     const img = document.createElement('img');
-    img.src = imageBase64; img.style.maxWidth = '150px'; img.style.borderRadius = '8px'; img.style.display = 'block'; img.style.marginTop = '5px'; img.style.border = '2px solid rgba(255,255,255,0.2)'; img.style.cursor = 'pointer';
+    img.src = imageBase64;
+    img.style.cssText = 'max-width:150px; border-radius:8px; display:block; margin-top:5px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;';
     img.onclick = (e) => { e.stopPropagation(); window.open(imageBase64, '_blank'); };
     div.appendChild(img);
   }
   if (text) {
     div.insertAdjacentHTML('beforeend', escapeHtml(text).replace(/\n/g, '<br>'));
     div.addEventListener('click', () => {
-      if (isSending || appMode === 'remote' || appMode === 'meeting') return;
+      if (isSending || appMode === 'remote') return;
       if (div.classList.contains('playing')) {
         stopAudio();
         div.classList.remove('playing');
@@ -718,18 +627,24 @@ function addMsg(text, className, lang, imageBase64 = null) {
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
+
 function unlockAudio() {
   if ('speechSynthesis' in window) { try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {} }
   try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
 }
 document.body.addEventListener('click', unlockAudio, { once: true });
+
 function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 function langNameFor(code) { return { 'ar': 'Arabic', 'en': 'English', 'fr': 'French', 'de': 'German', 'tr': 'Turkish', 'it': 'Italian', 'zh': 'Chinese', 'ru': 'Russian', 'es': 'Spanish', 'pt': 'Portuguese', 'nl': 'Dutch', 'no': 'Norwegian' }[code] || 'English'; }
 function localeFor(code) { return { 'ar': 'ar', 'en': 'en-US', 'fr': 'fr-FR', 'de': 'de-DE', 'tr': 'tr-TR', 'it': 'it-IT', 'zh': 'zh-CN', 'ru': 'ru-RU', 'es': 'es-ES', 'pt': 'pt-PT', 'nl': 'nl-NL', 'no': 'no-NO' }[code] || 'en-US'; }
-function cleanTextForTTS(text) { if (!text) return ""; return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim(); }
+function cleanTextForTTS(text) {
+  if (!text) return "";
+  return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '')
+    .replace(/[*_#`~|\\\/<>()\[\]{}«»"']/g, ' ').replace(/\s+/g, ' ').trim();
+}
 function compressImage(base64Str, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image(); img.src = base64Str;
@@ -750,11 +665,12 @@ function setModeUI(mode) {
   remoteBar.style.display = 'none'; remoteMicBtn.style.display = 'none'; toggleCamBtn.style.display = 'none';
   mediaBtn.style.display = 'none'; musicBtn.style.display = 'none';
   uploadBtn.style.display = 'none'; voiceSelect.style.display = 'none';
-  videoContainer.style.display = 'none'; meetingGridContainer.style.display = 'none';
+  videoContainer.style.display = 'none';
   $('friendSection').style.display = 'none'; micA.style.display = 'none'; micB.style.display = 'none';
   tapToPlayOverlay.style.display = 'none';
+
   if (mode === 'local') {
-    document.body.classList.remove('remote-mode', 'meeting-mode');
+    document.body.classList.remove('remote-mode');
     showAppUI();
     mediaBtn.style.display = 'flex'; musicBtn.style.display = 'flex';
     uploadBtn.style.display = 'inline-block'; voiceSelect.style.display = 'inline-block';
@@ -762,48 +678,59 @@ function setModeUI(mode) {
     if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'none';
     $('friendSection').style.display = 'flex'; micA.style.display = 'flex'; micB.style.display = 'flex';
   } else if (mode === 'remote') {
-    document.body.classList.remove('meeting-mode'); document.body.classList.add('remote-mode');
+    document.body.classList.add('remote-mode');
     showAppUI();
     remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
     mediaBtn.style.display = 'flex'; voiceSelect.style.display = 'inline-block';
     if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
     if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
-  } else if (mode === 'meeting') {
-    document.body.classList.remove('remote-mode'); document.body.classList.add('meeting-mode');
-    showAppUI();
-    remoteBar.style.display = 'flex'; remoteMicBtn.style.display = 'flex'; toggleCamBtn.style.display = 'flex';
-    mediaBtn.style.display = 'flex'; meetingGridContainer.style.display = 'block'; voiceSelect.style.display = 'inline-block';
-    if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
-    if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
   }
   updateTranslatorUI();
 }
-$('btnLocal').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; setModeUI('local'); resetStatus(); });
-$('btnRemote').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('remoteJoinOverlay').style.display = 'flex'; });
-$('btnMeeting').addEventListener('click', () => { $('landingOverlay').style.display = 'none'; $('meetingJoinOverlay').style.display = 'flex'; });
-$('backToLandingBtn').addEventListener('click', () => { $('remoteJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
-$('backToLandingFromMeetBtn').addEventListener('click', () => { $('meetingJoinOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
+
+$('btnLocal').addEventListener('click', () => {
+  $('landingOverlay').style.display = 'none';
+  isTranslatorMode = true;
+  setModeUI('local');
+  resetStatus();
+});
+
+$('btnRemote').addEventListener('click', async () => {
+  $('landingOverlay').style.display = 'none';
+  $('remoteJoinOverlay').style.display = 'flex';
+  applyFriendsLang();
+  renderFriendsUI();
+  if (!friendsReady) {
+    setFrMsg(frT('wait'));
+    try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); }
+  } else {
+    setFrMsg('');
+  }
+});
+
+$('backToLandingBtn').addEventListener('click', () => {
+  $('remoteJoinOverlay').style.display = 'none';
+  $('landingOverlay').style.display = 'flex';
+});
 
 async function cleanupAll() {
   if (isManualTranslating) stopManualTranslation();
   if (localRecorder && localRecorder.state === 'recording') localRecorder.stop();
   stopAudio();
-  if (appMode === 'remote' || appMode === 'meeting') {
+  if (appMode === 'remote') {
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (pc) { pc.close(); pc = null; }
-    if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
-    iceCandidatesQueue = []; videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized'); remoteVideo.srcObject = null; localVideo.srcObject = null;
-    videoGrid.innerHTML = ''; appMode = 'none'; setModeUI('none'); remoteBar.style.display = 'none';
-    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
-    chatEl.innerHTML = ''; currentRoomCode = ''; $('landingOverlay').style.display = 'flex';
+    iceCandidatesQueue = []; videoContainer.style.display = 'none'; document.body.classList.remove('video-maximized');
+    remoteVideo.srcObject = null; localVideo.srcObject = null;
+    appMode = 'none'; setModeUI('none');
+    chatEl.innerHTML = ''; currentRoomCode = '';
+    $('remoteJoinOverlay').style.display = 'flex';
   } else {
-    chatEl.innerHTML = ''; chatHistory = []; appMode = 'none'; setModeUI('none');
-    UI_ELEMENTS.forEach(id => document.getElementById(id).style.display = 'none');
+    chatEl.innerHTML = ''; appMode = 'none'; setModeUI('none');
     $('landingOverlay').style.display = 'flex';
   }
 }
-
 backBtn.addEventListener('click', cleanupAll);
 
 tapToPlayOverlay.addEventListener('click', () => {
@@ -813,119 +740,52 @@ tapToPlayOverlay.addEventListener('click', () => {
 videoContainer.addEventListener('click', (e) => { if (e.target === closeVideoFullscreen || closeVideoFullscreen.contains(e.target) || e.target === tapToPlayOverlay) return; document.body.classList.toggle('video-maximized'); });
 localVideo.addEventListener('click', (e) => { e.stopPropagation(); });
 closeVideoFullscreen.addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.remove('video-maximized'); });
+
 langA.addEventListener('change', () => {
-  if (appMode === 'remote' || appMode === 'meeting') {
+  if (appMode === 'remote') {
     myLang = langA.value;
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'change_lang', lang: myLang }));
     addMsg(`تم تغيير لغتك إلى ${langA.options[langA.selectedIndex].text}`, 'bot');
   }
 });
-$('copyRoomBtn').addEventListener('click', () => {
-  if (!currentRoomCode) return;
-  navigator.clipboard.writeText(currentRoomCode).then(() => { setStatus('Code copied!'); setTimeout(resetStatus, 2000); }).catch(() => alert('Room Code: ' + currentRoomCode));
-});
+
 avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return; avatarWrap.classList.toggle('fullscreen'); });
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
-clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; chatHistory = []; stopAudio(); addMsg('Chat cleared.', 'bot'); });
+clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; stopAudio(); addMsg('Chat cleared.', 'bot'); });
 stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); if (localRecorder && localRecorder.state === 'recording') localRecorder.stop(); });
-toggleCamBtn.addEventListener('click', async () => {
+
+toggleCamBtn.addEventListener('click', () => {
   isCameraOn = !isCameraOn;
   toggleCamBtn.classList.toggle('off', !isCameraOn);
-  toggleCamBtn.innerHTML = isCameraOn
-    ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg>'
-    : '<svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM10 16H6v-2h4v2zm4-4H6v-2h8v2z"/></svg>';
-  if (localStream) { const videoTrack = localStream.getVideoTracks()[0]; if (videoTrack) { videoTrack.enabled = isCameraOn; } }
-  if (livekitRoom) { try { await livekitRoom.localParticipant.setCameraEnabled(isCameraOn); } catch (e) { console.warn(e); } }
+  if (localStream) {
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) videoTrack.enabled = isCameraOn;
+  }
 });
 
-function handleTrackSubscribed(track, publication, participant) {
-  if (track.kind === 'video' || track.kind === 'audio') {
-    let boxId = 'participant-' + participant.identity;
-    let box = document.getElementById(boxId);
-    if (!box) {
-      box = document.createElement('div'); box.id = boxId; box.className = 'participant-box';
-      let nameLabel = document.createElement('div'); nameLabel.className = 'participant-name'; nameLabel.textContent = participant.name || participant.identity;
-      box.appendChild(nameLabel); videoGrid.appendChild(box);
-    }
-    if (track.kind === 'video') {
-      const videoEl = track.attach(); videoEl.autoplay = true; videoEl.playsInline = true;
-      videoEl.style.width = '100%'; videoEl.style.height = '100%'; videoEl.style.objectFit = 'cover';
-      const oldVideo = box.querySelector('video'); if (oldVideo) oldVideo.remove();
-      box.insertBefore(videoEl, box.firstChild);
-    } else if (track.kind === 'audio') {
-      const audioEl = track.attach(); audioEl.autoplay = true; box.appendChild(audioEl);
-    }
-  }
-}
-function handleTrackUnsubscribed(track, publication, participant) { track.detach().forEach(el => el.remove()); }
-function handleParticipantDisconnected(participant) { let box = document.getElementById('participant-' + participant.identity); if (box) box.remove(); }
-
-async function connectLiveKit(roomCode, participantName) {
-  try {
-    setStatus("جاري تجهيز الفيديو...");
-    await loadLiveKit();
-    setStatus("⏳ جاري الاتصال بالسيرفر...");
-    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 70000);
-    const res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room_name: roomCode, participant_name: participantName }), signal: controller.signal });
-    clearTimeout(timeout);
-    if (!res.ok) { let errMsg = "فشل الاتصال بالسيرفر"; try { const errData = await res.json(); if (errData.detail) errMsg = errData.detail; } catch(e){} throw new Error(errMsg); }
-    const { token, url } = await res.json();
-    setStatus("جاري الاتصال بالاجتماع...");
-    if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
-    videoGrid.innerHTML = '';
-    livekitRoom = new LivekitClient.Room({ adaptiveStream: true, dynacast: true });
-    livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
-    livekitRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
-    livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
-    livekitRoom.on(LivekitClient.RoomEvent.Connected, async () => {
-      setStatus("✅ متصل بالاجتماع");
-      try { await livekitRoom.localParticipant.setCameraEnabled(true); isCameraOn = true; toggleCamBtn.classList.remove('off'); } catch (err) { console.warn("Camera error", err); }
-      try { await livekitRoom.localParticipant.setMicrophoneEnabled(!isTranslatorMode); isWebRtcMicOn = !isTranslatorMode; } catch (err) { console.warn("Mic error", err); }
-      try { await livekitRoom.startAudio(); } catch(e) {}
-      if (!livekitRoom.canPlaybackAudio) {
-        addMsg("⚠️ اضغط على الشاشة لتفعيل الصوت.", "bot");
-        document.body.addEventListener('click', () => { if(livekitRoom) livekitRoom.startAudio(); }, { once: true });
-      }
-      resetStatus();
-    });
-    livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => { setStatus("انقطع الاتصال"); addMsg("⚠️ تم قطع الاتصال بالاجتماع.", "bot"); });
-    livekitRoom.on(LivekitClient.RoomEvent.Reconnecting, () => setStatus("جاري إعادة الاتصال..."));
-    livekitRoom.on(LivekitClient.RoomEvent.MediaDevicesError, (e) => { console.error(e); addMsg("⚠️ خطأ في أجهزة الوسائط.", "bot"); });
-    livekitRoom.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
-      if (publication.track.kind === 'video') {
-        let boxId = 'participant-' + participant.identity; let box = document.getElementById(boxId);
-        if (!box) {
-          box = document.createElement('div'); box.id = boxId; box.className = 'participant-box';
-          let nameLabel = document.createElement('div'); nameLabel.className = 'participant-name'; nameLabel.textContent = (participant.name || participant.identity) + " (You)";
-          box.appendChild(nameLabel); videoGrid.appendChild(box);
-        }
-        const oldVideo = box.querySelector('video'); if (oldVideo) oldVideo.remove();
-        const videoEl = publication.track.attach(); videoEl.autoplay = true; videoEl.playsInline = true; videoEl.muted = true;
-        videoEl.style.width = '100%'; videoEl.style.height = '100%'; videoEl.style.objectFit = 'cover';
-        box.insertBefore(videoEl, box.firstChild);
-      }
-    });
-    await livekitRoom.connect(url, token);
-  } catch (e) {
-    console.error(e);
-    if (e.name === 'AbortError') { addMsg("⚠️ الخادم يستغرق وقتاً طويلاً.", 'bot'); setStatus("فشل الاتصال"); }
-    else { addMsg("⚠️ فشل الانضمام للاجتماع: " + e.message, 'bot'); setStatus("خطأ في الاجتماع"); }
-  }
-}
-
-async function startVideoCall(isCaller = false) {
+// ===== WebRTC Call (Voice / Video) =====
+async function startVideoCall(isCaller = false, enableVideo = true) {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: enableVideo,
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
       });
-      localVideo.srcObject = localStream; videoContainer.style.display = 'block';
-      isCameraOn = true; toggleCamBtn.classList.remove('off');
+      if (enableVideo && localStream.getVideoTracks().length > 0) {
+        localVideo.srcObject = localStream;
+        videoContainer.style.display = 'block';
+        isCameraOn = true; toggleCamBtn.classList.remove('off');
+      } else {
+        videoContainer.style.display = 'none';
+        isCameraOn = false; toggleCamBtn.classList.add('off');
+      }
       isWebRtcMicOn = !isTranslatorMode;
       localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
       resetStatus();
-    } catch (err) { addMsg('⚠️ تعذر الوصول إلى الكاميرا أو المايك.', 'bot'); return; }
+    } catch (err) {
+      addMsg('⚠️ تعذر الوصول إلى المايك أو الكاميرا.', 'bot');
+      return;
+    }
   }
   if (!pc) {
     const iceServers = [
@@ -933,133 +793,113 @@ async function startVideoCall(isCaller = false) {
       { urls: 'turn:global.relay.metered.ca:80', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' },
       { urls: 'turn:global.relay.metered.ca:443', username: '4201486c5fb862688f36878e', credential: 'r55gTJrk5t/MiLew' }
     ];
-    pc = new RTCPeerConnection({ iceServers: iceServers });
+    pc = new RTCPeerConnection({ iceServers });
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
     pc.ontrack = (event) => {
       remoteVideo.srcObject = event.streams[0];
-      remoteVideo.play().catch(e => { tapToPlayOverlay.style.display = 'flex'; });
-      setStatus('✅ تم الاتصال بالفيديو!');
+      if (event.streams[0].getVideoTracks().length > 0) videoContainer.style.display = 'block';
+      remoteVideo.play().catch(() => { tapToPlayOverlay.style.display = 'flex'; });
+      setStatus('✅ تم الاتصال بالمكالمة!');
     };
-    pc.onicecandidate = (event) => { if (event.candidate && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate })); } };
+    pc.onicecandidate = (event) => {
+      if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'rtc-ice', candidate: event.candidate }));
+      }
+    };
     pc.oniceconnectionstatechange = () => {
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-        setStatus('⚠️ إعادة الاتصال بالفيديو...');
+        setStatus('⚠️ إعادة الاتصال بالمكالمة...');
         pc.restartIce();
-        if(isCaller) pc.createOffer({iceRestart: true}).then(offer => { pc.setLocalDescription(offer); ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); });
+        if (isCaller) pc.createOffer({ iceRestart: true }).then(offer => { pc.setLocalDescription(offer); ws.send(JSON.stringify({ type: 'rtc-offer', offer })); });
       }
     };
   }
   if (isCaller) {
-    const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-    ws.send(JSON.stringify({ type: 'rtc-offer', offer: offer })); setStatus('📡 جاري طلب الاتصال...');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type: 'rtc-offer', offer }));
+    setStatus('📡 جاري ربط المكالمة...');
   }
 }
 
+// ===== Face-to-Face Local Mic =====
 async function toggleLocalMic(speaker) {
   if (isLocalProcessing) return;
   unlockAudio();
-  
+
   if (localRecorder && localRecorder.state === 'recording') {
     localRecorder.stop();
-    micA.classList.remove('recording'); 
-    micB.classList.remove('recording');
+    micA.classList.remove('recording'); micB.classList.remove('recording');
     setStatus('⏳ Processing...');
     return;
   }
-  
-  if (localRecorder) { try { localRecorder.stop(); } catch(e){} }
-  
-  currentSpeaker = speaker;
+  if (localRecorder) { try { localRecorder.stop(); } catch (e) {} }
+
   const lang = speaker === 'A' ? langA.value : langB.value;
   const targetLang = speaker === 'A' ? langB.value : langA.value;
   const btn = speaker === 'A' ? micA : micB;
-  
+
   try {
-    localStreamMic = await navigator.mediaDevices.getUserMedia({ 
-      audio: { 
-        echoCancellation: true, 
-        noiseSuppression: true, 
-        autoGainControl: true,
-        channelCount: 1,
-        sampleRate: 48000
-      } 
+    localStreamMic = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
     });
-    
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaStreamSource(localStreamMic);
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 512;
     source.connect(analyser);
     const rmsBuffer = new Float32Array(analyser.fftSize);
-    let rmsMax = 0;
-    let silenceStart = Date.now();
-    let intervalId = null;
-    let calibrationInterval = null;
-    
-    // Noise Gate محسّن: عتبة 0.015 + حد أدنى 0.02
-    let noiseFloor = 0;
-    let calibrationCount = 0;
-    calibrationInterval = setInterval(() => {
+    let rmsMax = 0, silenceStart = Date.now(), noiseFloor = 0, calibrationCount = 0;
+
+    const calibrationInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; 
-        for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        const rms = Math.sqrt(sum / rmsBuffer.length);
-        noiseFloor += rms;
+        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i] * rmsBuffer[i];
+        noiseFloor += Math.sqrt(sum / rmsBuffer.length);
         calibrationCount++;
-        if (calibrationCount >= 10) {
-          noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
-          clearInterval(calibrationInterval);
-          calibrationInterval = null;
-        }
-      } catch(e){}
+        if (calibrationCount >= 10) { noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05); clearInterval(calibrationInterval); }
+      } catch (e) {}
     }, 100);
-    
-    intervalId = setInterval(() => {
+
+    const intervalId = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; 
-        for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i] * rmsBuffer[i];
         const rms = Math.sqrt(sum / rmsBuffer.length);
         if (rms > rmsMax) rmsMax = rms;
-        // عتبة ذكية: الحد الأدنى 0.02 + noiseFloor + 0.015
         const threshold = Math.max(0.02, noiseFloor + 0.015);
         if (rms > threshold) silenceStart = Date.now();
         else if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && localRecorder && localRecorder.state === 'recording') {
           localRecorder.stop();
         }
-      } catch(e){}
+      } catch (e) {}
     }, 100);
 
-    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     localRecorder = new MediaRecorder(localStreamMic, { mimeType });
     localChunks = [];
-    
     localRecorder.ondataavailable = e => { if (e.data.size > 0) localChunks.push(e.data); };
-    
+
     localRecorder.onstop = async () => {
-      if (intervalId) clearInterval(intervalId);
-      if (calibrationInterval) clearInterval(calibrationInterval);
+      clearInterval(intervalId); clearInterval(calibrationInterval);
       if (localStreamMic) localStreamMic.getTracks().forEach(t => t.stop());
-      try { if (audioCtx.state !== 'closed') await audioCtx.close(); } catch(e){}
-      
+      try { if (audioCtx.state !== 'closed') await audioCtx.close(); } catch (e) {}
+
       const durationMs = Date.now() - localStartTime;
-      
-      if (durationMs < 800 || rmsMax < 0.005) { 
-        isLocalProcessing = false; unlockMics(); 
+      if (durationMs < 800 || rmsMax < 0.005) {
+        isLocalProcessing = false; unlockMics();
         if (durationMs >= 800) addMsg('⚠️ لم يُسمع صوت واضح.', 'bot');
-        return; 
+        return;
       }
-      
+
       const blob = new Blob(localChunks, { type: localRecorder.mimeType });
       setStatus('⏳ جاري استخراج النص والترجمة...');
-      
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
-      formData.append('target_lang', targetLang); 
-      formData.append('language', lang); 
+      formData.append('target_lang', targetLang);
+      formData.append('language', lang);
       formData.append('duration_ms', String(durationMs));
-      
+
       try {
         const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
         if (res.ok) {
@@ -1067,33 +907,27 @@ async function toggleLocalMic(speaker) {
           if (data.original && data.original.length > 1) {
             addMsg(`You: ${data.original}`, speaker === 'A' ? 'user-a' : 'user-b', lang);
             if (isTranslatorMode) {
-              if (data.translated) {
-                addMsg(`↳ ${data.translated}`, 'bot', targetLang);
-                speak(data.translated, targetLang);
-              }
+              if (data.translated) { addMsg(`↳ ${data.translated}`, 'bot', targetLang); speak(data.translated, targetLang); }
             } else {
               ask(data.original, lang, targetLang, speaker);
             }
           } else {
-            addMsg(`⚠️ لم يتم التعرف على كلام.`, 'bot');
+            addMsg('⚠️ لم يتم التعرف على كلام.', 'bot');
           }
         }
-      } catch(e) { console.warn('Audio upload failed', e); addMsg('⚠️ فشل إرسال الصوت.', 'bot'); }
-      
-      isLocalProcessing = false;
-      unlockMics();
+      } catch (e) { addMsg('⚠️ فشل إرسال الصوت.', 'bot'); }
+
+      isLocalProcessing = false; unlockMics();
     };
-    
+
     localRecorder.start(1000);
     localStartTime = Date.now();
     btn.classList.add('recording');
-    micA.disabled = speaker !== 'A';
-    micB.disabled = speaker !== 'B';
+    micA.disabled = speaker !== 'A'; micB.disabled = speaker !== 'B';
     setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
   } catch (e) {
     addMsg("⚠️ تعذر الوصول للمايك: " + e.message, "bot");
-    isLocalProcessing = false;
-    unlockMics();
+    isLocalProcessing = false; unlockMics();
   }
 }
 function unlockMics() {
@@ -1104,49 +938,18 @@ function unlockMics() {
 micA.addEventListener('click', () => toggleLocalMic('A'));
 micB.addEventListener('click', () => toggleLocalMic('B'));
 
-async function ensureMicStream() {
-  if (localStream) return localStream;
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: false,
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
-    });
-    isWebRtcMicOn = true;
-    return localStream;
-  } catch (err) {
-    addMsg('⚠️ تعذر الوصول للمايك: ' + err.message, 'bot');
-    return null;
-  }
-}
-
+// ===== Remote Call Mic =====
 async function toggleRemoteMic() {
   if (isTranslatorMode) {
     if (isManualTranslating) stopManualTranslation();
     else startManualTranslation();
     return;
   }
-  
   isWebRtcMicOn = !isWebRtcMicOn;
-  
-  if (appMode === 'remote') {
-    const stream = await ensureMicStream();
-    if (stream) {
-      stream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
-    }
-  }
-  
-  if (appMode === 'meeting' && livekitRoom) {
-    try {
-      await livekitRoom.localParticipant.setMicrophoneEnabled(isWebRtcMicOn);
-    } catch(e) {
-      console.warn('Mic toggle error:', e);
-    }
-  }
-  
+  if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
   updateTranslatorUI();
   resetStatus();
 }
-
 remoteMicBtn.addEventListener('click', toggleRemoteMic);
 floatingMicBtn.addEventListener('click', toggleRemoteMic);
 
@@ -1157,44 +960,28 @@ async function startManualTranslation() {
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 }
     });
     const rawTrack = transStream.getAudioTracks()[0];
-
     translationAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = translationAudioCtx.createMediaStreamSource(new MediaStream([rawTrack]));
-    const hp = translationAudioCtx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 80;
-    const analyser = translationAudioCtx.createAnalyser();
-    analyser.fftSize = 512;
+    const hp = translationAudioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
+    const analyser = translationAudioCtx.createAnalyser(); analyser.fftSize = 512;
     const destination = translationAudioCtx.createMediaStreamDestination();
     source.connect(hp); hp.connect(analyser); analyser.connect(destination);
 
     const filteredTrack = destination.stream.getAudioTracks()[0];
     const rmsBuffer = new Float32Array(analyser.fftSize);
-    let rmsMax = 0;
-    let silenceStart = Date.now();
-    let chunkStartTime = Date.now();
-    let chunkIndex = 0;
-    let noiseFloor = 0;
-    let calibrationCount = 0;
-    let calibrationInterval = null;
+    let rmsMax = 0, silenceStart = Date.now(), chunkStartTime = Date.now(), chunkIndex = 0, noiseFloor = 0, calibrationCount = 0;
 
-    // Noise Gate محسّن
-    calibrationInterval = setInterval(() => {
+    const calibrationInterval = setInterval(() => {
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
-        const rms = Math.sqrt(sum / rmsBuffer.length);
-        noiseFloor += rms;
+        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i] * rmsBuffer[i];
+        noiseFloor += Math.sqrt(sum / rmsBuffer.length);
         calibrationCount++;
-        if (calibrationCount >= 10) {
-          noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05);
-          clearInterval(calibrationInterval);
-          calibrationInterval = null;
-        }
-      } catch(e){}
+        if (calibrationCount >= 10) { noiseFloor = Math.min(noiseFloor / calibrationCount, 0.05); clearInterval(calibrationInterval); }
+      } catch (e) {}
     }, 100);
 
-    let mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-    
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     const startNewChunk = () => {
       let chunks = [];
       audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
@@ -1202,15 +989,12 @@ async function startManualTranslation() {
       audioRecorder.onstop = async () => {
         const durationMs = Date.now() - chunkStartTime;
         if (chunks.length === 0 || durationMs < 800 || rmsMax < 0.005) return;
-        
         const blob = new Blob(chunks, { type: mimeType });
         const formData = new FormData();
         formData.append('file', blob, 'audio.webm');
         formData.append('target_lang', myLang);
         formData.append('language', myLang);
         formData.append('duration_ms', String(durationMs));
-        formData.append('chunk_index', String(chunkIndex));
-        
         try {
           const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: formData });
           if (res.ok) {
@@ -1220,79 +1004,63 @@ async function startManualTranslation() {
               sendRemoteMessage(data.original);
             }
           }
-        } catch(e) { console.warn('Audio chunk upload failed', e); }
+        } catch (e) { console.warn('Audio chunk upload failed', e); }
         chunkIndex++;
       };
       audioRecorder.start(1000);
-      chunkStartTime = Date.now();
-      rmsMax = 0;
-      silenceStart = Date.now();
+      chunkStartTime = Date.now(); rmsMax = 0; silenceStart = Date.now();
     };
-
     startNewChunk();
 
     const vadInterval = setInterval(() => {
       if (!isManualTranslating) return;
       try {
         analyser.getFloatTimeDomainData(rmsBuffer);
-        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i]*rmsBuffer[i];
+        let sum = 0; for (let i = 0; i < rmsBuffer.length; i++) sum += rmsBuffer[i] * rmsBuffer[i];
         const rms = Math.sqrt(sum / rmsBuffer.length);
-        
-        // عتبة ذكية محسّنة
         const threshold = Math.max(0.02, noiseFloor + 0.015);
-        if (rms > threshold) {
-          if (rms > rmsMax) rmsMax = rms;
-          silenceStart = Date.now();
-        } else {
-          if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && audioRecorder && audioRecorder.state === 'recording') {
-             audioRecorder.stop();
-             setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
-          }
+        if (rms > threshold) { if (rms > rmsMax) rmsMax = rms; silenceStart = Date.now(); }
+        else if (Date.now() - silenceStart > LONG_RECORD_SILENCE_MS && audioRecorder && audioRecorder.state === 'recording') {
+          audioRecorder.stop();
+          setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
         }
-        
         if (Date.now() - chunkStartTime > LONG_RECORD_CHUNK_MS && audioRecorder && audioRecorder.state === 'recording') {
           audioRecorder.stop();
           setTimeout(() => { if (isManualTranslating) startNewChunk(); }, 200);
         }
-      } catch(e){}
+      } catch (e) {}
     }, 200);
 
-    translationStartTime = Date.now();
     isManualTranslating = true;
     updateTranslatorUI();
-    setStatus('🎤 Recording... Press mic to stop & translate');
-    
+    setStatus('🎤 جاري التسجيل... اضغط للإيقاف والترجمة');
     window._vadInterval = vadInterval;
     window._rawTrack = rawTrack;
     window._calibrationInterval = calibrationInterval;
-
   } catch (e) {
-    console.error("Mic access failed", e);
     addMsg("⚠️ تعذر الوصول للمايك.", 'bot');
   }
 }
+
 function stopManualTranslation() {
   if (!isManualTranslating) return;
   isManualTranslating = false;
-  
   if (window._vadInterval) { clearInterval(window._vadInterval); window._vadInterval = null; }
   if (window._calibrationInterval) { clearInterval(window._calibrationInterval); window._calibrationInterval = null; }
-  if (window._rawTrack) { try { window._rawTrack.stop(); } catch(e){} window._rawTrack = null; }
-  
-  if (audioRecorder && audioRecorder.state === 'recording') {
-    audioRecorder.stop();
-  }
-  
-  try { if (translationAudioCtx && translationAudioCtx.state !== 'closed') translationAudioCtx.close(); } catch(e){}
+  if (window._rawTrack) { try { window._rawTrack.stop(); } catch (e) {} window._rawTrack = null; }
+  if (audioRecorder && audioRecorder.state === 'recording') audioRecorder.stop();
+  try { if (translationAudioCtx && translationAudioCtx.state !== 'closed') translationAudioCtx.close(); } catch (e) {}
   translationAudioCtx = null;
-  
   updateTranslatorUI();
 }
 
 sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim();
-  if (appMode === 'remote' || appMode === 'meeting') { if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; } }
-  else { if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; } }
+  if (appMode === 'remote') {
+    if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
+  } else {
+    if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
+  }
 });
 inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
 
@@ -1310,42 +1078,38 @@ async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
   if (isSending) return;
   setBusy(true); setStatus('Processing...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang, isImage) }];
-  
   let finalText = text || '';
   if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
-  
   let userContent = finalText;
   if (attachedImageBase64) {
     userContent = [
-      { type: "text", text: finalText || "Describe this image in detail." }, 
+      { type: "text", text: finalText || "Describe this image in detail." },
       { type: "image_url", image_url: { url: attachedImageBase64 } }
     ];
   }
-  
   messages.push({ role: 'user', content: userContent });
-  
+
   try {
-    const res = await fetchWithTimeout(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID }) }, REQUEST_TIMEOUT_MS);
+    const res = await fetchWithTimeout(SERVER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, is_vision: attachedImageBase64 != null, is_translation: isTranslatorMode, session_id: SESSION_ID })
+    }, REQUEST_TIMEOUT_MS);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail);
-    
-    let replyText = data.reply.trim();
-    
+
+    let replyText = (data.reply || '').trim();
     if (isImage && replyText.includes('|||')) {
       const parts = replyText.split('|||');
-      const original = parts[0].trim();
-      const translated = parts[1].trim();
-      addMsg(`📷 ${original}`, speaker === 'A' ? 'user-a' : 'user-b', sourceLang, attachedImageBase64);
-      addMsg(`↳ ${translated}`, 'bot', targetLang);
-      speak(translated, targetLang);
+      addMsg(`📷 ${parts[0].trim()}`, speaker === 'A' ? 'user-a' : 'user-b', sourceLang, attachedImageBase64);
+      addMsg(`↳ ${parts[1].trim()}`, 'bot', targetLang);
+      speak(parts[1].trim(), targetLang);
     } else {
-      if (isTranslatorMode && replyText === text) {
-         replyText = "⚠️ Translation failed. Please try again.";
-      }
+      if (isTranslatorMode && replyText === text) replyText = "⚠️ Translation failed. Please try again.";
       addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO', isImage ? attachedImageBase64 : null);
-      resetStatus(); speak(replyText, targetLang || langA.value);
+      resetStatus();
+      speak(replyText, targetLang || langA.value);
     }
-    
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
   } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
 }
@@ -1356,17 +1120,12 @@ videoAvatarUpload.addEventListener('change', (e) => {
   if (currentAvatarObjectUrl) URL.revokeObjectURL(currentAvatarObjectUrl);
   currentAvatarObjectUrl = URL.createObjectURL(file);
   avatarLogo.style.display = 'none'; avatarVideo.style.display = 'block'; avatarVideo.src = currentAvatarObjectUrl;
-  if (isBotTalking) avatarVideo.play().catch(()=>{});
+  if (isBotTalking) avatarVideo.play().catch(() => {});
   removeAvatarBtn.style.display = 'flex';
 });
 removeAvatarBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); 
-  avatarVideo.pause(); 
-  avatarVideo.removeAttribute('src'); 
-  avatarVideo.load();
-  avatarVideo.style.display = 'none'; 
-  avatarLogo.style.display = 'block'; 
-  removeAvatarBtn.style.display = 'none';
+  e.stopPropagation(); avatarVideo.pause(); avatarVideo.removeAttribute('src'); avatarVideo.load();
+  avatarVideo.style.display = 'none'; avatarLogo.style.display = 'block'; removeAvatarBtn.style.display = 'none';
   if (currentAvatarObjectUrl) { URL.revokeObjectURL(currentAvatarObjectUrl); currentAvatarObjectUrl = null; }
 });
 mediaBtn.addEventListener('click', (e) => { e.stopPropagation(); musicMenu.style.display = 'none'; if (actionMenu.style.display === 'flex') actionMenu.style.display = 'none'; else { const rect = mediaBtn.getBoundingClientRect(); actionMenu.style.display = 'flex'; actionMenu.style.bottom = (window.innerHeight - rect.top + 10) + 'px'; actionMenu.style.left = Math.max(10, rect.left - 50) + 'px'; } });
@@ -1378,25 +1137,20 @@ menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; v
 
 videoUpload.addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
-  if (appMode === 'remote' || appMode === 'meeting') return alert('إرسال الفيديوهات غير مدعوم حالياً.');
+  if (appMode === 'remote') return alert('إرسال الفيديوهات غير مدعوم حالياً.');
   if (file.size > 100 * 1024 * 1024) return alert('حجم الملف كبير جداً! الحد الأقصى 100MB');
   const targetLang = langB.value;
   addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
   setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
-  const formData = new FormData(); 
-  formData.append('file', file); 
-  formData.append('target_lang', targetLang);
-  formData.append('language', langA.value);
-  formData.append('duration_ms', '10000');
+  const formData = new FormData(); formData.append('file', file); formData.append('target_lang', targetLang); formData.append('language', langA.value); formData.append('duration_ms', '10000');
   try {
     const res = await fetchWithTimeout(TRANSCRIBE_URL, { method: 'POST', body: formData }, 300000);
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
-    if (data.original) addMsg(data.original, 'user-b', 'AUTO'); 
+    if (data.original) addMsg(data.original, 'user-b', 'AUTO');
     if (data.translated && data.translated !== data.original) addMsg(data.translated, 'bot', targetLang);
     setStatus('✅ تمت الترجمة بنجاح!');
-  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); }
-  finally { setBusy(false); e.target.value = ''; }
+  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); } finally { setBusy(false); e.target.value = ''; }
 });
 
 async function handleImage(e) {
@@ -1405,7 +1159,7 @@ async function handleImage(e) {
   const reader = new FileReader();
   reader.onload = async ev => {
     const compressed = await compressImage(ev.target.result);
-    if (appMode === 'remote' || appMode === 'meeting') {
+    if (appMode === 'remote') {
       if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed })); addMsg('', 'user-a', myLang, compressed); }
       isCompressing = false; sendBtn.disabled = isSending; setStatus('');
     } else {
@@ -1419,6 +1173,7 @@ async function handleImage(e) {
 galleryUpload.addEventListener('change', handleImage);
 cameraUpload.addEventListener('change', handleImage);
 cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.'); });
+
 audioUpload.addEventListener('change', (e) => {
   const files = e.target.files;
   for (let i = 0; i < files.length; i++) playlist.push({ name: files[i].name, url: URL.createObjectURL(files[i]) });
@@ -1434,7 +1189,7 @@ function renderPlaylist() {
     const div = document.createElement('div'); div.className = 'music-item';
     const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
     const del = document.createElement('span'); del.className = 'delete-song'; del.textContent = '✕';
-    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if(currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
+    del.onclick = (e) => { e.stopPropagation(); if (currentSongIndex === index) stopMusic(); playlist.splice(index, 1); if (currentSongIndex > index) currentSongIndex--; renderPlaylist(); };
     div.appendChild(name); div.appendChild(del);
     if (index === currentSongIndex && !bgAudio.paused) div.classList.add('active');
     div.onclick = () => { if (currentSongIndex === index && !bgAudio.paused) { bgAudio.pause(); renderPlaylist(); } else { currentSongIndex = index; bgAudio.src = playlist[index].url; bgAudio.play(); renderPlaylist(); } };
@@ -1442,83 +1197,148 @@ function renderPlaylist() {
   });
 }
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
-bgAudio.addEventListener('ended', () => { if(playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
+bgAudio.addEventListener('ended', () => { if (playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
+renderPlaylist();
 
+// ===== Messenger Friends, Chat & Direct Call =====
 const FR_TEXT = {
-  ar: { friends: 'الأصدقاء', myCode: 'كود الصداقة الخاص بك', codePh: 'كود صديق', requests: 'طلبات الصداقة', list: 'قائمة الأصدقاء', back: '← رجوع', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال الطلب.', empty: 'لا يوجد أصدقاء بعد.', accept: 'قبول', decline: 'رفض', call: 'اتصال', remove: 'حذف', invite: n => `📞 ${n} يدعوك إلى اجتماع`, join: 'انضمام', ignore: 'تجاهل', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', invited: '✅ تم إرسال الدعوة', wait: 'جارٍ التحميل...', ringing: 'جارٍ الاتصال...', incoming: 'مكالمة واردة...' },
-  fr: { friends: 'Amis', myCode: 'Votre code ami', codePh: "Code d'un ami", requests: "Demandes d'ami", list: "Liste d'amis", back: '← Retour', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Cette personne est déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', call: 'Appel', remove: 'Retirer', invite: n => `📞 ${n} vous invite à une réunion`, join: 'Rejoindre', ignore: 'Ignorer', rules: "Base de données inaccessible.", copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', invited: '✅ Invitation envoyée', wait: 'Chargement...', ringing: 'Appel en cours...', incoming: 'Appel entrant...' },
-  en: { friends: 'Friends', myCode: 'Your friend code', codePh: "Friend's code", requests: 'Friend requests', list: 'Friends', back: '← Back', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Request sent.', empty: 'No friends yet.', accept: 'Accept', decline: 'Decline', call: 'Call', remove: 'Remove', invite: n => `📞 ${n} invites you to a meeting`, join: 'Join', ignore: 'Ignore', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', invited: '✅ Invitation sent', wait: 'Loading...', ringing: 'Ringing...', incoming: 'Incoming call...' }
+  ar: { title: 'Messenger', myCode: 'كود الصداقة الخاص بك:', codePh: 'أدخل كود الصديق لإضافته', requests: 'طلبات الصداقة', list: 'الأصدقاء والمحادثات', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال طلب الصداقة.', empty: 'لا يوجد أصدقاء بعد. أضف صديقاً بالكود أعلاه.', accept: 'قبول', decline: 'رفض', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', wait: 'جارٍ التحميل...', ringing: 'جاري الاتصال بـ ', incomingVoice: 'مكالمة صوتية واردة...', incomingVideo: 'مكالمة فيديو واردة...', tapToChat: 'اضغط لفتح المحادثة' },
+  fr: { title: 'Messenger', myCode: 'Votre code ami :', codePh: "Code d'un ami", requests: "Demandes d'ami", list: 'Amis et discussions', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', rules: 'Base de données inaccessible.', copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', wait: 'Chargement...', ringing: 'Appel vers ', incomingVoice: 'Appel vocal entrant...', incomingVideo: 'Appel vidéo entrant...', tapToChat: 'Appuyez pour discuter' },
+  en: { title: 'Messenger', myCode: 'Your friend code:', codePh: "Enter friend's code", requests: 'Friend requests', list: 'Friends & Chats', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Friend request sent.', empty: 'No friends yet. Add a friend above.', accept: 'Accept', decline: 'Decline', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', wait: 'Loading...', ringing: 'Calling ', incomingVoice: 'Incoming voice call...', incomingVideo: 'Incoming video call...', tapToChat: 'Tap to open chat' }
 };
 const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
 let friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
-let friendsCache = [], requestsCache = [], currentInvite = null, lastFriendsError = null;
+let friendsCache = [], requestsCache = [];
 let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [];
+let chTranslateEnabled = true, chRecorder = null, chStream = null, chChunks = [];
+
 const frMsgEl = $('frMsg');
 function setFrMsg(t) { frMsgEl.textContent = t || ''; }
 function myDisplayName() { return (currentUser && (currentUser.displayName || (currentUser.email || 'user').split('@')[0])) || 'User'; }
 function genFriendCode() { const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const bytes = new Uint8Array(8); crypto.getRandomValues(bytes); return Array.from(bytes, b => alphabet[b % alphabet.length]).join(''); }
 function frErrText(e) { const c = e && e.code; if (c === 'permission-denied' || c === 'failed-precondition' || c === 'unavailable') return frT('rules'); return (e && e.message) || String(e); }
+
 function applyFriendsLang() {
-  $('frTitle').textContent = frT('friends'); $('btnFriendsLabel').textContent = frT('friends');
-  $('frMyCodeLabel').textContent = frT('myCode'); $('frAddInput').placeholder = frT('codePh');
-  $('frReqTitle').textContent = frT('requests'); $('frListTitle').textContent = frT('list'); $('frBackBtn').textContent = frT('back');
-  $('inviteJoin').textContent = frT('join'); $('inviteDecline').textContent = frT('ignore');
+  $('frTitle').textContent = frT('title');
+  $('frMyCodeLabel').textContent = frT('myCode');
+  $('frAddInput').placeholder = frT('codePh');
+  $('frReqTitle').textContent = frT('requests');
+  $('frListTitle').textContent = frT('list');
 }
 applyFriendsLang();
 const _origChangeAuthLang = changeAuthLang;
 changeAuthLang = function (lang) { _origChangeAuthLang(lang); applyFriendsLang(); renderFriendsUI(); };
-function frBtn(label, bg, onClick) { const b = document.createElement('button'); b.textContent = label; b.style.cssText = `background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:bold; cursor:pointer;`; b.addEventListener('click', onClick); return b; }
-function frRow(name) { const row = document.createElement('div'); row.style.cssText = 'display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:8px 10px;'; const n = document.createElement('span'); n.textContent = name; n.style.cssText = 'flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:#fff;'; row.appendChild(n); return row; }
+
 function renderFriendsUI() {
   const badge = $('friendsBadge');
   const totalUnread = currentUser ? Object.values(chatsByFriend).reduce((n, c) => n + (c['unread_' + currentUser.uid] || 0), 0) : 0;
   const badgeCount = requestsCache.length + totalUnread;
-  badge.style.display = badgeCount ? 'block' : 'none'; badge.textContent = badgeCount;
+  badge.style.display = badgeCount ? 'block' : 'none';
+  badge.textContent = badgeCount;
+
   $('frRequestsBox').style.display = requestsCache.length ? 'block' : 'none';
   const reqEl = $('frRequests'); reqEl.innerHTML = '';
-  requestsCache.forEach(r => { const row = frRow(r.fromName || '?'); row.appendChild(frBtn(frT('accept'), '#10b981', () => acceptRequest(r))); row.appendChild(frBtn(frT('decline'), '#475569', () => declineRequest(r))); reqEl.appendChild(row); });
+  requestsCache.forEach(r => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.06); border-radius:10px; padding:8px 10px;';
+    const n = document.createElement('span'); n.textContent = r.fromName || '?'; n.style.cssText = 'flex:1; font-size:13px; color:#fff;';
+    const bAcc = document.createElement('button'); bAcc.className = 'icon-pill-btn'; bAcc.style.background = '#10b981'; bAcc.textContent = frT('accept'); bAcc.onclick = () => acceptRequest(r);
+    const bDec = document.createElement('button'); bDec.className = 'icon-pill-btn'; bDec.style.background = '#475569'; bDec.textContent = frT('decline'); bDec.onclick = () => declineRequest(r);
+    row.append(n, bAcc, bDec); reqEl.appendChild(row);
+  });
+
   const listEl = $('frList'); listEl.innerHTML = '';
-  if (!friendsCache.length) { const e = document.createElement('div'); e.textContent = frT('empty'); e.style.cssText = 'font-size:12px; color:rgba(255,255,255,0.5); text-align:center; padding:8px;'; listEl.appendChild(e); }
+  if (!friendsCache.length) {
+    const e = document.createElement('div'); e.textContent = frT('empty');
+    e.style.cssText = 'font-size:13px; color:rgba(255,255,255,0.55); text-align:center; padding:24px 10px;';
+    listEl.appendChild(e);
+  }
   friendsCache.forEach(f => {
-    const row = frRow(f.name || '?');
-    const ch = chatsByFriend[f.uid]; const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
-    row.appendChild(frBtn('💬' + (un ? ' ' + un : ''), un ? '#ef4444' : '#0ea5e9', () => openChat(f)));
-    row.appendChild(frBtn('📞', '#1d4ed8', () => callFriend(f)));
-    row.appendChild(frBtn('✕', '#991b1b', () => removeFriend(f)));
-    listEl.appendChild(row);
+    const item = document.createElement('div'); item.className = 'friend-item';
+    const av = document.createElement('div'); av.className = 'friend-avatar';
+    av.textContent = (f.name || '?').charAt(0).toUpperCase();
+
+    const ch = chatsByFriend[f.uid];
+    const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
+
+    const info = document.createElement('div'); info.className = 'friend-info';
+    info.onclick = () => openChat(f);
+    const nm = document.createElement('div'); nm.className = 'friend-name';
+    nm.textContent = (f.name || '?') + (un ? ` (${un})` : '');
+    const sub = document.createElement('div'); sub.className = 'friend-sub';
+    sub.textContent = (ch && ch.lastMessage) ? ch.lastMessage : frT('tapToChat');
+    info.append(nm, sub);
+
+    const btnChat = document.createElement('button'); btnChat.className = 'icon-pill-btn';
+    btnChat.style.background = un ? '#ef4444' : '#0ea5e9';
+    btnChat.textContent = '💬' + (un ? ' ' + un : '');
+    btnChat.onclick = () => openChat(f);
+
+    const btnVoice = document.createElement('button'); btnVoice.className = 'icon-pill-btn';
+    btnVoice.style.background = '#10b981'; btnVoice.title = 'مكالمة صوتية';
+    btnVoice.textContent = '📞';
+    btnVoice.onclick = () => callFriend(f, false);
+
+    const btnVideo = document.createElement('button'); btnVideo.className = 'icon-pill-btn';
+    btnVideo.style.background = '#3b82f6'; btnVideo.title = 'مكالمة فيديو';
+    btnVideo.textContent = '📹';
+    btnVideo.onclick = () => callFriend(f, true);
+
+    const btnDel = document.createElement('button'); btnDel.className = 'icon-pill-btn';
+    btnDel.style.background = 'rgba(239,68,68,0.35)'; btnDel.title = 'حذف';
+    btnDel.textContent = '✕';
+    btnDel.onclick = () => removeFriend(f);
+
+    item.append(av, info, btnChat, btnVoice, btnVideo, btnDel);
+    listEl.appendChild(item);
   });
   if (myFriendCode) $('frMyCode').textContent = myFriendCode;
 }
+
 async function ensureMyCode() {
   const uref = db.collection('users').doc(currentUser.uid);
   const snap = await uref.get();
   if (snap.exists && snap.data().code) { myFriendCode = snap.data().code; return; }
   for (let i = 0; i < 5; i++) {
     const code = genFriendCode(); const cref = db.collection('codes').doc(code);
-    try { await db.runTransaction(async tx => { const c = await tx.get(cref); if (c.exists) throw new Error('taken'); tx.set(cref, { uid: currentUser.uid, name: myDisplayName() }); tx.set(uref, { code, name: myDisplayName() }, { merge: true }); }); myFriendCode = code; return; } catch (e) { if (e.message !== 'taken') throw e; }
+    try {
+      await db.runTransaction(async tx => {
+        const c = await tx.get(cref);
+        if (c.exists) throw new Error('taken');
+        tx.set(cref, { uid: currentUser.uid, name: myDisplayName() });
+        tx.set(uref, { code, name: myDisplayName() }, { merge: true });
+      });
+      myFriendCode = code; return;
+    } catch (e) { if (e.message !== 'taken') throw e; }
   }
   throw new Error('Could not allocate a friend code');
 }
+
 function initFriends() {
   if (friendsReady) return Promise.resolve();
   if (friendsInitPromise) return friendsInitPromise;
   friendsInitPromise = (async () => {
     try {
-      await loadFirestore();
-      db = firebase.firestore();
       await ensureMyCode();
       const me = currentUser.uid;
-      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => { friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => { requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() })); renderFriendsUI(); }, e => { lastFriendsError = e; }));
-      friendsUnsubs.push(db.collection('invites').where('to', '==', me).onSnapshot(s => {
-        s.docChanges().forEach(ch => {
-          if (ch.type !== 'added') return;
-          const inv = { id: ch.doc.id, ...ch.doc.data() };
-          if (Date.now() - (inv.createdAt || 0) > 120000) { ch.doc.ref.delete().catch(() => {}); return; }
-          showInvite(inv);
+      friendsUnsubs.push(db.collection('users').doc(me).collection('friends').onSnapshot(s => {
+        friendsCache = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        friendsCache.forEach(f => {
+          const cid = [me, f.uid].sort().join('_');
+          if (!chatsByFriend[f.uid]) {
+            chatsByFriend[f.uid] = {};
+            friendsUnsubs.push(db.collection('chats').doc(cid).onSnapshot(cs => {
+              if (cs.exists) { chatsByFriend[f.uid] = cs.data(); renderFriendsUI(); }
+            }, () => {}));
+          }
         });
-      }, e => { lastFriendsError = e; }));
+        renderFriendsUI();
+      }));
+      friendsUnsubs.push(db.collection('friend_requests').where('to', '==', me).onSnapshot(s => {
+        requestsCache = s.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderFriendsUI();
+      }));
       friendsUnsubs.push(db.collection('calls').where('to_uid', '==', me).where('status', '==', 'ringing').onSnapshot(s => {
         s.docChanges().forEach(ch => {
           if (ch.type === 'added') {
@@ -1527,24 +1347,25 @@ function initFriends() {
             showIncomingCall(call);
           } else if (ch.type === 'modified') {
             const call = { id: ch.doc.id, ...ch.doc.data() };
-            if (call.status === 'rejected' || call.status === 'ended') {
-              hideIncomingCall();
-            }
+            if (call.status === 'rejected' || call.status === 'ended' || call.status === 'cancelled') hideIncomingCall();
           }
         });
-      }, e => { console.warn('calls listener error', e); }));
-      friendsReady = true; lastFriendsError = null; renderFriendsUI();
-    } catch (e) { console.warn('Friends init failed', e); lastFriendsError = e; friendsInitPromise = null; throw e; }
+      }, e => console.warn('calls listener', e)));
+      friendsReady = true; renderFriendsUI();
+    } catch (e) { friendsInitPromise = null; throw e; }
   })();
   friendsInitPromise.catch(() => {});
   return friendsInitPromise;
 }
+
 function teardownFriends() {
   friendsUnsubs.forEach(u => { try { u(); } catch (e) {} });
   friendsUnsubs = []; friendsReady = false; friendsInitPromise = null; myFriendCode = null;
+  if (outgoingCallUnsub) { try { outgoingCallUnsub(); } catch (e) {} outgoingCallUnsub = null; }
   if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
-  chatsByFriend = {}; chatOpenWith = null; chatMsgsCache = []; $('chatOverlay').style.display = 'none';
-  friendsCache = []; requestsCache = []; currentInvite = null; $('inviteToast').style.display = 'none'; renderFriendsUI();
+  chatsByFriend = {}; chatOpenWith = null; chatMsgsCache = [];
+  $('chatOverlay').style.display = 'none';
+  friendsCache = []; requestsCache = []; renderFriendsUI();
   hideIncomingCall();
 }
 
@@ -1552,45 +1373,32 @@ function playRingtone() {
   if (ringtoneAudio) return;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(440, ctx.currentTime);
-    osc.frequency.setValueAtTime(480, ctx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 1);
-    ringtoneAudio = { ctx, osc, gain };
-    window._ringInterval = setInterval(() => {
-      try {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(440, ctx.currentTime);
-        o.frequency.setValueAtTime(480, ctx.currentTime + 0.5);
-        g.gain.setValueAtTime(0.3, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-        o.connect(g); g.connect(ctx.destination);
-        o.start(); o.stop(ctx.currentTime + 1);
-      } catch(e){}
-    }, 2000);
-  } catch(e) { console.warn('Ringtone failed', e); }
+    const ringOnce = () => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(440, ctx.currentTime);
+      o.frequency.setValueAtTime(480, ctx.currentTime + 0.45);
+      g.gain.setValueAtTime(0.28, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.95);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.95);
+    };
+    ringOnce();
+    ringtoneAudio = { ctx };
+    window._ringInterval = setInterval(() => { try { ringOnce(); } catch (e) {} }, 2000);
+  } catch (e) {}
 }
 function stopRingtone() {
   if (window._ringInterval) { clearInterval(window._ringInterval); window._ringInterval = null; }
-  if (ringtoneAudio) {
-    try { ringtoneAudio.ctx.close(); } catch(e){}
-    ringtoneAudio = null;
-  }
+  if (ringtoneAudio) { try { ringtoneAudio.ctx.close(); } catch (e) {} ringtoneAudio = null; }
 }
+
 function showIncomingCall(call) {
   if (currentIncomingCall) return;
   currentIncomingCall = call;
+  $('callIcon').textContent = call.call_type === 'video' ? '📹' : '📞';
   $('callName').textContent = call.from_name || 'Unknown';
-  $('callStatus').textContent = frT('incoming');
+  $('callStatus').textContent = call.call_type === 'video' ? frT('incomingVideo') : frT('incomingVoice');
   callOverlay.classList.add('active');
   playRingtone();
 }
@@ -1599,46 +1407,75 @@ function hideIncomingCall() {
   callOverlay.classList.remove('active');
   stopRingtone();
 }
+
 async function acceptCall() {
   if (!currentIncomingCall || !db) return;
   const call = currentIncomingCall;
   hideIncomingCall();
   try {
     await db.collection('calls').doc(call.id).update({ status: 'accepted', acceptedAt: Date.now() });
-    const roomCode = call.room_code || 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    const name = ($('meetPlayerName').value || myDisplayName()).trim();
-    enterMeeting(roomCode, name, $('meetPlayerLang').value);
-  } catch(e) { console.warn('accept call error', e); }
+    $('remoteJoinOverlay').style.display = 'none';
+    $('chatOverlay').style.display = 'none';
+    const isVideo = call.call_type === 'video';
+    await connectRemote(call.room_code, myDisplayName(), myLang, false, isVideo, call.from_name || 'Friend');
+  } catch (e) { console.warn('accept call error', e); }
 }
+
 async function declineCall() {
   if (!currentIncomingCall || !db) return;
   const call = currentIncomingCall;
   hideIncomingCall();
-  try {
-    await db.collection('calls').doc(call.id).update({ status: 'rejected', rejectedAt: Date.now() });
-  } catch(e) { console.warn('decline call error', e); }
+  try { await db.collection('calls').doc(call.id).update({ status: 'rejected', rejectedAt: Date.now() }); } catch (e) {}
 }
-async function callFriend(friend) {
-  if (!db || !currentUser) return;
-  const roomCode = 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const callData = {
-    from_uid: currentUser.uid,
-    from_name: myDisplayName(),
-    to_uid: friend.uid,
-    room_code: roomCode,
-    call_type: 'voice',
-    status: 'ringing',
-    createdAt: Date.now()
-  };
+
+async function callFriend(friend, withVideo = false) {
+  if (!db || !currentUser || !friend) return;
   try {
-    await db.collection('calls').add(callData);
-    setStatus(frT('ringing'));
-    addMsg(`📞 جاري الاتصال بـ ${friend.name}...`, 'bot');
+    setFrMsg(frT('ringing') + (friend.name || '') + '...');
+    const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const roomCode = data.code;
+
+    const callRef = await db.collection('calls').add({
+      from_uid: currentUser.uid,
+      from_name: myDisplayName(),
+      to_uid: friend.uid,
+      room_code: roomCode,
+      call_type: withVideo ? 'video' : 'voice',
+      status: 'ringing',
+      createdAt: Date.now()
+    });
+    outgoingCallDocId = callRef.id;
+
+    if (outgoingCallUnsub) { try { outgoingCallUnsub(); } catch (e) {} }
+    outgoingCallUnsub = callRef.onSnapshot(snap => {
+      if (!snap.exists) return;
+      const d = snap.data();
+      if (d.status === 'rejected') {
+        setFrMsg('❌ تم رفض المكالمة من ' + (friend.name || ''));
+        if (appMode === 'remote') cleanupAll();
+        if (outgoingCallUnsub) { outgoingCallUnsub(); outgoingCallUnsub = null; }
+      }
+    });
+
+    $('remoteJoinOverlay').style.display = 'none';
+    $('chatOverlay').style.display = 'none';
+    setFrMsg('');
+    await connectRemote(roomCode, myDisplayName(), myLang, true, withVideo, friend.name || 'Friend');
+    addMsg(`📞 جاري الاتصال بـ ${friend.name}... في انتظار الرد`, 'bot');
+
     setTimeout(async () => {
-      const calls = await db.collection('calls').where('from_uid', '==', currentUser.uid).where('to_uid', '==', friend.uid).where('status', '==', 'ringing').limit(1).get();
-      calls.forEach(doc => doc.ref.update({ status: 'cancelled' }).catch(()=>{}));
-    }, 30000);
-  } catch(e) { setFrMsg(frErrText(e)); }
+      try {
+        const s = await callRef.get();
+        if (s.exists && s.data().status === 'ringing') {
+          await callRef.update({ status: 'cancelled' });
+        }
+      } catch (e) {}
+    }, 35000);
+  } catch (e) {
+    setFrMsg('⚠️ فشل بدء المكالمة: ' + (e.message || ''));
+  }
 }
 $('callAccept').addEventListener('click', acceptCall);
 $('callDecline').addEventListener('click', declineCall);
@@ -1653,7 +1490,9 @@ async function sendFriendRequest(raw) {
     if (friendsCache.some(f => f.uid === to)) return setFrMsg(frT('already'));
     const incoming = requestsCache.find(r => r.from === to);
     if (incoming) { await acceptRequest(incoming); return; }
-    await db.collection('friend_requests').doc(currentUser.uid + '_' + to).set({ from: currentUser.uid, fromName: myDisplayName(), to, createdAt: Date.now() });
+    await db.collection('friend_requests').doc(currentUser.uid + '_' + to).set({
+      from: currentUser.uid, fromName: myDisplayName(), to, createdAt: Date.now()
+    });
     setFrMsg(frT('sent')); $('frAddInput').value = '';
   } catch (e) { setFrMsg(frErrText(e)); }
 }
@@ -1678,21 +1517,15 @@ async function removeFriend(f) {
     await batch.commit();
   } catch (e) { setFrMsg(frErrText(e)); }
 }
-function showInvite(inv) { currentInvite = inv; $('inviteText').textContent = frT('invite')(inv.fromName || '?'); $('inviteToast').style.display = 'block'; }
-async function dismissInvite(deleteDoc = true) { const inv = currentInvite; currentInvite = null; $('inviteToast').style.display = 'none'; if (inv && deleteDoc) { try { await db.collection('invites').doc(inv.id).delete(); } catch (e) {} } }
-$('inviteDecline').addEventListener('click', () => dismissInvite());
-$('inviteJoin').addEventListener('click', async () => { const inv = currentInvite; if (!inv) return; await dismissInvite(); if (appMode !== 'none') { backBtn.click(); await new Promise(r => setTimeout(r, 500)); } enterMeeting(inv.room, ($('meetPlayerName').value || myDisplayName()).trim(), $('meetPlayerLang').value); });
-$('btnFriends').addEventListener('click', async () => {
-  $('landingOverlay').style.display = 'none'; $('friendsOverlay').style.display = 'flex';
-  applyFriendsLang(); renderFriendsUI();
-  if (!friendsReady) { setFrMsg(frT('wait')); try { await initFriends(); setFrMsg(''); } catch (e) { setFrMsg(frErrText(e)); } } else { setFrMsg(''); }
-});
-$('frBackBtn').addEventListener('click', () => { $('friendsOverlay').style.display = 'none'; $('landingOverlay').style.display = 'flex'; });
+
 $('frAddBtn').addEventListener('click', () => sendFriendRequest($('frAddInput').value));
 $('frAddInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendFriendRequest($('frAddInput').value); } });
-$('frCopyCode').addEventListener('click', () => { if (!myFriendCode) return; navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode)); });
-renderPlaylist();
+$('frCopyCode').addEventListener('click', () => {
+  if (!myFriendCode) return;
+  navigator.clipboard.writeText(myFriendCode).then(() => setFrMsg(frT('copied'))).catch(() => alert(myFriendCode));
+});
 
+// ===== TTS & WebSocket =====
 async function speak(text, lang) {
   if (!text) return;
   stopAudio();
@@ -1700,11 +1533,9 @@ async function speak(text, lang) {
   if (!cleaned) return;
   const myId = ++currentSpeechId;
   isBotTalking = true; setAvatarState(true);
-  
+
   let retryCount = 0;
-  const maxRetries = 2;
-  
-  while (retryCount <= maxRetries) {
+  while (retryCount <= 2) {
     try {
       const voice = voiceSelect ? voiceSelect.value : 'woman';
       const res = await fetch(TTS_URL, {
@@ -1721,21 +1552,20 @@ async function speak(text, lang) {
       return;
     } catch (e) {
       retryCount++;
-      if (retryCount > maxRetries) break;
+      if (retryCount > 2) break;
       await new Promise(r => setTimeout(r, 500));
     }
   }
-  
   if (myId !== currentSpeechId) return;
   if ('speechSynthesis' in window) {
     try {
       const utt = new SpeechSynthesisUtterance(cleaned);
       utt.lang = localeFor(lang || 'ar');
-      utt.onend = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
-      utt.onerror = () => { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); };
+      utt.onend = () => { isBotTalking = false; setAvatarState(false); };
+      utt.onerror = () => { isBotTalking = false; setAvatarState(false); };
       speechSynthesis.speak(utt);
-    } catch (e) { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
-  } else { isBotTalking = false; setAvatarState(false); document.querySelectorAll('.msg.playing').forEach(m => m.classList.remove('playing')); }
+    } catch (e) { isBotTalking = false; setAvatarState(false); }
+  } else { isBotTalking = false; setAvatarState(false); }
 }
 function stopAudio() {
   currentSpeechId++;
@@ -1752,6 +1582,7 @@ function setAvatarState(talking) {
     }
   } catch (e) {}
 }
+
 function startPing() {
   stopPing();
   pingInterval = setInterval(() => {
@@ -1763,7 +1594,7 @@ function connectWS(roomCode) {
   try { if (ws) ws.close(); } catch (e) {}
   ws = new WebSocket(WS_BASE + '/ws/' + String(roomCode).toUpperCase());
   ws.onopen = () => { try { ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); } catch (e) {} startPing(); };
-  ws.onmessage = (evt) => { try { handleWSMessage(JSON.parse(evt.data)); } catch (e) { console.warn('ws parse', e); } };
+  ws.onmessage = (evt) => { try { handleWSMessage(JSON.parse(evt.data)); } catch (e) {} };
   ws.onerror = () => setStatus('⚠️ خطأ في الاتصال');
   ws.onclose = () => {
     stopPing();
@@ -1777,6 +1608,7 @@ function sendRemoteMessage(text) {
   if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
   try { ws.send(JSON.stringify({ type: 'message', text, translate: !!isTranslatorMode })); } catch (e) {}
 }
+
 async function handleWSMessage(msg) {
   if (!msg || !msg.type) return;
   const type = msg.type;
@@ -1785,34 +1617,32 @@ async function handleWSMessage(msg) {
   if (type === 'joined') {
     hasJoinedOnce = true;
     const n = (msg.users || []).length;
-    if (onlineCount) onlineCount.textContent = n + '/50';
+    if (onlineCount) onlineCount.textContent = n + '/2';
     setStatus('✅ متصل');
-    if (msg.history && msg.history.length) {
-      addMsg('📜 سجل سابق:', 'bot');
-      msg.history.forEach(h => {
-        addMsg((h.from || '?') + ': ' + (h.original || ''), 'user-b', h.from_lang || 'en');
-        if (h.translated && h.translated !== h.original) addMsg('↳ ' + h.translated, 'bot', myLang);
-      });
-    }
     if (appMode === 'remote' && myIsCaller && !_rtcInitiated && n > 1) {
-      _rtcInitiated = true; setTimeout(() => startVideoCall(true), 300);
+      _rtcInitiated = true; setTimeout(() => startVideoCall(true, callWithVideo), 300);
     }
     return;
   }
   if (type === 'user_joined') {
-    addMsg('👋 ' + (msg.name || 'مستخدم') + ' انضم', 'bot');
+    if (onlineCount) onlineCount.textContent = '2/2';
+    addMsg('📞 ' + (msg.name || 'صديقك') + ' انضم للمكالمة', 'bot');
     if (appMode === 'remote' && myIsCaller && !_rtcInitiated) {
-      _rtcInitiated = true; setTimeout(() => startVideoCall(true), 300);
+      _rtcInitiated = true; setTimeout(() => startVideoCall(true, callWithVideo), 300);
     }
     return;
   }
-  if (type === 'user_left') { addMsg('👋 ' + (msg.name || 'مستخدم') + ' غادر', 'bot'); return; }
+  if (type === 'user_left') {
+    if (onlineCount) onlineCount.textContent = '1/2';
+    addMsg('👋 ' + (msg.name || 'صديقك') + ' أنهى المكالمة', 'bot');
+    return;
+  }
   if (type === 'translated') {
     if (msg.is_mine) return;
     addMsg((msg.from_name || 'صديق') + ': ' + (msg.original || ''), 'user-b', msg.from_lang || 'en');
-    if (msg.translated && msg.translated !== msg.original) {
+    if (isTranslatorMode && msg.translated && msg.translated !== msg.original) {
       addMsg('↳ ' + msg.translated, 'bot', msg.target_lang || myLang);
-      if (!msg.no_tts && isTranslatorMode) speak(msg.translated, msg.target_lang || myLang);
+      if (!msg.no_tts) speak(msg.translated, msg.target_lang || myLang);
     }
     return;
   }
@@ -1826,7 +1656,7 @@ async function handleWSMessage(msg) {
 }
 async function handleRtcOffer(offer) {
   try {
-    if (!pc) await startVideoCall(false);
+    if (!pc) await startVideoCall(false, callWithVideo);
     await pc.setRemoteDescription(offer);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
@@ -1848,69 +1678,21 @@ async function handleRtcIce(candidate) {
   if (!pc || !pc.remoteDescription) { iceCandidatesQueue.push(candidate); return; }
   try { await pc.addIceCandidate(candidate); } catch (e) {}
 }
-async function connectRemote(roomCode, participantName, lang, isCaller) {
+
+async function connectRemote(roomCode, participantName, lang, isCaller, withVideo = true, peerName = 'Call') {
   myName = participantName; myLang = lang;
   currentRoomCode = String(roomCode).toUpperCase();
   myIsCaller = !!isCaller; hasJoinedOnce = false; shouldReconnect = true;
   _rtcInitiated = false; iceCandidatesQueue = [];
-  isTranslatorMode = $('remoteTransCheck') ? $('remoteTransCheck').checked : false;
-  roomCodeLabel.textContent = currentRoomCode;
+  callWithVideo = !!withVideo;
+  isTranslatorMode = chTranslateEnabled;
+  roomCodeLabel.textContent = peerName;
   setModeUI('remote');
-  setStatus('⏳ جاري الاتصال بالغرفة...');
+  setStatus('⏳ جاري الاتصال...');
   connectWS(currentRoomCode);
 }
-async function enterMeeting(roomCode, participantName, lang) {
-  myName = participantName; myLang = lang;
-  currentRoomCode = String(roomCode).toUpperCase();
-  hasJoinedOnce = false; shouldReconnect = true;
-  isTranslatorMode = $('meetingTransCheck') ? $('meetingTransCheck').checked : false;
-  roomCodeLabel.textContent = currentRoomCode;
-  setModeUI('meeting');
-  setStatus('⏳ جاري الاتصال بالاجتماع...');
-  connectWS(currentRoomCode);
-  await connectLiveKit(currentRoomCode, participantName);
-}
-$('createRoomBtn').addEventListener('click', async () => {
-  const name = ($('playerName').value || myDisplayName()).trim();
-  const lang = $('playerLang').value || 'ar';
-  if (!name) return alert('أدخل اسمك');
-  try {
-    setStatus('⏳ جاري إنشاء الغرفة...');
-    const res = await fetch(ROOM_CREATE_URL, { method: 'POST' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.code) throw new Error('no code');
-    $('remoteJoinOverlay').style.display = 'none';
-    await connectRemote(data.code, name, lang, true);
-  } catch (e) { alert('فشل إنشاء الغرفة: ' + e.message); }
-});
-$('joinRoomBtn').addEventListener('click', async () => {
-  const name = ($('playerName').value || myDisplayName()).trim();
-  const lang = $('playerLang').value || 'ar';
-  const code = ($('joinCodeInput').value || '').trim().toUpperCase();
-  if (!name) return alert('أدخل اسمك');
-  if (!code) return alert('أدخل كود الغرفة');
-  $('remoteJoinOverlay').style.display = 'none';
-  await connectRemote(code, name, lang, false);
-});
-$('createMeetingBtn').addEventListener('click', async () => {
-  const name = ($('meetPlayerName').value || myDisplayName()).trim();
-  const lang = $('meetPlayerLang').value || 'ar';
-  if (!name) return alert('أدخل اسمك');
-  const code = 'MTG' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  $('meetingJoinOverlay').style.display = 'none';
-  await enterMeeting(code, name, lang);
-});
-$('joinMeetingBtn').addEventListener('click', async () => {
-  const name = ($('meetPlayerName').value || myDisplayName()).trim();
-  const lang = $('meetPlayerLang').value || 'ar';
-  const code = ($('joinMeetingCodeInput').value || '').trim().toUpperCase();
-  if (!name) return alert('أدخل اسمك');
-  if (!code) return alert('أدخل كود الاجتماع');
-  $('meetingJoinOverlay').style.display = 'none';
-  await enterMeeting(code, name, lang);
-});
 
+// ===== 1-to-1 Messenger Chat =====
 const CHAT_LANGS = [['ar','🇹🇳 العربية'],['fr','🇫🇷 Français'],['en','🇬🇧 English'],['de','🇩🇪 Deutsch'],['tr','🇹🇷 Türkçe'],['it','🇮🇹 Italiano'],['zh','🇨🇳 中文'],['ru','🇷🇺 Русский'],['es','🇪🇸 Español'],['pt','🇵🇹 Português'],['nl','🇳🇱 Nederlands'],['no','🇳🇴 Norsk']];
 function populateChLang() {
   const el = $('chLang'); if (!el || _chLangPopulated) return;
@@ -1918,11 +1700,26 @@ function populateChLang() {
   CHAT_LANGS.forEach(([v, label]) => { const o = document.createElement('option'); o.value = v; o.textContent = label; el.appendChild(o); });
   _chLangPopulated = true;
 }
+
+function updateChTransUI() {
+  const btn = $('chTransToggle');
+  if (!btn) return;
+  btn.textContent = chTranslateEnabled ? '🌐 ON' : '🌐 OFF';
+  btn.classList.toggle('active', chTranslateEnabled);
+  $('chLang').style.display = chTranslateEnabled ? 'inline-block' : 'none';
+  $('chSubStatus').textContent = chTranslateEnabled ? 'الترجمة الفورية مفعلة 🌐' : 'دردشة مباشرة بنفس اللغة 💬';
+}
+$('chTransToggle').addEventListener('click', () => {
+  chTranslateEnabled = !chTranslateEnabled;
+  updateChTransUI();
+});
+
 async function openChat(friend) {
   if (!db || !currentUser || !friend) return;
   chatOpenWith = friend; chatMsgsCache = []; populateChLang();
   $('chName').textContent = friend.name || '?';
   $('chLang').value = myLang || 'ar';
+  updateChTransUI();
   $('chMsgs').innerHTML = ''; $('chStatus').textContent = 'جارٍ التحميل...';
   $('chatOverlay').style.display = 'flex';
   const chatId = [currentUser.uid, friend.uid].sort().join('_');
@@ -1934,34 +1731,55 @@ async function openChat(friend) {
       try { db.collection('chats').doc(chatId).set({ ['unread_' + currentUser.uid]: 0 }, { merge: true }); } catch (e) {}
     }, err => { $('chStatus').textContent = '⚠️ ' + (err.message || ''); });
 }
+
 function renderChatMsgs() {
   const box = $('chMsgs'); box.innerHTML = '';
   chatMsgsCache.forEach(m => {
     const mine = m.from === currentUser.uid;
     const div = document.createElement('div');
-    div.style.cssText = 'max-width:85%; padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.5; word-wrap:break-word; border:1px solid rgba(255,255,255,0.1); ' +
-      (mine ? 'align-self:flex-end; background:linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9)); color:#fff; border-bottom-right-radius:4px;' : 'align-self:flex-start; background:rgba(255,255,255,0.1); color:#fff; border-bottom-left-radius:4px;');
+    div.className = 'ch-bubble ' + (mine ? 'mine' : 'theirs');
+    div.setAttribute('dir', 'auto');
     let html = escapeHtml(m.text || '');
-    if (m.translated && m.translated !== m.text) html += '<br><span style="font-size:12px; opacity:0.75; font-style:italic; margin-top:4px; display:block;">↳ ' + escapeHtml(m.translated) + '</span>';
-    div.innerHTML = html; box.appendChild(div);
+    if (m.translated && m.translated !== m.text) {
+      html += '<br><span style="font-size:12px; opacity:0.85; font-style:italic; margin-top:4px; display:block; color:#a7f3d0;">↳ ' + escapeHtml(m.translated) + '</span>';
+    }
+    div.innerHTML = html;
+    div.addEventListener('click', () => {
+      const toSpeak = (m.translated && m.translated !== m.text) ? m.translated : m.text;
+      const spLang = (m.translated && m.translated !== m.text) ? (m.targetLang || myLang) : (m.fromLang || myLang);
+      speak(toSpeak, spLang);
+    });
+    box.appendChild(div);
   });
   box.scrollTop = box.scrollHeight;
 }
-async function sendChatMessage() {
-  const text = ($('chInput').value || '').trim();
+
+async function sendChatMessage(overrideText = null) {
+  const text = (overrideText !== null ? overrideText : ($('chInput').value || '')).trim();
   if (!text || !chatOpenWith || !db || !currentUser) return;
   const targetLang = $('chLang').value || 'en';
-  $('chInput').value = ''; $('chStatus').textContent = '⏳ جاري الترجمة...';
+  if (overrideText === null) $('chInput').value = '';
   let translated = '';
-  try {
-    const res = await fetch(SERVER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [
-        { role: 'system', content: 'Translate from ' + langNameFor(myLang) + ' to ' + langNameFor(targetLang) + '. Output ONLY the translation.' },
-        { role: 'user', content: text }
-      ], is_translation: true })
-    });
-    const data = await res.json(); translated = (data.reply || '').trim();
-  } catch (e) { translated = ''; }
+
+  if (chTranslateEnabled && targetLang !== myLang) {
+    $('chStatus').textContent = '⏳ جاري الترجمة...';
+    try {
+      const res = await fetch(SERVER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: 'Translate from ' + langNameFor(myLang) + ' to ' + langNameFor(targetLang) + '. Output ONLY the translation.' },
+            { role: 'user', content: text }
+          ],
+          is_translation: true
+        })
+      });
+      const data = await res.json();
+      translated = (data.reply || '').trim();
+    } catch (e) { translated = ''; }
+  }
+
   try {
     const chatId = [currentUser.uid, chatOpenWith.uid].sort().join('_');
     const now = Date.now();
@@ -1976,12 +1794,60 @@ async function sendChatMessage() {
     $('chStatus').textContent = '';
   } catch (e) { $('chStatus').textContent = '⚠️ فشل الإرسال: ' + (e.message || ''); }
 }
+
+// Voice note to text/translation inside 1-to-1 Messenger chat
+$('chMicBtn').addEventListener('click', async () => {
+  if (chRecorder && chRecorder.state === 'recording') {
+    chRecorder.stop();
+    $('chMicBtn').classList.remove('recording');
+    return;
+  }
+  try {
+    chStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+    chRecorder = new MediaRecorder(chStream, { mimeType });
+    chChunks = [];
+    const startTs = Date.now();
+    chRecorder.ondataavailable = e => { if (e.data.size > 0) chChunks.push(e.data); };
+    chRecorder.onstop = async () => {
+      if (chStream) chStream.getTracks().forEach(t => t.stop());
+      const dur = Date.now() - startTs;
+      if (dur < 700 || !chChunks.length) return;
+      $('chStatus').textContent = '⏳ جاري تحويل الصوت...';
+      const fd = new FormData();
+      fd.append('file', new Blob(chChunks, { type: mimeType }), 'audio.webm');
+      fd.append('language', myLang);
+      fd.append('target_lang', myLang);
+      fd.append('duration_ms', String(dur));
+      try {
+        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.original && data.original.length > 1) {
+            await sendChatMessage(data.original);
+            return;
+          }
+        }
+      } catch (e) {}
+      $('chStatus').textContent = '';
+    };
+    chRecorder.start(500);
+    $('chMicBtn').classList.add('recording');
+    $('chStatus').textContent = '🎤 تحدث الآن... اضغط للإرسال';
+  } catch (e) {
+    $('chStatus').textContent = '⚠️ تعذر فتح المايك';
+  }
+});
+
+$('chVoiceCallBtn').addEventListener('click', () => { if (chatOpenWith) callFriend(chatOpenWith, false); });
+$('chVideoCallBtn').addEventListener('click', () => { if (chatOpenWith) callFriend(chatOpenWith, true); });
+
 if ($('chBack')) $('chBack').addEventListener('click', () => {
   $('chatOverlay').style.display = 'none';
   if (chatUnsub) { try { chatUnsub(); } catch (e) {} chatUnsub = null; }
   chatOpenWith = null;
 });
-if ($('chSend')) $('chSend').addEventListener('click', sendChatMessage);
+if ($('chSend')) $('chSend').addEventListener('click', () => sendChatMessage());
 if ($('chInput')) $('chInput').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
 });
