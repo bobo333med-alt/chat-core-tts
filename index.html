@@ -233,13 +233,13 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
 
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
-  <p style="color:rgba(255,255,255,0.65); font-size:14px; margin-bottom:15px;">اختر وضع التشغيل</p>
-  <button class="mode-btn" id="btnLocal"><span>🌐 Face-to-Face</span></button>
+  <p id="landingSubtitle" style="color:rgba(255,255,255,0.65); font-size:14px; margin-bottom:15px;">اختر وضع التشغيل</p>
+  <button class="mode-btn" id="btnLocal"><span id="btnLocalLabel">🌐 Face-to-Face</span></button>
   <button class="mode-btn" id="btnRemote">
-    <span>💬 Remote Mode</span>
+    <span id="btnRemoteLabel">💬 Remote Mode</span>
     <span id="friendsBadge" style="display:none; min-width:24px; height:24px; border-radius:12px; background:#ef4444; font-size:12px; line-height:24px; text-align:center; padding:0 6px; box-shadow:0 0 10px rgba(239,68,68,0.5);">0</span>
   </button>
-  <button class="mode-btn" id="btnLogout"><span>🚪 تسجيل الخروج</span></button>
+  <button class="mode-btn" id="btnLogout"><span id="btnLogoutLabel">🚪 تسجيل الخروج</span></button>
 </div>
 
 <!-- Messenger Direct Hub -->
@@ -248,7 +248,7 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
     <div class="messenger-header">
       <h2>💬 <span id="frTitle">Messenger</span></h2>
       <div style="display:flex; align-items:center; gap:6px;">
-        <select id="playerLang" title="لغتك">
+        <select id="playerLang" title="Language">
           <option value="ar">🇹🇳 العربية</option><option value="fr">🇫🇷 Français</option><option value="en">🇬🇧 English</option>
           <option value="de">🇩🇪 Deutsch</option><option value="tr">🇹🇷 Türkçe</option><option value="it">🇮🇹 Italiano</option>
           <option value="zh">🇨🇳 中文</option><option value="ru">🇷🇺 Русский</option><option value="es">🇪🇸 Español</option>
@@ -274,12 +274,12 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
         <span style="font-size:12px; color:rgba(255,255,255,0.72);" id="frMyCodeLabel">كود الصداقة الخاص بك:</span>
         <div style="display:flex; align-items:center; gap:6px;">
           <strong id="frMyCode">--------</strong>
-          <button id="frCopyCode" title="نسخ">📋</button>
+          <button id="frCopyCode" title="Copy">📋</button>
         </div>
       </div>
       <div style="display:flex; gap:8px;">
         <input type="text" id="frAddInput" placeholder="أدخل كود الصديق لإضافته" maxlength="8" style="flex:1; text-transform:uppercase; text-align:center; letter-spacing:2px; order:0;">
-        <button id="frAddBtn" title="إضافة صديق">➕</button>
+        <button id="frAddBtn" title="Add">➕</button>
       </div>
       <div id="frMsg"></div>
     </div>
@@ -294,15 +294,15 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
       <strong id="chName" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; color:#fff;"></strong>
       <span id="chSubStatus" style="font-size:11px; color:#10b981;">متصل</span>
     </div>
-    <button id="chTransToggle" class="toggle-btn active" style="padding:6px 9px; border-radius:10px; font-size:11px; cursor:pointer;" title="تفعيل/إيقاف الترجمة">🌐 ON</button>
-    <select id="chLang" class="lang-select" style="width:82px; height:32px; font-size:11px; border-radius:10px;" title="لغة الصديق / الترجمة"></select>
-    <button id="chVoiceCallBtn" class="icon-pill-btn" style="background:#10b981;" title="مكالمة صوتية">📞</button>
-    <button id="chVideoCallBtn" class="icon-pill-btn" style="background:#3b82f6;" title="مكالمة فيديو">📹</button>
+    <button id="chTransToggle" class="toggle-btn active" style="padding:6px 9px; border-radius:10px; font-size:11px; cursor:pointer;">🌐 ON</button>
+    <select id="chLang" class="lang-select" style="width:82px; height:32px; font-size:11px; border-radius:10px;"></select>
+    <button id="chVoiceCallBtn" class="icon-pill-btn" style="background:#10b981;">📞</button>
+    <button id="chVideoCallBtn" class="icon-pill-btn" style="background:#3b82f6;">📹</button>
   </div>
   <div id="chMsgs"></div>
   <div id="chStatus" style="min-height:16px; font-size:12px; color:#fbbf24; width:100%; max-width:440px; text-align:center; font-weight:bold;"></div>
   <div class="ch-input-row">
-    <button id="chMicBtn" title="تحدث صوتياً">🎤</button>
+    <button id="chMicBtn">🎤</button>
     <input type="text" id="chInput" maxlength="2000" placeholder="اكتب رسالة...">
     <button id="chSend">➤</button>
   </div>
@@ -320,33 +320,21 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
 <div class="top-header" id="topHeader" style="display:none;">
   <div class="top-bar" id="topBar">
     <div class="user-section" id="friendSection">
-      <span style="font-size:9px; color:rgba(255,255,255,0.6);">Friend</span>
-      <select id="langB" class="lang-select">
-        <option value="fr">French</option><option value="ar">Arabic</option><option value="en">English</option>
-        <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
-        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
-        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
-      </select>
-      <button id="micB" class="mic-btn green" title="Talk">🎤</button>
+      <span id="friendLabel" style="font-size:9px; color:rgba(255,255,255,0.6);">Friend</span>
+      <select id="langB" class="lang-select"></select>
+      <button id="micB" class="mic-btn green">🎤</button>
     </div>
     <div class="user-section" id="youSection">
-      <span style="font-size:9px; color:rgba(255,255,255,0.6);">You</span>
-      <select id="langA" class="lang-select">
-        <option value="ar">Arabic</option><option value="fr">French</option><option value="en">English</option>
-        <option value="de">German</option><option value="tr">Turkish</option><option value="it">Italian</option>
-        <option value="zh">Chinese</option><option value="ru">Russian</option><option value="es">Spanish</option>
-        <option value="pt">Portuguese</option><option value="nl">Dutch</option><option value="no">Norwegian</option>
-      </select>
-      <button id="micA" class="mic-btn blue" title="Talk">🎤</button>
+      <span id="youLabel" style="font-size:9px; color:rgba(255,255,255,0.6);">You</span>
+      <select id="langA" class="lang-select"></select>
+      <button id="micA" class="mic-btn blue">🎤</button>
     </div>
   </div>
 </div>
 
 <div class="extra-controls" id="extraControls" style="display:none;">
   <button id="transToggleBtnLocal" class="toggle-btn active">🌐 Translator ON</button>
-  <select id="voiceSelect">
-    <option value="man">👨 Men</option><option value="woman">👩 Woman</option><option value="girl">👧 Girl</option><option value="child">🧒 Child</option>
-  </select>
+  <select id="voiceSelect"></select>
   <button id="uploadBtn">📁 Avatar</button>
   <button id="backBtn" class="btn-back">إنهاء / رجوع</button>
 </div>
@@ -356,7 +344,7 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
   <video id="localVideo" autoplay playsinline muted></video>
   <div id="videoStatus">📡 متصل بالمكالمة</div>
   <div id="tapToPlayOverlay">▶️ اضغط لتشغيل الفيديو</div>
-  <button id="closeVideoFullscreen" title="إغلاق"><div class="inner-white-dot"></div></button>
+  <button id="closeVideoFullscreen"><div class="inner-white-dot"></div></button>
 </div>
 
 <div id="avatar-wrap" style="display:none;">
@@ -364,13 +352,13 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
     <img id="avatar-logo" src="https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_718b1365.jpg" alt="Logo" onerror="this.src='https://cdn.jsdelivr.net/gh/bobo333med-alt/vibe-core@main/image_bb189f9b%20%281%29.jpg'">
     <video id="avatar-video" autoplay loop muted playsinline></video>
   </div>
-  <button id="removeAvatarBtn" title="إغلاق الأفاتار">✕</button>
-  <button id="closeFullscreen" title="Close"><div class="inner-white-dot"></div></button>
+  <button id="removeAvatarBtn">✕</button>
+  <button id="closeFullscreen"><div class="inner-white-dot"></div></button>
 </div>
 
 <div class="chat-container" id="chatContainer" style="display:none;">
   <div id="chat"></div>
-  <button id="clearBtn" title="Clear Chat"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+  <button id="clearBtn"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
 </div>
 
 <div id="imagePreviewContainer">
@@ -379,15 +367,15 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
 </div>
 
 <div class="row" id="inputRow" style="display:none;">
-  <button class="btn" id="musicBtn" title="Music">🎵</button>
-  <button class="btn" id="mediaBtn" title="Media">+</button>
-  <button class="btn" id="toggleCamBtn" title="Toggle Camera"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg></button>
-  <button class="btn" id="remoteMicBtn" title="Talk"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+  <button class="btn" id="musicBtn">🎵</button>
+  <button class="btn" id="mediaBtn">+</button>
+  <button class="btn" id="toggleCamBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13H6v-2h8v2z"/></svg></button>
+  <button class="btn" id="remoteMicBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
   <div style="flex: 1; position: relative; display: flex; align-items: center; order: 3;">
     <input type="text" id="textInput" placeholder="Type..." style="width: 100%; order: 0;" />
-    <button id="stopAudioBtn" title="Stop Audio"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+    <button id="stopAudioBtn"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
   </div>
-  <button class="btn" id="sendBtn" title="Send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+  <button class="btn" id="sendBtn"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
 </div>
 <div id="status" class="status-text" style="display:none;">Ready</div>
 
@@ -402,7 +390,7 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
 <input type="file" id="audioUpload" accept="audio/*" multiple style="display: none;">
 <input type="file" id="videoAvatarUpload" accept="video/*" style="display: none;">
 <audio id="bgAudio"></audio>
-<div id="musicMenu"><h4>🎵 Playlist</h4><div id="musicList"></div></div>
+<div id="musicMenu"><h4 id="playlistTitle">🎵 Playlist</h4><div id="musicList"></div></div>
 
 <div id="callOverlay">
   <div class="call-avatar" id="callIcon">📞</div>
@@ -438,6 +426,153 @@ const AUTH_TRANS = {
   'en': { loginTitle: 'Login', registerTitle: 'Create Account', email: 'Email Address', pass: 'Password', btnLogin: 'Login', btnRegister: 'Register', toggleToReg: 'Create Account', toggleToLogin: 'Already have an account? Login', or: 'Or', google: 'Continue with Google', github: 'Continue with GitHub', twitter: 'Continue with X' }
 };
 
+const UI_LOCALE = {
+  ar: {
+    chooseMode: 'اختر وضع التشغيل',
+    localMode: '🌐 محادثة مباشرة (Face-to-Face)',
+    remoteMode: '💬 مسنجر (Remote Mode)',
+    logout: '🚪 تسجيل الخروج',
+    friend: 'الصديق',
+    you: 'أنت',
+    transOn: '🌐 الترجمة مفعلة',
+    transOff: '🌐 الترجمة متوقفة',
+    avatarBtn: '📁 صورة رمزية',
+    backBtn: 'إنهاء / رجوع',
+    typePh: 'اكتب رسالة...',
+    ready: 'جاهز',
+    onlineBadge: 'مباشر',
+    chatOnline: 'متصل',
+    chatTransActive: 'الترجمة الفورية مفعلة 🌐',
+    chatSameLang: 'دردشة مباشرة بنفس اللغة 💬',
+    chatPh: 'اكتب رسالة...',
+    videoConnected: '📡 متصل بالمكالمة',
+    tapToPlay: '▶️ اضغط لتشغيل الفيديو',
+    menuCamera: '📸 الكاميرا',
+    menuGallery: '🖼️ المعرض',
+    menuVideo: '🎬 فيديو',
+    playlistTitle: '🎵 قائمة التشغيل',
+    stopMusic: '🛑 إيقاف',
+    playMusic: '▶️ تشغيل',
+    pauseMusic: '⏸️ إيقاف مؤقت',
+    addMusic: '➕ إضافة',
+    voices: [['man','👨 رجل'],['woman','👩 امرأة'],['girl','👧 فتاة'],['child','🧒 طفل']],
+    langs: [['ar','العربية'],['fr','الفرنسية'],['en','الإنجليزية'],['de','الألمانية'],['tr','التركية'],['it','الإيطالية'],['zh','الصينية'],['ru','الروسية'],['es','الإسبانية'],['pt','البرتغالية'],['nl','الهولندية'],['no','النرويجية']]
+  },
+  fr: {
+    chooseMode: 'Choisissez un mode',
+    localMode: '🌐 Face-à-Face',
+    remoteMode: '💬 Messenger (Remote)',
+    logout: '🚪 Déconnexion',
+    friend: 'Ami',
+    you: 'Vous',
+    transOn: '🌐 Traduction ON',
+    transOff: '🌐 Traduction OFF',
+    avatarBtn: '📁 Avatar',
+    backBtn: 'Quitter / Retour',
+    typePh: 'Écrire un message...',
+    ready: 'Prêt',
+    onlineBadge: 'En ligne',
+    chatOnline: 'Connecté',
+    chatTransActive: 'Traduction instantanée active 🌐',
+    chatSameLang: 'Discussion directe même langue 💬',
+    chatPh: 'Écrire un message...',
+    videoConnected: '📡 Appel connecté',
+    tapToPlay: '▶️ Appuyer pour lire la vidéo',
+    menuCamera: '📸 Caméra',
+    menuGallery: '🖼️ Galerie',
+    menuVideo: '🎬 Vidéo',
+    playlistTitle: '🎵 Liste de lecture',
+    stopMusic: '🛑 Arrêter',
+    playMusic: '▶️ Lecture',
+    pauseMusic: '⏸️ Pause',
+    addMusic: '➕ Ajouter',
+    voices: [['man','👨 Homme'],['woman','👩 Femme'],['girl','👧 Fille'],['child','🧒 Enfant']],
+    langs: [['ar','Arabe'],['fr','Français'],['en','Anglais'],['de','Allemand'],['tr','Turc'],['it','Italien'],['zh','Chinois'],['ru','Russe'],['es','Espagnol'],['pt','Portugais'],['nl','Néerlandais'],['no','Norvégien']]
+  },
+  en: {
+    chooseMode: 'Choose operating mode',
+    localMode: '🌐 Face-to-Face',
+    remoteMode: '💬 Messenger (Remote)',
+    logout: '🚪 Logout',
+    friend: 'Friend',
+    you: 'You',
+    transOn: '🌐 Translator ON',
+    transOff: '🌐 Translator OFF',
+    avatarBtn: '📁 Avatar',
+    backBtn: 'End / Back',
+    typePh: 'Type...',
+    ready: 'Ready',
+    onlineBadge: 'Live',
+    chatOnline: 'Online',
+    chatTransActive: 'Instant translation ON 🌐',
+    chatSameLang: 'Direct same-language chat 💬',
+    chatPh: 'Type a message...',
+    videoConnected: '📡 Call connected',
+    tapToPlay: '▶️ Tap to play video',
+    menuCamera: '📸 Camera',
+    menuGallery: '🖼️ Gallery',
+    menuVideo: '🎬 Video',
+    playlistTitle: '🎵 Playlist',
+    stopMusic: '🛑 Stop',
+    playMusic: '▶️ Play',
+    pauseMusic: '⏸️ Pause',
+    addMusic: '➕ Add',
+    voices: [['man','👨 Men'],['woman','👩 Woman'],['girl','👧 Girl'],['child','🧒 Child']],
+    langs: [['ar','Arabic'],['fr','French'],['en','English'],['de','German'],['tr','Turkish'],['it','Italian'],['zh','Chinese'],['ru','Russian'],['es','Spanish'],['pt','Portuguese'],['nl','Dutch'],['no','Norwegian']]
+  }
+};
+const uiT = k => (UI_LOCALE[currentAuthLang] || UI_LOCALE.ar)[k];
+
+function populateLangSelect(selectEl, list, defaultVal) {
+  if (!selectEl) return;
+  const prev = selectEl.value || defaultVal;
+  selectEl.innerHTML = '';
+  list.forEach(([v, label]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = label;
+    selectEl.appendChild(o);
+  });
+  if (prev) selectEl.value = prev;
+}
+
+function applyFullAppLanguage(lang) {
+  const L = UI_LOCALE[lang] || UI_LOCALE.ar;
+  $('landingSubtitle').textContent = L.chooseMode;
+  $('btnLocalLabel').textContent = L.localMode;
+  $('btnRemoteLabel').textContent = L.remoteMode;
+  $('btnLogoutLabel').textContent = L.logout;
+  $('frOnlinePill').textContent = L.onlineBadge;
+  $('friendLabel').textContent = L.friend;
+  $('youLabel').textContent = L.you;
+  $('uploadBtn').textContent = L.avatarBtn;
+  $('backBtn').textContent = L.backBtn;
+  $('textInput').placeholder = L.typePh;
+  $('chInput').placeholder = L.chatPh;
+  $('videoStatus').textContent = L.videoConnected;
+  $('tapToPlayOverlay').textContent = L.tapToPlay;
+  $('menuCamera').textContent = L.menuCamera;
+  $('menuGallery').textContent = L.menuGallery;
+  $('menuVideo').textContent = L.menuVideo;
+  $('playlistTitle').textContent = L.playlistTitle;
+
+  const curVoice = $('voiceSelect').value || 'woman';
+  $('voiceSelect').innerHTML = '';
+  L.voices.forEach(([v, label]) => {
+    const o = document.createElement('option'); o.value = v; o.textContent = label;
+    $('voiceSelect').appendChild(o);
+  });
+  $('voiceSelect').value = curVoice;
+
+  populateLangSelect($('langA'), L.langs, 'ar');
+  populateLangSelect($('langB'), L.langs, 'fr');
+  populateLangSelect($('chLang'), L.langs, 'en');
+
+  if (typeof updateTranslatorUI === 'function') updateTranslatorUI();
+  if (typeof updateChTransUI === 'function') updateChTransUI();
+  if (typeof renderPlaylist === 'function') renderPlaylist();
+  if (typeof resetStatus === 'function') resetStatus();
+}
+
 function changeAuthLang(lang) {
   currentAuthLang = lang;
   localStorage.setItem('authLang', lang);
@@ -457,6 +592,7 @@ function changeAuthLang(lang) {
   document.getElementById('btnAuthGoogle').textContent = '🌐 ' + t.google;
   document.getElementById('btnAuthGithub').textContent = '🐙 ' + t.github;
   document.getElementById('btnAuthTwitter').textContent = '🐦 ' + t.twitter;
+  applyFullAppLanguage(lang);
 }
 function toggleAuthMode() { isLoginMode = !isLoginMode; changeAuthLang(currentAuthLang); document.getElementById('authError').textContent = ''; }
 function showAuthError(msg) { document.getElementById('authError').textContent = msg; }
@@ -488,7 +624,6 @@ auth.onAuthStateChanged(user => {
     teardownFriends();
   }
 });
-changeAuthLang(localStorage.getItem('authLang') || 'ar');
 
 const BASE_SERVER_URL = "https://chat-core-tts.onrender.com";
 const SERVER_URL = BASE_SERVER_URL + "/chat";
@@ -531,7 +666,7 @@ let isCameraOn = true, isWebRtcMicOn = true, callWithVideo = true;
 let playlist = [], currentSongIndex = -1, currentAvatarObjectUrl = null;
 let localRecorder = null, localStreamMic = null, localChunks = [], localStartTime = 0, isLocalProcessing = false;
 let isManualTranslating = false, audioRecorder = null, translationAudioCtx = null;
-let myIsCaller = false, _rtcInitiated = false, _chLangPopulated = false;
+let myIsCaller = false, _rtcInitiated = false;
 let currentIncomingCall = null, outgoingCallDocId = null, outgoingCallUnsub = null, ringtoneAudio = null;
 
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
@@ -551,7 +686,7 @@ $('playerLang').value = myLang;
 
 function updateTranslatorUI() {
   const textRoom = isTranslatorMode ? '🌐 ON' : '🌐 OFF';
-  const textLocal = isTranslatorMode ? '🌐 Translator ON' : '🌐 Translator OFF';
+  const textLocal = uiT(isTranslatorMode ? 'transOn' : 'transOff');
   if (transToggleBtnRoom) { transToggleBtnRoom.textContent = textRoom; transToggleBtnRoom.classList.toggle('active', isTranslatorMode); }
   if (transToggleBtnLocal) { transToggleBtnLocal.textContent = textLocal; transToggleBtnLocal.classList.toggle('active', isTranslatorMode); }
   if (remoteMicBtn && appMode === 'remote') {
@@ -577,12 +712,10 @@ function setTranslatorMode(isOn) {
       if (isManualTranslating) stopManualTranslation();
       if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
       isWebRtcMicOn = false;
-      setStatus('وضع الترجمة: اضغط المايك للتحدث والترجمة');
     } else {
       if (isManualTranslating) stopManualTranslation();
       if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
       isWebRtcMicOn = true;
-      setStatus('وضع الهاتف: المايك مفتوح مباشر');
     }
   }
   resetStatus();
@@ -593,10 +726,10 @@ if (transToggleBtnLocal) transToggleBtnLocal.addEventListener('click', () => set
 function setStatus(s) { statusEl.textContent = s; }
 function resetStatus() {
   if (appMode === 'remote') {
-    if (isTranslatorMode) setStatus(isManualTranslating ? '🎤 جاري التسجيل... اضغط للإيقاف والترجمة' : 'وضع الترجمة: اضغط المايك للتحدث');
-    else setStatus('وضع الهاتف: المايك مفتوح مباشر');
+    if (isTranslatorMode) setStatus(isManualTranslating ? '🎤 ...' : uiT('ready'));
+    else setStatus(uiT('ready'));
   } else {
-    setStatus(isTranslatorMode ? 'Translator Mode ON 🌐' : 'Chat Mode ON 💬');
+    setStatus(uiT('ready'));
   }
 }
 function setBusy(busy) { isSending = busy; sendBtn.disabled = busy || isCompressing; }
@@ -753,13 +886,12 @@ langA.addEventListener('change', () => {
   if (appMode === 'remote') {
     myLang = langA.value;
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'change_lang', lang: myLang }));
-    addMsg(`تم تغيير لغتك إلى ${langA.options[langA.selectedIndex].text}`, 'bot');
   }
 });
 
 avatarWrap.addEventListener('click', (e) => { if (e.target === closeFullscreen || closeFullscreen.contains(e.target) || e.target === removeAvatarBtn) return; avatarWrap.classList.toggle('fullscreen'); });
 closeFullscreen.addEventListener('click', (e) => { e.stopPropagation(); avatarWrap.classList.remove('fullscreen'); });
-clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; stopAudio(); addMsg('Chat cleared.', 'bot'); });
+clearBtn.addEventListener('click', () => { chatEl.innerHTML = ''; stopAudio(); });
 stopAudioBtn.addEventListener('click', () => { stopAudio(); if (isManualTranslating) stopManualTranslation(); if (localRecorder && localRecorder.state === 'recording') localRecorder.stop(); });
 
 toggleCamBtn.addEventListener('click', () => {
@@ -771,7 +903,6 @@ toggleCamBtn.addEventListener('click', () => {
   }
 });
 
-// ===== WebRTC Call (Voice / Video) =====
 async function startVideoCall(isCaller = false, enableVideo = true) {
   if (!localStream) {
     try {
@@ -791,7 +922,7 @@ async function startVideoCall(isCaller = false, enableVideo = true) {
       localStream.getAudioTracks().forEach(t => t.enabled = isWebRtcMicOn);
       resetStatus();
     } catch (err) {
-      addMsg('⚠️ تعذر الوصول إلى المايك أو الكاميرا.', 'bot');
+      addMsg('⚠️', 'bot');
       return;
     }
   }
@@ -807,7 +938,6 @@ async function startVideoCall(isCaller = false, enableVideo = true) {
       remoteVideo.srcObject = event.streams[0];
       if (event.streams[0].getVideoTracks().length > 0) videoContainer.style.display = 'block';
       remoteVideo.play().catch(() => { tapToPlayOverlay.style.display = 'flex'; });
-      setStatus('✅ تم الاتصال بالمكالمة!');
     };
     pc.onicecandidate = (event) => {
       if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
@@ -816,7 +946,6 @@ async function startVideoCall(isCaller = false, enableVideo = true) {
     };
     pc.oniceconnectionstatechange = () => {
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-        setStatus('⚠️ إعادة الاتصال بالمكالمة...');
         pc.restartIce();
         if (isCaller) pc.createOffer({ iceRestart: true }).then(offer => { pc.setLocalDescription(offer); ws.send(JSON.stringify({ type: 'rtc-offer', offer })); });
       }
@@ -826,11 +955,9 @@ async function startVideoCall(isCaller = false, enableVideo = true) {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     ws.send(JSON.stringify({ type: 'rtc-offer', offer }));
-    setStatus('📡 جاري ربط المكالمة...');
   }
 }
 
-// ===== Face-to-Face Local Mic =====
 async function toggleLocalMic(speaker) {
   if (isLocalProcessing) return;
   unlockAudio();
@@ -838,7 +965,6 @@ async function toggleLocalMic(speaker) {
   if (localRecorder && localRecorder.state === 'recording') {
     localRecorder.stop();
     micA.classList.remove('recording'); micB.classList.remove('recording');
-    setStatus('⏳ Processing...');
     return;
   }
   if (localRecorder) { try { localRecorder.stop(); } catch (e) {} }
@@ -896,12 +1022,10 @@ async function toggleLocalMic(speaker) {
       const durationMs = Date.now() - localStartTime;
       if (durationMs < 800 || rmsMax < 0.005) {
         isLocalProcessing = false; unlockMics();
-        if (durationMs >= 800) addMsg('⚠️ لم يُسمع صوت واضح.', 'bot');
         return;
       }
 
       const blob = new Blob(localChunks, { type: localRecorder.mimeType });
-      setStatus('⏳ جاري استخراج النص والترجمة...');
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
       formData.append('target_lang', targetLang);
@@ -913,17 +1037,15 @@ async function toggleLocalMic(speaker) {
         if (res.ok) {
           const data = await res.json();
           if (data.original && data.original.length > 1) {
-            addMsg(`You: ${data.original}`, speaker === 'A' ? 'user-a' : 'user-b', lang);
+            addMsg(data.original, speaker === 'A' ? 'user-a' : 'user-b', lang);
             if (isTranslatorMode) {
               if (data.translated) { addMsg(`↳ ${data.translated}`, 'bot', targetLang); speak(data.translated, targetLang); }
             } else {
               ask(data.original, lang, targetLang, speaker);
             }
-          } else {
-            addMsg('⚠️ لم يتم التعرف على كلام.', 'bot');
           }
         }
-      } catch (e) { addMsg('⚠️ فشل إرسال الصوت.', 'bot'); }
+      } catch (e) {}
 
       isLocalProcessing = false; unlockMics();
     };
@@ -932,9 +1054,8 @@ async function toggleLocalMic(speaker) {
     localStartTime = Date.now();
     btn.classList.add('recording');
     micA.disabled = speaker !== 'A'; micB.disabled = speaker !== 'B';
-    setStatus(`🎤 Listening (${speaker === 'A' ? 'You' : 'Friend'})...`);
+    setStatus('🎤 ...');
   } catch (e) {
-    addMsg("⚠️ تعذر الوصول للمايك: " + e.message, "bot");
     isLocalProcessing = false; unlockMics();
   }
 }
@@ -946,7 +1067,6 @@ function unlockMics() {
 micA.addEventListener('click', () => toggleLocalMic('A'));
 micB.addEventListener('click', () => toggleLocalMic('B'));
 
-// ===== Remote Call Mic =====
 async function toggleRemoteMic() {
   if (isTranslatorMode) {
     if (isManualTranslating) stopManualTranslation();
@@ -977,7 +1097,7 @@ async function startManualTranslation() {
 
     const filteredTrack = destination.stream.getAudioTracks()[0];
     const rmsBuffer = new Float32Array(analyser.fftSize);
-    let rmsMax = 0, silenceStart = Date.now(), chunkStartTime = Date.now(), chunkIndex = 0, noiseFloor = 0, calibrationCount = 0;
+    let rmsMax = 0, silenceStart = Date.now(), chunkStartTime = Date.now(), noiseFloor = 0, calibrationCount = 0;
 
     const calibrationInterval = setInterval(() => {
       try {
@@ -1008,12 +1128,11 @@ async function startManualTranslation() {
           if (res.ok) {
             const data = await res.json();
             if (data.original && data.original.length > 1) {
-              addMsg(`You: ${data.original}`, 'user-a', myLang);
+              addMsg(data.original, 'user-a', myLang);
               sendRemoteMessage(data.original);
             }
           }
-        } catch (e) { console.warn('Audio chunk upload failed', e); }
-        chunkIndex++;
+        } catch (e) {}
       };
       audioRecorder.start(1000);
       chunkStartTime = Date.now(); rmsMax = 0; silenceStart = Date.now();
@@ -1041,13 +1160,11 @@ async function startManualTranslation() {
 
     isManualTranslating = true;
     updateTranslatorUI();
-    setStatus('🎤 جاري التسجيل... اضغط للإيقاف والترجمة');
+    setStatus('🎤 ...');
     window._vadInterval = vadInterval;
     window._rawTrack = rawTrack;
     window._calibrationInterval = calibrationInterval;
-  } catch (e) {
-    addMsg("⚠️ تعذر الوصول للمايك.", 'bot');
-  }
+  } catch (e) {}
 }
 
 function stopManualTranslation() {
@@ -1065,9 +1182,9 @@ function stopManualTranslation() {
 sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim();
   if (appMode === 'remote') {
-    if (t) { addMsg(`You: ${t}`, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
+    if (t) { addMsg(t, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
   } else {
-    if (t || attachedImageBase64) { addMsg(t || '📷 Image', 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
+    if (t || attachedImageBase64) { addMsg(t, 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
   }
 });
 inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sendBtn.disabled) sendBtn.click(); } });
@@ -1084,7 +1201,7 @@ function buildSystemPrompt(targetLang, sourceLang, isImage = false) {
 
 async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
   if (isSending) return;
-  setBusy(true); setStatus('Processing...');
+  setBusy(true); setStatus('...');
   const messages = [{ role: 'system', content: buildSystemPrompt(targetLang, sourceLang, isImage) }];
   let finalText = text || '';
   if (attachedFileText) finalText += "\n\nFile Content:\n" + attachedFileText;
@@ -1109,17 +1226,16 @@ async function ask(text, sourceLang, targetLang, speaker, isImage = false) {
     let replyText = (data.reply || '').trim();
     if (isImage && replyText.includes('|||')) {
       const parts = replyText.split('|||');
-      addMsg(`📷 ${parts[0].trim()}`, speaker === 'A' ? 'user-a' : 'user-b', sourceLang, attachedImageBase64);
+      addMsg(parts[0].trim(), speaker === 'A' ? 'user-a' : 'user-b', sourceLang, attachedImageBase64);
       addMsg(`↳ ${parts[1].trim()}`, 'bot', targetLang);
       speak(parts[1].trim(), targetLang);
     } else {
-      if (isTranslatorMode && replyText === text) replyText = "⚠️ Translation failed. Please try again.";
       addMsg(replyText, isTranslatorMode ? (speaker === 'A' ? 'user-b' : 'user-a') : 'user-b', targetLang || 'AUTO', isImage ? attachedImageBase64 : null);
       resetStatus();
       speak(replyText, targetLang || langA.value);
     }
     attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none';
-  } catch (e) { addMsg('Error: ' + e.message, 'bot'); } finally { setBusy(false); }
+  } catch (e) { addMsg('⚠️ ' + e.message, 'bot'); } finally { setBusy(false); resetStatus(); }
 }
 
 uploadBtn.addEventListener('click', () => { videoAvatarUpload.value = ''; videoAvatarUpload.click(); });
@@ -1145,42 +1261,41 @@ menuVideo.addEventListener('click', () => { actionMenu.style.display = 'none'; v
 
 videoUpload.addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
-  if (appMode === 'remote') return alert('إرسال الفيديوهات غير مدعوم حالياً.');
-  if (file.size > 100 * 1024 * 1024) return alert('حجم الملف كبير جداً! الحد الأقصى 100MB');
+  if (appMode === 'remote') return;
+  if (file.size > 100 * 1024 * 1024) return;
   const targetLang = langB.value;
-  addMsg(`🎬 جاري تحليل وترجمة: ${file.name}`, 'user-a', 'AUTO');
-  setStatus('⏳ جاري استخراج النص وترجمته...'); setBusy(true);
+  setBusy(true);
   const formData = new FormData(); formData.append('file', file); formData.append('target_lang', targetLang); formData.append('language', langA.value); formData.append('duration_ms', '10000');
   try {
     const res = await fetchWithTimeout(TRANSCRIBE_URL, { method: 'POST', body: formData }, 300000);
-    if (!res.ok) throw new Error('Server error');
-    const data = await res.json();
-    if (data.original) addMsg(data.original, 'user-b', 'AUTO');
-    if (data.translated && data.translated !== data.original) addMsg(data.translated, 'bot', targetLang);
-    setStatus('✅ تمت الترجمة بنجاح!');
-  } catch (err) { addMsg(`⚠️ فشل استخراج الفيديو: ${err.message}`, 'bot'); setStatus('Error'); } finally { setBusy(false); e.target.value = ''; }
+    if (res.ok) {
+      const data = await res.json();
+      if (data.original) addMsg(data.original, 'user-b', 'AUTO');
+      if (data.translated && data.translated !== data.original) addMsg(data.translated, 'bot', targetLang);
+    }
+  } catch (err) { addMsg('⚠️ ' + err.message, 'bot'); } finally { setBusy(false); e.target.value = ''; resetStatus(); }
 });
 
 async function handleImage(e) {
   const file = e.target.files[0]; if (!file) return;
-  isCompressing = true; sendBtn.disabled = true; setStatus('Compressing...');
+  isCompressing = true; sendBtn.disabled = true;
   const reader = new FileReader();
   reader.onload = async ev => {
     const compressed = await compressImage(ev.target.result);
     if (appMode === 'remote') {
       if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'chat_media', media_type: 'image', data: compressed })); addMsg('', 'user-a', myLang, compressed); }
-      isCompressing = false; sendBtn.disabled = isSending; setStatus('');
+      isCompressing = false; sendBtn.disabled = isSending;
     } else {
       attachedFileText = null; attachedImageBase64 = compressed;
       imagePreview.src = attachedImageBase64; imagePreviewContainer.style.display = 'flex';
-      isCompressing = false; sendBtn.disabled = isSending; setStatus('Image attached.');
+      isCompressing = false; sendBtn.disabled = isSending;
     }
   };
   reader.readAsDataURL(file);
 }
 galleryUpload.addEventListener('change', handleImage);
 cameraUpload.addEventListener('change', handleImage);
-cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; setStatus('Attachment removed.'); });
+cancelImageBtn.addEventListener('click', (e) => { e.stopPropagation(); attachedImageBase64 = null; attachedFileText = null; imagePreviewContainer.style.display = 'none'; });
 
 audioUpload.addEventListener('change', (e) => {
   const files = e.target.files;
@@ -1189,10 +1304,10 @@ audioUpload.addEventListener('change', (e) => {
 });
 function renderPlaylist() {
   musicList.innerHTML = '';
-  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = '🛑 Stop'; stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
-  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? '▶️ Play' : '⏸️ Pause';
+  const stopBtn = document.createElement('div'); stopBtn.className = 'music-item stop-btn'; stopBtn.textContent = uiT('stopMusic'); stopBtn.onclick = stopMusic; musicList.appendChild(stopBtn);
+  const pauseBtn = document.createElement('div'); pauseBtn.className = 'music-item pause-btn'; pauseBtn.textContent = bgAudio.paused ? uiT('playMusic') : uiT('pauseMusic');
   pauseBtn.onclick = (e) => { e.stopPropagation(); if (bgAudio.src) { if (bgAudio.paused) bgAudio.play(); else bgAudio.pause(); renderPlaylist(); } }; musicList.appendChild(pauseBtn);
-  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = '➕ Add'; addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
+  const addBtn = document.createElement('div'); addBtn.className = 'music-item add-more'; addBtn.textContent = uiT('addMusic'); addBtn.onclick = () => { audioUpload.value = ''; audioUpload.click(); }; musicList.appendChild(addBtn);
   playlist.forEach((song, index) => {
     const div = document.createElement('div'); div.className = 'music-item';
     const name = document.createElement('span'); name.className = 'song-name'; name.textContent = song.name;
@@ -1207,7 +1322,6 @@ function renderPlaylist() {
 function stopMusic() { bgAudio.pause(); bgAudio.currentTime = 0; currentSongIndex = -1; renderPlaylist(); }
 bgAudio.addEventListener('ended', () => { if (playlist.length > 0) { currentSongIndex = (currentSongIndex + 1) % playlist.length; bgAudio.src = playlist[currentSongIndex].url; bgAudio.play(); renderPlaylist(); } });
 bgAudio.addEventListener('play', renderPlaylist); bgAudio.addEventListener('pause', renderPlaylist);
-renderPlaylist();
 
 // ===== Messenger Friends, Chat & Direct Call =====
 const FR_TEXT = {
@@ -1215,7 +1329,7 @@ const FR_TEXT = {
   fr: { title: 'Messenger', myCode: 'Votre code ami :', codePh: "Code d'un ami", requests: "Demandes d'ami", list: 'Discussions et amis', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Déjà votre ami.', sent: '✅ Demande envoyée.', empty: 'Aucune discussion pour le moment.', accept: 'Accepter', decline: 'Refuser', rules: 'Base de données inaccessible.', copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', wait: 'Synchronisation...', ringing: 'Appel vers ', incomingVoice: 'Appel vocal entrant...', incomingVideo: 'Appel vidéo entrant...', tapToChat: 'Appuyez pour discuter' },
   en: { title: 'Messenger', myCode: 'Your friend code:', codePh: "Enter friend's code", requests: 'Friend requests', list: 'Chats & Friends', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Friend request sent.', empty: 'No chats yet. Add a friend by code below to start.', accept: 'Accept', decline: 'Decline', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', wait: 'Syncing...', ringing: 'Calling ', incomingVoice: 'Incoming voice call...', incomingVideo: 'Incoming video call...', tapToChat: 'Tap to open chat' }
 };
-const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
+const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.ar)[k];
 let friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
 let friendsCache = [], requestsCache = [];
 let chatsByFriend = {}, chatOpenWith = null, chatUnsub = null, chatMsgsCache = [];
@@ -1234,9 +1348,6 @@ function applyFriendsLang() {
   $('frReqTitle').textContent = frT('requests');
   $('frListTitle').textContent = frT('list');
 }
-applyFriendsLang();
-const _origChangeAuthLang = changeAuthLang;
-changeAuthLang = function (lang) { _origChangeAuthLang(lang); applyFriendsLang(); renderFriendsUI(); };
 
 function renderFriendsUI() {
   const badge = $('friendsBadge');
@@ -1287,18 +1398,15 @@ function renderFriendsUI() {
     info.append(nm, sub);
 
     const btnVoice = document.createElement('button'); btnVoice.className = 'icon-pill-btn';
-    btnVoice.style.background = '#10b981'; btnVoice.title = 'مكالمة صوتية';
-    btnVoice.textContent = '📞';
+    btnVoice.style.background = '#10b981'; btnVoice.textContent = '📞';
     btnVoice.onclick = () => callFriend(f, false);
 
     const btnVideo = document.createElement('button'); btnVideo.className = 'icon-pill-btn';
-    btnVideo.style.background = '#3b82f6'; btnVideo.title = 'مكالمة فيديو';
-    btnVideo.textContent = '📹';
+    btnVideo.style.background = '#3b82f6'; btnVideo.textContent = '📹';
     btnVideo.onclick = () => callFriend(f, true);
 
     const btnDel = document.createElement('button'); btnDel.className = 'icon-pill-btn';
-    btnDel.style.background = 'rgba(239,68,68,0.35)'; btnDel.title = 'حذف';
-    btnDel.textContent = '✕';
+    btnDel.style.background = 'rgba(239,68,68,0.35)'; btnDel.textContent = '✕';
     btnDel.onclick = () => removeFriend(f);
 
     item.append(av, info, btnVoice, btnVideo, btnDel);
@@ -1464,7 +1572,6 @@ async function callFriend(friend, withVideo = false) {
       if (!snap.exists) return;
       const d = snap.data();
       if (d.status === 'rejected') {
-        setFrMsg('❌ تم رفض المكالمة من ' + (friend.name || ''));
         if (appMode === 'remote') cleanupAll();
         if (outgoingCallUnsub) { outgoingCallUnsub(); outgoingCallUnsub = null; }
       }
@@ -1474,7 +1581,6 @@ async function callFriend(friend, withVideo = false) {
     $('chatOverlay').style.display = 'none';
     setFrMsg('');
     await connectRemote(roomCode, myDisplayName(), myLang, true, withVideo, friend.name || 'Friend');
-    addMsg(`📞 جاري الاتصال بـ ${friend.name}... في انتظار الرد`, 'bot');
 
     setTimeout(async () => {
       try {
@@ -1485,7 +1591,7 @@ async function callFriend(friend, withVideo = false) {
       } catch (e) {}
     }, 35000);
   } catch (e) {
-    setFrMsg('⚠️ فشل بدء المكالمة: ' + (e.message || ''));
+    setFrMsg(frErrText(e));
   }
 }
 $('callAccept').addEventListener('click', acceptCall);
@@ -1606,7 +1712,7 @@ function connectWS(roomCode) {
   ws = new WebSocket(WS_BASE + '/ws/' + String(roomCode).toUpperCase());
   ws.onopen = () => { try { ws.send(JSON.stringify({ type: 'join', name: myName, lang: myLang })); } catch (e) {} startPing(); };
   ws.onmessage = (evt) => { try { handleWSMessage(JSON.parse(evt.data)); } catch (e) {} };
-  ws.onerror = () => setStatus('⚠️ خطأ في الاتصال');
+  ws.onerror = () => {};
   ws.onclose = () => {
     stopPing();
     if (shouldReconnect && hasJoinedOnce && currentRoomCode) {
@@ -1624,12 +1730,12 @@ async function handleWSMessage(msg) {
   if (!msg || !msg.type) return;
   const type = msg.type;
   if (type === 'pong') return;
-  if (type === 'error') { addMsg('⚠️ ' + (msg.message || 'خطأ'), 'bot'); return; }
+  if (type === 'error') { addMsg('⚠️ ' + (msg.message || ''), 'bot'); return; }
   if (type === 'joined') {
     hasJoinedOnce = true;
     const n = (msg.users || []).length;
     if (onlineCount) onlineCount.textContent = n + '/2';
-    setStatus('✅ متصل');
+    resetStatus();
     if (appMode === 'remote' && myIsCaller && !_rtcInitiated && n > 1) {
       _rtcInitiated = true; setTimeout(() => startVideoCall(true, callWithVideo), 300);
     }
@@ -1637,7 +1743,6 @@ async function handleWSMessage(msg) {
   }
   if (type === 'user_joined') {
     if (onlineCount) onlineCount.textContent = '2/2';
-    addMsg('📞 ' + (msg.name || 'صديقك') + ' انضم للمكالمة', 'bot');
     if (appMode === 'remote' && myIsCaller && !_rtcInitiated) {
       _rtcInitiated = true; setTimeout(() => startVideoCall(true, callWithVideo), 300);
     }
@@ -1645,12 +1750,11 @@ async function handleWSMessage(msg) {
   }
   if (type === 'user_left') {
     if (onlineCount) onlineCount.textContent = '1/2';
-    addMsg('👋 ' + (msg.name || 'صديقك') + ' أنهى المكالمة', 'bot');
     return;
   }
   if (type === 'translated') {
     if (msg.is_mine) return;
-    addMsg((msg.from_name || 'صديق') + ': ' + (msg.original || ''), 'user-b', msg.from_lang || 'en');
+    addMsg(msg.original || '', 'user-b', msg.from_lang || 'en');
     if (isTranslatorMode && msg.translated && msg.translated !== msg.original) {
       addMsg('↳ ' + msg.translated, 'bot', msg.target_lang || myLang);
       if (!msg.no_tts) speak(msg.translated, msg.target_lang || myLang);
@@ -1658,7 +1762,7 @@ async function handleWSMessage(msg) {
     return;
   }
   if (type === 'chat_media') {
-    addMsg((msg.from_name || 'صديق') + ' 📷:', 'user-b', msg.from_lang || 'en', msg.data);
+    addMsg('', 'user-b', msg.from_lang || 'en', msg.data);
     return;
   }
   if (type === 'rtc-offer') { await handleRtcOffer(msg.offer); return; }
@@ -1674,7 +1778,7 @@ async function handleRtcOffer(offer) {
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'rtc-answer', answer }));
     for (const c of iceCandidatesQueue) { try { await pc.addIceCandidate(c); } catch (e) {} }
     iceCandidatesQueue = [];
-  } catch (e) { console.warn('rtc offer', e); }
+  } catch (e) {}
 }
 async function handleRtcAnswer(answer) {
   try {
@@ -1682,7 +1786,7 @@ async function handleRtcAnswer(answer) {
     await pc.setRemoteDescription(answer);
     for (const c of iceCandidatesQueue) { try { await pc.addIceCandidate(c); } catch (e) {} }
     iceCandidatesQueue = [];
-  } catch (e) { console.warn('rtc answer', e); }
+  } catch (e) {}
 }
 async function handleRtcIce(candidate) {
   if (!candidate) return;
@@ -1699,26 +1803,18 @@ async function connectRemote(roomCode, participantName, lang, isCaller, withVide
   isTranslatorMode = chTranslateEnabled;
   roomCodeLabel.textContent = peerName;
   setModeUI('remote');
-  setStatus('⏳ جاري الاتصال...');
+  setStatus('...');
   connectWS(currentRoomCode);
 }
 
 // ===== 1-to-1 Messenger Chat =====
-const CHAT_LANGS = [['ar','🇹🇳 العربية'],['fr','🇫🇷 Français'],['en','🇬🇧 English'],['de','🇩🇪 Deutsch'],['tr','🇹🇷 Türkçe'],['it','🇮🇹 Italiano'],['zh','🇨🇳 中文'],['ru','🇷🇺 Русский'],['es','🇪🇸 Español'],['pt','🇵🇹 Português'],['nl','🇳🇱 Nederlands'],['no','🇳🇴 Norsk']];
-function populateChLang() {
-  const el = $('chLang'); if (!el || _chLangPopulated) return;
-  el.innerHTML = '';
-  CHAT_LANGS.forEach(([v, label]) => { const o = document.createElement('option'); o.value = v; o.textContent = label; el.appendChild(o); });
-  _chLangPopulated = true;
-}
-
 function updateChTransUI() {
   const btn = $('chTransToggle');
   if (!btn) return;
   btn.textContent = chTranslateEnabled ? '🌐 ON' : '🌐 OFF';
   btn.classList.toggle('active', chTranslateEnabled);
   $('chLang').style.display = chTranslateEnabled ? 'inline-block' : 'none';
-  $('chSubStatus').textContent = chTranslateEnabled ? 'الترجمة الفورية مفعلة 🌐' : 'دردشة مباشرة بنفس اللغة 💬';
+  $('chSubStatus').textContent = chTranslateEnabled ? uiT('chatTransActive') : uiT('chatSameLang');
 }
 $('chTransToggle').addEventListener('click', () => {
   chTranslateEnabled = !chTranslateEnabled;
@@ -1727,11 +1823,11 @@ $('chTransToggle').addEventListener('click', () => {
 
 async function openChat(friend) {
   if (!db || !currentUser || !friend) return;
-  chatOpenWith = friend; chatMsgsCache = []; populateChLang();
+  chatOpenWith = friend; chatMsgsCache = [];
   $('chName').textContent = friend.name || '?';
   $('chLang').value = myLang || 'ar';
   updateChTransUI();
-  $('chMsgs').innerHTML = ''; $('chStatus').textContent = 'جارٍ التحميل...';
+  $('chMsgs').innerHTML = ''; $('chStatus').textContent = '...';
   $('chatOverlay').style.display = 'flex';
   const chatId = [currentUser.uid, friend.uid].sort().join('_');
   if (chatUnsub) { try { chatUnsub(); } catch (e) {} }
@@ -1773,7 +1869,7 @@ async function sendChatMessage(overrideText = null) {
   let translated = '';
 
   if (chTranslateEnabled && targetLang !== myLang) {
-    $('chStatus').textContent = '⏳ جاري الترجمة...';
+    $('chStatus').textContent = '...';
     try {
       const res = await fetch(SERVER_URL, {
         method: 'POST',
@@ -1803,7 +1899,7 @@ async function sendChatMessage(overrideText = null) {
       ['unread_' + chatOpenWith.uid]: firebase.firestore.FieldValue.increment(1)
     }, { merge: true });
     $('chStatus').textContent = '';
-  } catch (e) { $('chStatus').textContent = '⚠️ فشل الإرسال: ' + (e.message || ''); }
+  } catch (e) { $('chStatus').textContent = '⚠️ ' + (e.message || ''); }
 }
 
 $('chMicBtn').addEventListener('click', async () => {
@@ -1823,7 +1919,7 @@ $('chMicBtn').addEventListener('click', async () => {
       if (chStream) chStream.getTracks().forEach(t => t.stop());
       const dur = Date.now() - startTs;
       if (dur < 700 || !chChunks.length) return;
-      $('chStatus').textContent = '⏳ جاري تحويل الصوت...';
+      $('chStatus').textContent = '...';
       const fd = new FormData();
       fd.append('file', new Blob(chChunks, { type: mimeType }), 'audio.webm');
       fd.append('language', myLang);
@@ -1843,9 +1939,9 @@ $('chMicBtn').addEventListener('click', async () => {
     };
     chRecorder.start(500);
     $('chMicBtn').classList.add('recording');
-    $('chStatus').textContent = '🎤 تحدث الآن... اضغط للإرسال';
+    $('chStatus').textContent = '🎤 ...';
   } catch (e) {
-    $('chStatus').textContent = '⚠️ تعذر فتح المايك';
+    $('chStatus').textContent = '⚠️';
   }
 });
 
@@ -1861,6 +1957,8 @@ if ($('chSend')) $('chSend').addEventListener('click', () => sendChatMessage());
 if ($('chInput')) $('chInput').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
 });
+
+changeAuthLang(localStorage.getItem('authLang') || 'ar');
 </script>
 </body>
 </html>
