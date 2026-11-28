@@ -14,6 +14,9 @@
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   --glass-blur: blur(12px);
   --text-main: #ffffff;
+  --accent-cyan: #00f0ff;
+  --accent-emerald: #10b981;
+  --accent-indigo: #6366f1;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
@@ -25,8 +28,8 @@ body {
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   height: 100dvh; transition: opacity 0.3s;
 }
-@keyframes ringPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); } }
-@keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes ringPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 50% { transform: scale(1.06); box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); } }
+@keyframes slideIn { from { transform: translateY(-24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes pulse { 50% { transform: scale(1.1); } }
 
 #authOverlay { position: fixed; inset: 0; background: rgba(13, 27, 62, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999999; padding: 20px; overflow-y: auto; backdrop-filter: blur(20px); }
@@ -51,45 +54,47 @@ body {
 .overlay { position: fixed; inset: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; padding: 20px; z-index: 99999; overflow-y: auto; }
 .overlay h1 { font-size: 32px; color: #00f0ff; margin-bottom: 5px; text-shadow: 0 0 15px rgba(0,240,255,0.4); }
 .overlay h2 { font-size: 20px; color: #fff; margin-bottom: 10px; font-weight: normal; }
-.mode-btn { padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer; width: 100%; max-width: 280px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.3); background: rgba(255,255,255,0.05); position: relative; }
+.mode-btn { padding: 16px 20px; font-size: 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer; width: 100%; max-width: 290px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 15px rgba(0,0,0,0.3); background: rgba(255,255,255,0.05); position: relative; }
 .mode-btn:active { transform: scale(0.96); }
 #btnLocal { border-color: rgba(138, 43, 226, 0.5); background: linear-gradient(90deg, rgba(138,43,226,0.2), rgba(0,0,0,0)); }
-#btnRemote { border-color: rgba(16, 185, 129, 0.6); background: linear-gradient(90deg, rgba(16,185,129,0.25), rgba(0,0,0,0)); }
+#btnRemote { border-color: rgba(16, 185, 129, 0.65); background: linear-gradient(90deg, rgba(16,185,129,0.28), rgba(0,240,255,0.08)); }
 #btnLogout { border-color: rgba(255, 69, 0, 0.5); background: linear-gradient(90deg, rgba(255,69,0,0.2), rgba(0,0,0,0)); margin-top: 20px; }
 
-/* Messenger / Remote Hub */
-.messenger-shell { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; height: 92dvh; background: rgba(16, 28, 72, 0.78); padding: 18px; border-radius: 24px; backdrop-filter: blur(22px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 35px rgba(0,0,0,0.55); }
+/* Messenger Direct Hub */
+.messenger-shell { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 430px; height: 94dvh; background: linear-gradient(180deg, rgba(18, 32, 82, 0.88) 0%, rgba(9, 17, 46, 0.92) 100%); padding: 16px; border-radius: 26px; backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 14px 40px rgba(0,0,0,0.65); }
 .messenger-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.12); }
-.messenger-header h2 { margin: 0; font-size: 19px; color: #00f0ff; display: flex; align-items: center; gap: 8px; }
-.messenger-card { background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.messenger-shell input[type="text"], .messenger-shell select { padding: 11px 13px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.45); color: #fff; font-size: 13px; outline: none; }
-.messenger-shell input:focus, .messenger-shell select:focus { border-color: #00f0ff; }
-#frMyCode { color: #00f0ff; letter-spacing: 3px; font-size: 18px; text-shadow: 0 0 10px rgba(0,240,255,0.4); }
-#frCopyCode { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 11px; border-radius: 8px; cursor: pointer; font-size: 13px; }
-#frAddBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; padding: 0 16px; border-radius: 12px; cursor: pointer; font-size: 17px; font-weight: bold; }
-#frMsg { color: #fbbf24; min-height: 16px; font-size: 12px; text-align: center; }
-#frList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
-.friend-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 12px; transition: 0.2s; }
-.friend-item:hover { background: rgba(255,255,255,0.12); }
-.friend-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #10b981); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #fff; flex-shrink: 0; }
+.messenger-header h2 { margin: 0; font-size: 19px; color: #00f0ff; display: flex; align-items: center; gap: 8px; text-shadow: 0 0 12px rgba(0,240,255,0.3); }
+.messenger-card { background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; }
+.messenger-shell input[type="text"], .messenger-shell select { padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.45); color: #fff; font-size: 13px; outline: none; transition: 0.2s; }
+.messenger-shell input:focus, .messenger-shell select:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,0.2); }
+#frMyCode { color: #00f0ff; letter-spacing: 3px; font-size: 16px; text-shadow: 0 0 10px rgba(0,240,255,0.35); }
+#frCopyCode { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 5px 10px; border-radius: 9px; cursor: pointer; font-size: 13px; }
+#frAddBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; padding: 0 15px; border-radius: 12px; cursor: pointer; font-size: 17px; font-weight: bold; box-shadow: 0 4px 12px rgba(16,185,129,0.35); }
+#frMsg { color: #fbbf24; min-height: 16px; font-size: 12px; text-align: center; font-weight: 600; }
+#frList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 140px; padding-left: 2px; }
+.friend-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.11); border-radius: 16px; padding: 10px 12px; transition: 0.2s; }
+.friend-item:hover { background: rgba(255,255,255,0.12); border-color: rgba(0,240,255,0.28); }
+.friend-avatar { position: relative; width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #10b981); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 17px; color: #fff; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.friend-avatar::after { content: ''; position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: #10b981; border: 2px solid #0d1b3e; }
 .friend-info { flex: 1; min-width: 0; cursor: pointer; }
 .friend-name { font-size: 14px; font-weight: bold; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.friend-sub { font-size: 11px; color: rgba(255,255,255,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.icon-pill-btn { border: none; border-radius: 10px; padding: 7px 10px; font-size: 13px; font-weight: bold; color: #fff; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.friend-sub { font-size: 11.5px; color: rgba(255,255,255,0.62); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.icon-pill-btn { border: none; border-radius: 11px; padding: 8px 10px; font-size: 13px; font-weight: bold; color: #fff; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
 .icon-pill-btn:active { transform: scale(0.92); }
 
 /* Messenger 1-to-1 Chat Overlay */
 #chatOverlay { background: radial-gradient(circle at 50% 0%, #1a2a6c 0%, #0d1b3e 60%, #050a1f 100%); justify-content: flex-start; gap: 8px; padding: 12px; }
-.ch-topbar { width: 100%; max-width: 440px; display: flex; align-items: center; gap: 8px; background: rgba(26, 42, 108, 0.75); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 8px 10px; flex-shrink: 0; }
+.ch-topbar { width: 100%; max-width: 440px; display: flex; align-items: center; gap: 8px; background: rgba(26, 42, 108, 0.8); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.2); border-radius: 18px; padding: 8px 10px; flex-shrink: 0; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
 #chBack { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 10px; padding: 7px 11px; cursor: pointer; font-weight: bold; }
-#chMsgs { flex: 1; width: 100%; max-width: 440px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: rgba(26, 42, 108, 0.55); border: 1px solid rgba(255,255,255,0.18); border-radius: 18px; }
-.ch-bubble { max-width: 82%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; word-wrap: break-word; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; }
-.ch-bubble.mine { align-self: flex-end; background: linear-gradient(135deg, rgba(99, 102, 241, 0.92), rgba(79, 70, 229, 0.92)); color: #fff; border-bottom-right-radius: 4px; }
-.ch-bubble.theirs { align-self: flex-start; background: rgba(255,255,255,0.12); color: #fff; border-bottom-left-radius: 4px; }
+#chMsgs { flex: 1; width: 100%; max-width: 440px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: rgba(26, 42, 108, 0.52); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.18); border-radius: 20px; }
+.ch-bubble { max-width: 82%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; word-wrap: break-word; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.ch-bubble.mine { align-self: flex-end; background: linear-gradient(135deg, rgba(99, 102, 241, 0.94), rgba(79, 70, 229, 0.94)); color: #fff; border-bottom-right-radius: 4px; }
+.ch-bubble.theirs { align-self: flex-start; background: rgba(255,255,255,0.14); color: #fff; border-bottom-left-radius: 4px; }
 .ch-input-row { display: flex; gap: 8px; width: 100%; max-width: 440px; flex-shrink: 0; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
-#chInput { flex: 1; border-radius: 20px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.22); color: #fff; padding: 12px 15px; font-size: 14px; outline: none; order: 0; }
-#chSend { background: linear-gradient(135deg, #4568dc, #b06ab3); border: none; color: #fff; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 15px rgba(69,104,220,0.35); flex-shrink: 0; }
-#chMicBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 17px; flex-shrink: 0; }
+#chInput { flex: 1; border-radius: 22px; background: rgba(0,0,0,0.48); border: 1px solid rgba(255,255,255,0.22); color: #fff; padding: 12px 15px; font-size: 14px; outline: none; order: 0; }
+#chInput:focus { border-color: #00f0ff; }
+#chSend { background: linear-gradient(135deg, #4568dc, #b06ab3); border: none; color: #fff; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 16px; box-shadow: 0 4px 15px rgba(69,104,220,0.4); flex-shrink: 0; }
+#chMicBtn { background: linear-gradient(135deg, #11998e, #38ef7d); border: none; color: #fff; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; font-size: 17px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(16,185,129,0.35); }
 #chMicBtn.recording { background: #ef4444; animation: pulse 0.8s infinite; }
 
 /* Face-to-Face & Call Room UI */
@@ -185,7 +190,7 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
 .song-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; direction: ltr; }
 .delete-song { color: #ef4444; font-weight: bold; padding: 0 6px; font-size: 15px; }
 
-#remoteBar { display: none; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 16px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+#remoteBar { display: none; background: rgba(26, 42, 108, 0.72); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 16px; margin-bottom: 10px; justify-content: space-between; align-items: center; color: #fff; font-size: 13px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
 #remoteBar .room-info { display: flex; align-items: center; gap: 8px; justify-content: center; flex: 1; }
 #remoteBar strong { color: #00f0ff; letter-spacing: 1px; font-size: 14px; }
 
@@ -228,7 +233,7 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
 
 <div class="overlay" id="landingOverlay" style="display:none;">
   <h1>🌐 Chat-Core</h1>
-  <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:15px;">اختر وضع التشغيل</p>
+  <p style="color:rgba(255,255,255,0.65); font-size:14px; margin-bottom:15px;">اختر وضع التشغيل</p>
   <button class="mode-btn" id="btnLocal"><span>🌐 Face-to-Face</span></button>
   <button class="mode-btn" id="btnRemote">
     <span>💬 Remote Mode</span>
@@ -237,7 +242,7 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
   <button class="mode-btn" id="btnLogout"><span>🚪 تسجيل الخروج</span></button>
 </div>
 
-<!-- Messenger Remote Hub -->
+<!-- Messenger Direct Hub -->
 <div class="overlay" id="remoteJoinOverlay" style="display:none; padding:12px;">
   <div class="messenger-shell">
     <div class="messenger-header">
@@ -253,9 +258,20 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
       </div>
     </div>
 
+    <div style="font-size:13px; color:#00f0ff; font-weight:bold; display:flex; align-items:center; justify-content:space-between;" id="frListTitleRow">
+      <span id="frListTitle">المحادثات والأصدقاء</span>
+      <span id="frOnlinePill" style="font-size:11px; color:#10b981; background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.3); padding:3px 9px; border-radius:999px;">مباشر</span>
+    </div>
+    <div id="frList"></div>
+
+    <div id="frRequestsBox" class="messenger-card" style="display:none;">
+      <div style="font-size:12px; color:#00f0ff; font-weight:bold;" id="frReqTitle">طلبات الصداقة</div>
+      <div id="frRequests" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+
     <div class="messenger-card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <span style="font-size:12px; color:rgba(255,255,255,0.7);" id="frMyCodeLabel">كود الصداقة الخاص بك:</span>
+        <span style="font-size:12px; color:rgba(255,255,255,0.72);" id="frMyCodeLabel">كود الصداقة الخاص بك:</span>
         <div style="display:flex; align-items:center; gap:6px;">
           <strong id="frMyCode">--------</strong>
           <button id="frCopyCode" title="نسخ">📋</button>
@@ -267,14 +283,6 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
       </div>
       <div id="frMsg"></div>
     </div>
-
-    <div id="frRequestsBox" class="messenger-card" style="display:none;">
-      <div style="font-size:12px; color:#00f0ff; font-weight:bold;" id="frReqTitle">طلبات الصداقة</div>
-      <div id="frRequests" style="display:flex; flex-direction:column; gap:6px;"></div>
-    </div>
-
-    <div style="font-size:13px; color:rgba(255,255,255,0.75); font-weight:bold;" id="frListTitle">الأصدقاء والمحادثات</div>
-    <div id="frList"></div>
   </div>
 </div>
 
@@ -472,7 +480,7 @@ auth.onAuthStateChanged(user => {
     currentUser = user;
     authOverlay.style.display = 'none';
     landingOverlay.style.display = 'flex';
-    initFriends();
+    initFriends().catch(() => {});
   } else {
     currentUser = null;
     authOverlay.style.display = 'flex';
@@ -1203,9 +1211,9 @@ renderPlaylist();
 
 // ===== Messenger Friends, Chat & Direct Call =====
 const FR_TEXT = {
-  ar: { title: 'Messenger', myCode: 'كود الصداقة الخاص بك:', codePh: 'أدخل كود الصديق لإضافته', requests: 'طلبات الصداقة', list: 'الأصدقاء والمحادثات', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال طلب الصداقة.', empty: 'لا يوجد أصدقاء بعد. أضف صديقاً بالكود أعلاه.', accept: 'قبول', decline: 'رفض', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', wait: 'جارٍ التحميل...', ringing: 'جاري الاتصال بـ ', incomingVoice: 'مكالمة صوتية واردة...', incomingVideo: 'مكالمة فيديو واردة...', tapToChat: 'اضغط لفتح المحادثة' },
-  fr: { title: 'Messenger', myCode: 'Votre code ami :', codePh: "Code d'un ami", requests: "Demandes d'ami", list: 'Amis et discussions', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Déjà votre ami.', sent: '✅ Demande envoyée.', empty: "Aucun ami pour l'instant.", accept: 'Accepter', decline: 'Refuser', rules: 'Base de données inaccessible.', copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', wait: 'Chargement...', ringing: 'Appel vers ', incomingVoice: 'Appel vocal entrant...', incomingVideo: 'Appel vidéo entrant...', tapToChat: 'Appuyez pour discuter' },
-  en: { title: 'Messenger', myCode: 'Your friend code:', codePh: "Enter friend's code", requests: 'Friend requests', list: 'Friends & Chats', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Friend request sent.', empty: 'No friends yet. Add a friend above.', accept: 'Accept', decline: 'Decline', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', wait: 'Loading...', ringing: 'Calling ', incomingVoice: 'Incoming voice call...', incomingVideo: 'Incoming video call...', tapToChat: 'Tap to open chat' }
+  ar: { title: 'Messenger', myCode: 'كود الصداقة الخاص بك:', codePh: 'أدخل كود الصديق لإضافته', requests: 'طلبات الصداقة', list: 'المحادثات والأصدقاء', self: 'هذا كودك أنت 🙂', notfound: 'لا يوجد مستخدم بهذا الكود.', already: 'هذا الشخص صديقك بالفعل.', sent: '✅ تم إرسال طلب الصداقة.', empty: 'لا توجد محادثات بعد. أضف صديقاً بالكود بالأسفل للبدء.', accept: 'قبول', decline: 'رفض', rules: 'تعذر الوصول إلى قاعدة البيانات.', copied: 'تم نسخ الكود ✅', confirmRemove: 'حذف هذا الصديق؟', wait: 'جارٍ المزامنة...', ringing: 'جاري الاتصال بـ ', incomingVoice: 'مكالمة صوتية واردة...', incomingVideo: 'مكالمة فيديو واردة...', tapToChat: 'اضغط لفتح المحادثة' },
+  fr: { title: 'Messenger', myCode: 'Votre code ami :', codePh: "Code d'un ami", requests: "Demandes d'ami", list: 'Discussions et amis', self: "C'est votre propre code 🙂", notfound: 'Aucun utilisateur avec ce code.', already: 'Déjà votre ami.', sent: '✅ Demande envoyée.', empty: 'Aucune discussion pour le moment.', accept: 'Accepter', decline: 'Refuser', rules: 'Base de données inaccessible.', copied: 'Code copié ✅', confirmRemove: 'Retirer cet ami ?', wait: 'Synchronisation...', ringing: 'Appel vers ', incomingVoice: 'Appel vocal entrant...', incomingVideo: 'Appel vidéo entrant...', tapToChat: 'Appuyez pour discuter' },
+  en: { title: 'Messenger', myCode: 'Your friend code:', codePh: "Enter friend's code", requests: 'Friend requests', list: 'Chats & Friends', self: "That's your own code 🙂", notfound: 'No user with this code.', already: 'Already your friend.', sent: '✅ Friend request sent.', empty: 'No chats yet. Add a friend by code below to start.', accept: 'Accept', decline: 'Decline', rules: 'Cannot reach the database.', copied: 'Code copied ✅', confirmRemove: 'Remove this friend?', wait: 'Syncing...', ringing: 'Calling ', incomingVoice: 'Incoming voice call...', incomingVideo: 'Incoming video call...', tapToChat: 'Tap to open chat' }
 };
 const frT = k => (FR_TEXT[currentAuthLang] || FR_TEXT.en)[k];
 let friendsReady = false, friendsInitPromise = null, friendsUnsubs = [], myFriendCode = null;
@@ -1248,16 +1256,24 @@ function renderFriendsUI() {
     row.append(n, bAcc, bDec); reqEl.appendChild(row);
   });
 
+  const sortedFriends = [...friendsCache].sort((a, b) => {
+    const la = (chatsByFriend[a.uid] && chatsByFriend[a.uid].lastAt) || 0;
+    const lb = (chatsByFriend[b.uid] && chatsByFriend[b.uid].lastAt) || 0;
+    return lb - la;
+  });
+
   const listEl = $('frList'); listEl.innerHTML = '';
-  if (!friendsCache.length) {
+  if (!sortedFriends.length) {
     const e = document.createElement('div'); e.textContent = frT('empty');
-    e.style.cssText = 'font-size:13px; color:rgba(255,255,255,0.55); text-align:center; padding:24px 10px;';
+    e.style.cssText = 'font-size:13px; color:rgba(255,255,255,0.6); text-align:center; padding:26px 12px; line-height:1.6;';
     listEl.appendChild(e);
   }
-  friendsCache.forEach(f => {
+  sortedFriends.forEach(f => {
     const item = document.createElement('div'); item.className = 'friend-item';
     const av = document.createElement('div'); av.className = 'friend-avatar';
     av.textContent = (f.name || '?').charAt(0).toUpperCase();
+    av.onclick = () => openChat(f);
+    av.style.cursor = 'pointer';
 
     const ch = chatsByFriend[f.uid];
     const un = (ch && currentUser) ? (ch['unread_' + currentUser.uid] || 0) : 0;
@@ -1269,11 +1285,6 @@ function renderFriendsUI() {
     const sub = document.createElement('div'); sub.className = 'friend-sub';
     sub.textContent = (ch && ch.lastMessage) ? ch.lastMessage : frT('tapToChat');
     info.append(nm, sub);
-
-    const btnChat = document.createElement('button'); btnChat.className = 'icon-pill-btn';
-    btnChat.style.background = un ? '#ef4444' : '#0ea5e9';
-    btnChat.textContent = '💬' + (un ? ' ' + un : '');
-    btnChat.onclick = () => openChat(f);
 
     const btnVoice = document.createElement('button'); btnVoice.className = 'icon-pill-btn';
     btnVoice.style.background = '#10b981'; btnVoice.title = 'مكالمة صوتية';
@@ -1290,7 +1301,7 @@ function renderFriendsUI() {
     btnDel.textContent = '✕';
     btnDel.onclick = () => removeFriend(f);
 
-    item.append(av, info, btnChat, btnVoice, btnVideo, btnDel);
+    item.append(av, info, btnVoice, btnVideo, btnDel);
     listEl.appendChild(item);
   });
   if (myFriendCode) $('frMyCode').textContent = myFriendCode;
@@ -1795,7 +1806,6 @@ async function sendChatMessage(overrideText = null) {
   } catch (e) { $('chStatus').textContent = '⚠️ فشل الإرسال: ' + (e.message || ''); }
 }
 
-// Voice note to text/translation inside 1-to-1 Messenger chat
 $('chMicBtn').addEventListener('click', async () => {
   if (chRecorder && chRecorder.state === 'recording') {
     chRecorder.stop();
