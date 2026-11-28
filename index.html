@@ -136,6 +136,29 @@ body.video-maximized #topHeader, body.video-maximized #extraControls, body.video
 #floatingMicBtn.recording { background: #ef4444 !important; animation: pulse 0.8s infinite; box-shadow: 0 0 20px rgba(239,68,68,0.8); }
 body.video-maximized #floatingMicBtn { display: flex; }
 
+/* Live Call Stage in Page (instead of chat box during calls) */
+#smart-call-stage {
+  display: none;
+  margin: 0 auto 10px;
+  width: 100%;
+  max-width: 440px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.84);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  backdrop-filter: blur(14px);
+  flex-direction: column;
+  gap: 8px;
+  z-index: 600;
+}
+body.remote-mode #smart-call-stage { display: flex; }
+body.remote-mode #chatContainer { display: none !important; }
+.smart-call-meta { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 11px; flex-wrap: wrap; }
+#call-topic-select { background: rgba(0,0,0,0.45); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 3px 7px; font-size: 11px; outline: none; }
+.smart-caption-line { background: rgba(255,255,255,0.06); border-radius: 11px; padding: 8px 10px; line-height: 1.5; }
+.smart-caption-head { display: flex; justify-content: space-between; font-size: 10.5px; margin-bottom: 2px; }
+.smart-caption-body { font-size: 14px; color: #fff; word-wrap: break-word; }
+
 .chat-container { position: relative; flex: 1; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 100px; }
 #chat { flex: 1; background: rgba(26, 42, 108, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3); border-radius: 20px; padding: 15px; overflow-y: auto; }
 .msg { padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 15px; transition: opacity 0.2s; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); user-select: none; }
@@ -346,6 +369,41 @@ body.remote-mode #extraControls > * { flex: 1 1 30%; }
   <div id="tapToPlayOverlay">▶️ اضغط لتشغيل الفيديو</div>
   <button id="closeVideoFullscreen"><div class="inner-white-dot"></div></button>
 </div>
+
+<!-- Live Call Stage in Page (instead of chat box during calls) -->
+<section id="smart-call-stage" dir="auto">
+  <div class="smart-call-meta">
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span style="color:#00f0ff; font-weight:bold;">⚡ بث مباشر بالمكالمة</span>
+      <select id="call-topic-select" title="Topic">
+        <option value="general">عام</option>
+        <option value="technical">تقني / صيانة</option>
+        <option value="business">أعمال / مشاريع</option>
+        <option value="casual">محادثة يومية</option>
+      </select>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span id="smart-call-lang" style="color:rgba(255,255,255,0.7);">AUTO → AR</span>
+      <span id="smart-call-state" style="color:#fbbf24; font-weight:bold;">جاهز</span>
+    </div>
+  </div>
+
+  <div class="smart-caption-line">
+    <div class="smart-caption-head">
+      <span style="color:#38bdf8; font-weight:bold;">الطرف الآخر (مترجم ومصحّح):</span>
+      <span id="smart-remote-tag" style="color:#fbbf24;"></span>
+    </div>
+    <div id="smart-remote-text" class="smart-caption-body">...</div>
+  </div>
+
+  <div class="smart-caption-line">
+    <div class="smart-caption-head">
+      <span style="color:#4ade80; font-weight:bold;">أنت (بعد تنقية السماع):</span>
+      <span id="smart-local-tag" style="color:#94a3b8;"></span>
+    </div>
+    <div id="smart-local-text" class="smart-caption-body" style="color:#cbd5e1; font-size:13px;">...</div>
+  </div>
+</section>
 
 <div id="avatar-wrap" style="display:none;">
   <div id="avatar-container">
@@ -669,6 +727,211 @@ let isManualTranslating = false, audioRecorder = null, translationAudioCtx = nul
 let myIsCaller = false, _rtcInitiated = false;
 let currentIncomingCall = null, outgoingCallDocId = null, outgoingCallUnsub = null, ringtoneAudio = null;
 
+// ===== Smart Live Call Translator & STT Cleanup Engine =====
+class SmartCallEngine {
+  constructor() {
+    this.topicSelect = $('call-topic-select');
+    this.langBadge = $('smart-call-lang');
+    this.stateBadge = $('smart-call-state');
+    this.remoteTextEl = $('smart-remote-text');
+    this.remoteTagEl = $('smart-remote-tag');
+    this.localTextEl = $('smart-local-text');
+    this.localTagEl = $('smart-local-tag');
+    this.cache = new Map();
+    this.segments = new Map();
+    this.activeRemoteId = 'remote-live';
+    this.activeLocalId = 'local-live';
+    this.endPunct = /[.!؟?!…\n]+$/;
+
+    if (this.topicSelect) {
+      this.topicSelect.addEventListener('change', () => {
+        const last = this.segments.get(this.activeRemoteId);
+        if (last && last.rawText) {
+          this.handleRemote({ segmentId: this.activeRemoteId, text: last.rawText, isFinal: true });
+        }
+      });
+    }
+  }
+
+  getTopic() {
+    return this.topicSelect ? this.topicSelect.value : 'general';
+  }
+
+  setState(txt, color = '#fbbf24') {
+    if (this.stateBadge) {
+      this.stateBadge.textContent = txt;
+      this.stateBadge.style.color = color;
+    }
+  }
+
+  updateLang(src, tgt) {
+    if (this.langBadge) {
+      this.langBadge.textContent = `${(src || 'AUTO').toUpperCase()} → ${(tgt || 'AR').toUpperCase()}`;
+    }
+  }
+
+  _cleanText(text, isFinal) {
+    if (!text) return '';
+    const cleaned = String(text).replace(/\s+/g, ' ').trim();
+    if (!cleaned) return '';
+    const words = cleaned.split(' ').filter(Boolean);
+    if (!isFinal && words.length === 1 && cleaned.length <= 2) return '';
+    return cleaned;
+  }
+
+  _buildPrompt(stage, srcLang, tgtLang, topic) {
+    const topicMap = {
+      general: 'general conversation',
+      technical: 'technical, mechanical, and industrial maintenance',
+      business: 'business, projects, and operations',
+      casual: 'everyday casual chat'
+    };
+    const domain = topicMap[topic] || 'general conversation';
+
+    if (stage === 'stt_cleanup_only') {
+      return `You are a speech recognition cleanup assistant for a ${domain} call. Fix misheard words or phonetic speech-to-text errors in ${langNameFor(srcLang)} based on context and topic. Keep the same language (${langNameFor(srcLang)}). Output ONLY the cleaned text.`;
+    }
+    if (stage === 'context_refine') {
+      return `You are an expert live call translator specializing in ${domain} and conversational Arabic/French/English. Review the full sentence, fix any misheard speech words or word-by-word literal mistranslations according to the full sentence meaning and ${domain} context, and translate naturally into ${langNameFor(tgtLang)}. Output ONLY the final corrected translation.`;
+    }
+    return `You are a fast live call translator for ${domain}. Fix obvious speech-to-text typos and translate immediately from ${langNameFor(srcLang)} to ${langNameFor(tgtLang)}. Output ONLY the translated text.`;
+  }
+
+  async _aiCall(stage, text, srcLang, tgtLang, topic) {
+    const key = `${stage}|${srcLang}|${tgtLang}|${topic}|${text}`;
+    if (this.cache.has(key)) return this.cache.get(key);
+
+    try {
+      const res = await fetchWithTimeout(SERVER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: this._buildPrompt(stage, srcLang, tgtLang, topic) },
+            { role: 'user', content: text }
+          ],
+          is_translation: stage !== 'stt_cleanup_only',
+          session_id: SESSION_ID
+        })
+      }, REQUEST_TIMEOUT_MS);
+      const data = await res.json();
+      const out = (res.ok && data && data.reply) ? String(data.reply).trim() : text;
+      if (this.cache.size > 250) {
+        const first = this.cache.keys().next().value;
+        this.cache.delete(first);
+      }
+      this.cache.set(key, out || text);
+      return out || text;
+    } catch (_) {
+      return text;
+    }
+  }
+
+  async refineTranscript(rawText, srcLang, tgtLang, topic = this.getTopic()) {
+    const cleaned = this._cleanText(rawText, true);
+    if (!cleaned) return '';
+    return await this._aiCall('stt_cleanup_only', cleaned, srcLang, tgtLang, topic);
+  }
+
+  async handleRemote({ segmentId, text, isFinal = false, sourceLang, targetLang, speakFinal = false }) {
+    const cleaned = this._cleanText(text, isFinal);
+    if (!cleaned) return;
+
+    const id = segmentId || this.activeRemoteId;
+    this.activeRemoteId = id;
+
+    const src = sourceLang || 'auto';
+    const tgt = targetLang || myLang || 'ar';
+    const topic = this.getTopic();
+    this.updateLang(src, tgt);
+
+    const prev = this.segments.get(id) || { version: 0, rawText: '' };
+    const version = prev.version + 1;
+    const isComplete = Boolean(isFinal) || this.endPunct.test(cleaned);
+    this.segments.set(id, { version, rawText: cleaned });
+
+    this.setState(isComplete ? 'تصحيح سياقي...' : 'ترجمة فورية...', '#38bdf8');
+    const quick = await this._aiCall('instant_fast', cleaned, src, tgt, topic);
+    const cur1 = this.segments.get(id);
+    if (!cur1 || cur1.version > version) return;
+
+    this._renderRemote(quick, !isComplete);
+
+    if (isComplete) {
+      const refined = await this._aiCall('context_refine', cleaned, src, tgt, topic);
+      const cur2 = this.segments.get(id);
+      if (!cur2 || cur2.version !== version) return;
+
+      this._renderRemote(refined, false);
+      this.setState('جاهز', '#4ade80');
+      if (speakFinal && isTranslatorMode && refined) {
+        speak(refined, tgt);
+      }
+      return refined;
+    } else {
+      this.setState('يستمع ويترجم...', '#fbbf24');
+      return quick;
+    }
+  }
+
+  async handleLocal({ segmentId, text, isFinal = false, sourceLang, targetLang }) {
+    const cleaned = this._cleanText(text, isFinal);
+    if (!cleaned) return;
+
+    const id = segmentId || this.activeLocalId;
+    this.activeLocalId = id;
+
+    const src = sourceLang || myLang || 'ar';
+    const tgt = targetLang || myLang || 'ar';
+    const topic = this.getTopic();
+    const isComplete = Boolean(isFinal) || this.endPunct.test(cleaned);
+
+    if (!isComplete) {
+      this._renderLocal(cleaned, true);
+      return cleaned;
+    }
+
+    const fixed = await this._aiCall('stt_cleanup_only', cleaned, src, tgt, topic);
+    if (this.activeLocalId === id) {
+      this._renderLocal(fixed, false);
+    }
+    return fixed;
+  }
+
+  _renderRemote(text, isDraft) {
+    if (this.remoteTextEl) {
+      this.remoteTextEl.textContent = text;
+      this.remoteTextEl.style.fontStyle = isDraft ? 'italic' : 'normal';
+      this.remoteTextEl.style.opacity = isDraft ? '0.86' : '1';
+    }
+    if (this.remoteTagEl) {
+      this.remoteTagEl.textContent = isDraft ? 'أولي (يتحدّث...)' : 'مصحّح حسب الجملة والموضوع';
+      this.remoteTagEl.style.color = isDraft ? '#fbbf24' : '#34d399';
+    }
+  }
+
+  _renderLocal(text, isDraft) {
+    if (this.localTextEl) {
+      this.localTextEl.textContent = text;
+      this.localTextEl.style.fontStyle = isDraft ? 'italic' : 'normal';
+    }
+    if (this.localTagEl) {
+      this.localTagEl.textContent = isDraft ? 'قيد الاستماع' : 'منقّح';
+    }
+  }
+
+  reset() {
+    this.segments.clear();
+    if (this.remoteTextEl) this.remoteTextEl.textContent = '...';
+    if (this.localTextEl) this.localTextEl.textContent = '...';
+    if (this.remoteTagEl) this.remoteTagEl.textContent = '';
+    if (this.localTagEl) this.localTagEl.textContent = '';
+    this.setState('جاهز', '#fbbf24');
+  }
+}
+
+const smartCallEngine = new SmartCallEngine();
+
 const UI_ELEMENTS = ['topHeader', 'extraControls', 'chatContainer', 'inputRow', 'status', 'avatar-wrap'];
 function showAppUI() {
   UI_ELEMENTS.forEach(id => {
@@ -825,6 +1088,7 @@ function setModeUI(mode) {
     mediaBtn.style.display = 'flex'; voiceSelect.style.display = 'inline-block';
     if (transToggleBtnLocal) transToggleBtnLocal.style.display = 'none';
     if (transToggleBtnRoom) transToggleBtnRoom.style.display = 'block';
+    smartCallEngine.reset();
   }
   updateTranslatorUI();
 }
@@ -858,6 +1122,7 @@ async function cleanupAll() {
   if (isManualTranslating) stopManualTranslation();
   if (localRecorder && localRecorder.state === 'recording') localRecorder.stop();
   stopAudio();
+  smartCallEngine.reset();
   if (appMode === 'remote') {
     shouldReconnect = false; if (wsReconnectTimer) clearTimeout(wsReconnectTimer); stopPing(); if (ws) ws.close();
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -1037,11 +1302,13 @@ async function toggleLocalMic(speaker) {
         if (res.ok) {
           const data = await res.json();
           if (data.original && data.original.length > 1) {
-            addMsg(data.original, speaker === 'A' ? 'user-a' : 'user-b', lang);
+            const fixedOriginal = await smartCallEngine.refineTranscript(data.original, lang, targetLang);
+            const textToUse = fixedOriginal || data.original;
+            addMsg(textToUse, speaker === 'A' ? 'user-a' : 'user-b', lang);
             if (isTranslatorMode) {
               if (data.translated) { addMsg(`↳ ${data.translated}`, 'bot', targetLang); speak(data.translated, targetLang); }
             } else {
-              ask(data.original, lang, targetLang, speaker);
+              ask(textToUse, lang, targetLang, speaker);
             }
           }
         }
@@ -1112,6 +1379,7 @@ async function startManualTranslation() {
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     const startNewChunk = () => {
       let chunks = [];
+      const chunkId = 'local-' + Date.now();
       audioRecorder = new MediaRecorder(new MediaStream([filteredTrack]), { mimeType });
       audioRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
       audioRecorder.onstop = async () => {
@@ -1128,8 +1396,15 @@ async function startManualTranslation() {
           if (res.ok) {
             const data = await res.json();
             if (data.original && data.original.length > 1) {
-              addMsg(data.original, 'user-a', myLang);
-              sendRemoteMessage(data.original);
+              const cleanedText = await smartCallEngine.handleLocal({
+                segmentId: chunkId,
+                text: data.original,
+                isFinal: true,
+                sourceLang: myLang,
+                targetLang: myLang
+              });
+              const finalText = cleanedText || data.original;
+              sendRemoteMessage(finalText);
             }
           }
         } catch (e) {}
@@ -1182,7 +1457,11 @@ function stopManualTranslation() {
 sendBtn.addEventListener('click', () => {
   const t = inputEl.value.trim();
   if (appMode === 'remote') {
-    if (t) { addMsg(t, 'user-a', myLang); sendRemoteMessage(t); inputEl.value = ''; }
+    if (t) {
+      smartCallEngine.handleLocal({ text: t, isFinal: true, sourceLang: myLang, targetLang: myLang });
+      sendRemoteMessage(t);
+      inputEl.value = '';
+    }
   } else {
     if (t || attachedImageBase64) { addMsg(t, 'user-a', langA.value); ask(t, langA.value, langB.value, 'A'); inputEl.value = ''; }
   }
@@ -1723,7 +2002,15 @@ function connectWS(roomCode) {
 }
 function sendRemoteMessage(text) {
   if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
-  try { ws.send(JSON.stringify({ type: 'message', text, translate: !!isTranslatorMode })); } catch (e) {}
+  try {
+    ws.send(JSON.stringify({
+      type: 'message',
+      text,
+      translate: !!isTranslatorMode,
+      topic: smartCallEngine.getTopic(),
+      segment_id: 'remote-' + Date.now()
+    }));
+  } catch (e) {}
 }
 
 async function handleWSMessage(msg) {
@@ -1752,12 +2039,36 @@ async function handleWSMessage(msg) {
     if (onlineCount) onlineCount.textContent = '1/2';
     return;
   }
+  if (type === 'live_caption') {
+    if (msg.is_mine || appMode !== 'remote') return;
+    await smartCallEngine.handleRemote({
+      segmentId: msg.segment_id || 'stream-remote',
+      text: msg.text || '',
+      isFinal: !!msg.is_final,
+      sourceLang: msg.from_lang || 'auto',
+      targetLang: msg.target_lang || myLang,
+      speakFinal: !!msg.is_final && !msg.no_tts
+    });
+    return;
+  }
   if (type === 'translated') {
     if (msg.is_mine) return;
-    addMsg(msg.original || '', 'user-b', msg.from_lang || 'en');
-    if (isTranslatorMode && msg.translated && msg.translated !== msg.original) {
-      addMsg('↳ ' + msg.translated, 'bot', msg.target_lang || myLang);
-      if (!msg.no_tts) speak(msg.translated, msg.target_lang || myLang);
+    const sourceText = msg.original || msg.translated || '';
+    if (appMode === 'remote') {
+      await smartCallEngine.handleRemote({
+        segmentId: msg.segment_id || 'ws-msg-' + Date.now(),
+        text: sourceText,
+        isFinal: true,
+        sourceLang: msg.from_lang || 'auto',
+        targetLang: msg.target_lang || myLang,
+        speakFinal: isTranslatorMode && !msg.no_tts
+      });
+    } else {
+      addMsg(msg.original || '', 'user-b', msg.from_lang || 'en');
+      if (isTranslatorMode && msg.translated && msg.translated !== msg.original) {
+        addMsg('↳ ' + msg.translated, 'bot', msg.target_lang || myLang);
+        if (!msg.no_tts) speak(msg.translated, msg.target_lang || myLang);
+      }
     }
     return;
   }
@@ -1802,6 +2113,8 @@ async function connectRemote(roomCode, participantName, lang, isCaller, withVide
   callWithVideo = !!withVideo;
   isTranslatorMode = chTranslateEnabled;
   roomCodeLabel.textContent = peerName;
+  smartCallEngine.reset();
+  smartCallEngine.updateLang('auto', myLang);
   setModeUI('remote');
   setStatus('...');
   connectWS(currentRoomCode);
@@ -1862,10 +2175,13 @@ function renderChatMsgs() {
 }
 
 async function sendChatMessage(overrideText = null) {
-  const text = (overrideText !== null ? overrideText : ($('chInput').value || '')).trim();
-  if (!text || !chatOpenWith || !db || !currentUser) return;
+  const rawText = (overrideText !== null ? overrideText : ($('chInput').value || '')).trim();
+  if (!rawText || !chatOpenWith || !db || !currentUser) return;
   const targetLang = $('chLang').value || 'en';
   if (overrideText === null) $('chInput').value = '';
+  const text = overrideText !== null
+    ? ((await smartCallEngine.refineTranscript(rawText, myLang, targetLang)) || rawText)
+    : rawText;
   let translated = '';
 
   if (chTranslateEnabled && targetLang !== myLang) {
@@ -1909,7 +2225,7 @@ $('chMicBtn').addEventListener('click', async () => {
     return;
   }
   try {
-    chStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    chStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
     chRecorder = new MediaRecorder(chStream, { mimeType });
     chChunks = [];
